@@ -150,7 +150,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9bbeb3b19955c1347963c207efdeb95f, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   moveSpeed: 5
 --- !u!50 &792786075
@@ -265,7 +265,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.PlayerInput
   m_Actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_NotificationBehavior: 0
@@ -295,7 +295,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: db2489a6a4aff674b94262efc9ef1833, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInteraction
 --- !u!1 &1124265035
 GameObject:
@@ -308,6 +308,7 @@ GameObject:
   - component: {fileID: 1124265038}
   - component: {fileID: 1124265037}
   - component: {fileID: 1124265036}
+  - component: {fileID: 1124265039}
   m_Layer: 0
   m_Name: PC_Test
   m_TagString: Untagged
@@ -345,7 +346,7 @@ BoxCollider2D:
   m_CallbackLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
@@ -361,6 +362,19 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
+--- !u!114 &1124265039
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1124265035}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3d42914dde74de4b8cc0d1fb9e8735c, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  state: 0
 --- !u!212 &1124265037
 SpriteRenderer:
   serializedVersion: 3
@@ -540,7 +554,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
   m_RenderShadows: 1
   m_RequiresDepthTextureOption: 2
@@ -584,7 +598,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0c46bea8529e5214abcaeedf20d579a5, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::CameraFollow
   target: {fileID: 0}
   smoothSpeed: 5
