@@ -21,6 +21,7 @@ public sealed class Client : MonoBehaviour
     private Vector3 exitPosition;
 
     private ClientState state;
+    private bool outcomeRegistered;
 
     public void Initialize(
         ClientSpawner ownerSpawner,
@@ -77,8 +78,7 @@ public sealed class Client : MonoBehaviour
         targetPc = pc;
         seatPosition = targetPc.transform.position + new Vector3(0f, -0.8f, 0f);
         state = ClientState.MovingToPC;
-
-        Debug.Log($"{name}: клиент получил свободный ПК.");
+        Debug.Log($"{name}: client assigned to a free PC.");
     }
 
     private void UpdateWaiting()
@@ -92,7 +92,8 @@ public sealed class Client : MonoBehaviour
         }
 
         spawner?.RemoveFromQueue(this);
-        Debug.Log($"{name}: клиент не дождался свободного ПК и уходит.");
+        RegisterLostOutcome();
+        Debug.Log($"{name}: client left after waiting too long.");
         BeginLeaving();
     }
 
@@ -114,13 +115,13 @@ public sealed class Client : MonoBehaviour
         if (targetPc.TryOccupyReserved())
         {
             state = ClientState.Playing;
-            Debug.Log($"{name}: клиент начал играть.");
+            Debug.Log($"{name}: client started playing.");
         }
         else
         {
             targetPc.CancelReservation();
             targetPc = null;
-            Debug.Log($"{name}: назначенный ПК оказался недоступен.");
+            Debug.Log($"{name}: assigned PC became unavailable.");
             spawner?.ReturnToQueue(this);
         }
     }
@@ -132,7 +133,8 @@ public sealed class Client : MonoBehaviour
             return;
         }
 
-        Debug.Log($"{name}: клиент завершил посещение и уходит.");
+        RegisterServedOutcome();
+        Debug.Log($"{name}: client completed the visit and is leaving.");
         BeginLeaving();
     }
 
@@ -164,5 +166,43 @@ public sealed class Client : MonoBehaviour
             destination,
             moveSpeed * Time.deltaTime
         );
+    }
+
+    private void RegisterServedOutcome()
+    {
+        if (outcomeRegistered)
+        {
+            return;
+        }
+
+        outcomeRegistered = true;
+
+        if (ClubReputationManager.Instance != null)
+        {
+            ClubReputationManager.Instance.RegisterServedClient();
+        }
+        else
+        {
+            Debug.LogWarning("ClubReputationManager is missing from the scene.");
+        }
+    }
+
+    private void RegisterLostOutcome()
+    {
+        if (outcomeRegistered)
+        {
+            return;
+        }
+
+        outcomeRegistered = true;
+
+        if (ClubReputationManager.Instance != null)
+        {
+            ClubReputationManager.Instance.RegisterLostClient();
+        }
+        else
+        {
+            Debug.LogWarning("ClubReputationManager is missing from the scene.");
+        }
     }
 }

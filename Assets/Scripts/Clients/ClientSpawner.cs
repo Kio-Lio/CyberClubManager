@@ -69,7 +69,13 @@ public sealed class ClientSpawner : MonoBehaviour
 
         if (waitingClients.Count >= maxQueueSize)
         {
-            Debug.Log("Очередь заполнена. Новый клиент не вошел в клуб.");
+            Debug.Log("Queue is full. The new client did not enter the club.");
+
+            if (ClubReputationManager.Instance != null)
+            {
+                ClubReputationManager.Instance.RegisterLostClient();
+            }
+
             return;
         }
 
@@ -93,7 +99,7 @@ public sealed class ClientSpawner : MonoBehaviour
             GetQueuePosition(waitingClients.Count - 1)
         );
 
-        Debug.Log($"{clientObject.name}: новый клиент пришел в клуб.");
+        Debug.Log($"{clientObject.name}: new client entered the club.");
         RepositionQueue();
     }
 
