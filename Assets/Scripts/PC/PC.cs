@@ -1,4 +1,5 @@
-﻿using System.Collections;
+using System;
+using System.Collections;
 using UnityEngine;
 
 public enum PCState
@@ -33,6 +34,7 @@ public class PC : MonoBehaviour, IInteractable
     public bool IsFree => state == PCState.Free;
     public bool IsOccupied => state == PCState.Occupied;
     public bool IsBroken => state == PCState.Broken;
+    public event Action<PCState> StateChanged;
 
     private void Awake()
     {
@@ -67,8 +69,14 @@ public class PC : MonoBehaviour, IInteractable
 
     public void SetState(PCState newState)
     {
+        if (state == newState)
+        {
+            return;
+        }
+
         state = newState;
         UpdateVisual();
+        StateChanged?.Invoke(state);
     }
 
     public bool TryOccupy()
