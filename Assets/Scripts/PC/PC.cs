@@ -11,9 +11,15 @@ public enum PCState
 [RequireComponent(typeof(SpriteRenderer))]
 public class PC : MonoBehaviour, IInteractable
 {
+    [Header("Session Settings")]
     [SerializeField] private PCState state = PCState.Free;
     [SerializeField] private int sessionPrice = 100;
     [SerializeField] private float sessionDuration = 10f;
+
+    [Header("Breakdown Settings")]
+    [Range(0f, 1f)]
+    [SerializeField] private float breakdownChance = 0.25f;
+    [SerializeField] private int repairCost = 50;
 
     [Header("Visual Settings")]
     [SerializeField] private Color freeColor = Color.white;
@@ -51,7 +57,7 @@ public class PC : MonoBehaviour, IInteractable
                 Debug.Log("ПК занят. Клиент уже играет.");
                 break;
             case PCState.Broken:
-                Debug.Log("ПК сломан. Нужно починить.");
+                TryRepair();
                 break;
             default:
                 Debug.LogWarning($"Неизвестное состояние ПК: {state}");
@@ -112,9 +118,41 @@ public class PC : MonoBehaviour, IInteractable
             return;
         }
 
-        SetState(PCState.Free);
         sessionCoroutine = null;
-        Debug.Log("Клиент завершил игровую сессию. ПК снова свободен.");
+
+        if (Random.value < breakdownChance)
+        {
+            SetState(PCState.Broken);
+            Debug.Log($"{name}: игровая сессия завершена, но ПК сломался.");
+        }
+        else
+        {
+            SetState(PCState.Free);
+            Debug.Log($"{name}: игровая сессия завершена. ПК снова свободен.");
+        }
+    }
+
+    private void TryRepair()
+    {
+        if (!IsBroken)
+        {
+            return;
+        }
+
+        if (EconomyManager.Instance == null)
+        {
+            Debug.LogWarning("EconomyManager не найден. Ремонт невозможен.");
+            return;
+        }
+
+        if (!EconomyManager.Instance.SpendMoney(repairCost))
+        {
+            Debug.Log($"{name}: недостаточно денег для ремонта. Нужно {repairCost}.");
+            return;
+        }
+
+        SetState(PCState.Free);
+        Debug.Log($"{name}: ПК отремонтирован и снова доступен.");
     }
 
     private void UpdateVisual()

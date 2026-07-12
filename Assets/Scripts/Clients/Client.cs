@@ -35,7 +35,7 @@ public sealed class Client : MonoBehaviour
         }
 
         Debug.Log("Клиент начал играть.");
-        yield return new WaitUntil(() => targetPc == null || targetPc.IsFree);
+        yield return new WaitUntil(() => targetPc == null || !targetPc.IsOccupied);
         Debug.Log("Клиент уходит из клуба.");
         yield return MoveTo(exitPosition);
         Destroy(gameObject);
