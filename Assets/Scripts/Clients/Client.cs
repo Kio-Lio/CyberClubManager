@@ -1,54 +1,168 @@
-﻿using System.Collections;
 using UnityEngine;
 
 public sealed class Client : MonoBehaviour
 {
-    private PC targetPc;
-    private float moveSpeed;
-    private Vector3 exitPosition;
-
-    public void Initialize(PC pc, float speed, Vector3 exit)
+    private enum ClientState
     {
-        targetPc = pc;
-        moveSpeed = speed;
-        exitPosition = exit;
-        StartCoroutine(ClientRoutine());
+        Waiting,
+        MovingToPC,
+        Playing,
+        Leaving
     }
 
-    private IEnumerator ClientRoutine()
+    private ClientSpawner spawner;
+    private PC targetPc;
+
+    private float moveSpeed;
+    private float patienceRemaining;
+
+    private Vector3 waitingPosition;
+    private Vector3 seatPosition;
+    private Vector3 exitPosition;
+
+    private ClientState state;
+
+    public void Initialize(
+        ClientSpawner ownerSpawner,
+        float speed,
+        float patience,
+        Vector3 exit,
+        Vector3 initialWaitingPosition)
+    {
+        spawner = ownerSpawner;
+        moveSpeed = speed;
+        patienceRemaining = patience;
+        exitPosition = exit;
+        waitingPosition = initialWaitingPosition;
+        state = ClientState.Waiting;
+    }
+
+    private void Update()
+    {
+        switch (state)
+        {
+            case ClientState.Waiting:
+                UpdateWaiting();
+                break;
+            case ClientState.MovingToPC:
+                UpdateMovingToPC();
+                break;
+            case ClientState.Playing:
+                UpdatePlaying();
+                break;
+            case ClientState.Leaving:
+                UpdateLeaving();
+                break;
+        }
+    }
+
+    public void SetWaitingPosition(Vector3 newPosition)
+    {
+        waitingPosition = newPosition;
+    }
+
+    public void ResumeWaiting()
+    {
+        targetPc = null;
+        state = ClientState.Waiting;
+    }
+
+    public void AssignPC(PC pc)
+    {
+        if (pc == null)
+        {
+            return;
+        }
+
+        targetPc = pc;
+        seatPosition = targetPc.transform.position + new Vector3(0f, -0.8f, 0f);
+        state = ClientState.MovingToPC;
+
+        Debug.Log($"{name}: клиент получил свободный ПК.");
+    }
+
+    private void UpdateWaiting()
+    {
+        MoveTowards(waitingPosition);
+        patienceRemaining -= Time.deltaTime;
+
+        if (patienceRemaining > 0f)
+        {
+            return;
+        }
+
+        spawner?.RemoveFromQueue(this);
+        Debug.Log($"{name}: клиент не дождался свободного ПК и уходит.");
+        BeginLeaving();
+    }
+
+    private void UpdateMovingToPC()
     {
         if (targetPc == null)
         {
-            Destroy(gameObject);
-            yield break;
+            spawner?.ReturnToQueue(this);
+            return;
         }
 
-        Vector3 seatPosition = targetPc.transform.position + new Vector3(0f, -0.8f, 0f);
-        yield return MoveTo(seatPosition);
+        MoveTowards(seatPosition);
 
-        if (!targetPc.TryOccupy())
+        if (Vector3.Distance(transform.position, seatPosition) > 0.05f)
         {
-            Debug.Log("Клиент не смог занять ПК и уходит.");
-            yield return MoveTo(exitPosition);
-            Destroy(gameObject);
-            yield break;
+            return;
         }
 
-        Debug.Log("Клиент начал играть.");
-        yield return new WaitUntil(() => targetPc == null || !targetPc.IsOccupied);
-        Debug.Log("Клиент уходит из клуба.");
-        yield return MoveTo(exitPosition);
-        Destroy(gameObject);
+        if (targetPc.TryOccupyReserved())
+        {
+            state = ClientState.Playing;
+            Debug.Log($"{name}: клиент начал играть.");
+        }
+        else
+        {
+            targetPc.CancelReservation();
+            targetPc = null;
+            Debug.Log($"{name}: назначенный ПК оказался недоступен.");
+            spawner?.ReturnToQueue(this);
+        }
     }
 
-    private IEnumerator MoveTo(Vector3 targetPosition)
+    private void UpdatePlaying()
     {
-        while (Vector3.Distance(transform.position, targetPosition) > 0.05f)
+        if (targetPc != null && targetPc.IsOccupied)
         {
-            transform.position = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
-            yield return null;
+            return;
         }
 
-        transform.position = targetPosition;
+        Debug.Log($"{name}: клиент завершил посещение и уходит.");
+        BeginLeaving();
+    }
+
+    private void UpdateLeaving()
+    {
+        MoveTowards(exitPosition);
+
+        if (Vector3.Distance(transform.position, exitPosition) <= 0.05f)
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    private void BeginLeaving()
+    {
+        if (targetPc != null)
+        {
+            targetPc.CancelReservation();
+            targetPc = null;
+        }
+
+        state = ClientState.Leaving;
+    }
+
+    private void MoveTowards(Vector3 destination)
+    {
+        transform.position = Vector3.MoveTowards(
+            transform.position,
+            destination,
+            moveSpeed * Time.deltaTime
+        );
     }
 }

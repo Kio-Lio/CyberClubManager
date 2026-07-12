@@ -1,35 +1,79 @@
-﻿using UnityEngine;
+using System.Collections.Generic;
+using UnityEngine;
 
 public sealed class ClientSpawner : MonoBehaviour
 {
+    [Header("Spawn Settings")]
     [SerializeField] private float spawnInterval = 5f;
+    [SerializeField] private int maxQueueSize = 5;
+
+    [Header("Client Settings")]
     [SerializeField] private float clientMoveSpeed = 2f;
+    [SerializeField] private float clientPatience = 15f;
     [SerializeField] private Color clientColor = Color.cyan;
+
+    [Header("Positions")]
+    [SerializeField] private Vector3 queueStartOffset = new Vector3(1f, 0f, 0f);
+    [SerializeField] private Vector3 queueSpacing = new Vector3(0f, -0.8f, 0f);
     [SerializeField] private Vector3 exitPosition = new Vector3(-6f, 0f, 0f);
 
-    private float timer;
+    private readonly List<Client> waitingClients = new();
+
+    private float spawnTimer;
+    private int clientNumber;
     private Sprite generatedClientSprite;
 
     private void Update()
     {
-        timer += Time.deltaTime;
-        if (timer >= spawnInterval)
+        spawnTimer += Time.deltaTime;
+
+        if (spawnTimer >= spawnInterval)
         {
-            timer = 0f;
+            spawnTimer = 0f;
             TrySpawnClient();
         }
+
+        AssignAvailablePCs();
+    }
+
+    public void RemoveFromQueue(Client client)
+    {
+        if (client == null)
+        {
+            return;
+        }
+
+        waitingClients.Remove(client);
+        RepositionQueue();
+    }
+
+    public void ReturnToQueue(Client client)
+    {
+        if (client == null)
+        {
+            return;
+        }
+
+        if (!waitingClients.Contains(client))
+        {
+            waitingClients.Add(client);
+        }
+
+        client.ResumeWaiting();
+        RepositionQueue();
     }
 
     private void TrySpawnClient()
     {
-        PC freePc = FindFreePc();
-        if (freePc == null)
+        RemoveMissingClients();
+
+        if (waitingClients.Count >= maxQueueSize)
         {
-            Debug.Log("Нет свободных ПК для нового клиента.");
+            Debug.Log("Очередь заполнена. Новый клиент не вошел в клуб.");
             return;
         }
 
-        GameObject clientObject = new GameObject("Client");
+        GameObject clientObject = new GameObject($"Client_{++clientNumber:00}");
         clientObject.transform.position = transform.position;
         clientObject.transform.localScale = new Vector3(0.6f, 0.6f, 1f);
 
@@ -39,22 +83,84 @@ public sealed class ClientSpawner : MonoBehaviour
         spriteRenderer.sortingOrder = 50;
 
         Client client = clientObject.AddComponent<Client>();
-        client.Initialize(freePc, clientMoveSpeed, exitPosition);
-        Debug.Log("Новый клиент пришел в клуб.");
+        waitingClients.Add(client);
+
+        client.Initialize(
+            this,
+            clientMoveSpeed,
+            clientPatience,
+            exitPosition,
+            GetQueuePosition(waitingClients.Count - 1)
+        );
+
+        Debug.Log($"{clientObject.name}: новый клиент пришел в клуб.");
+        RepositionQueue();
     }
 
-    private PC FindFreePc()
+    private void AssignAvailablePCs()
     {
-        PC[] pcs = FindObjectsByType<PC>(FindObjectsSortMode.None);
+        RemoveMissingClients();
+
+        while (waitingClients.Count > 0)
+        {
+            PC availablePc = FindAvailablePC();
+            if (availablePc == null)
+            {
+                return;
+            }
+
+            if (!availablePc.TryReserve())
+            {
+                continue;
+            }
+
+            Client client = waitingClients[0];
+            waitingClients.RemoveAt(0);
+
+            if (client == null)
+            {
+                availablePc.CancelReservation();
+                continue;
+            }
+
+            client.AssignPC(availablePc);
+            RepositionQueue();
+        }
+    }
+
+    private PC FindAvailablePC()
+    {
+        PC[] pcs = FindObjectsByType<PC>();
+
         foreach (PC pc in pcs)
         {
-            if (pc.IsFree)
+            if (pc != null && pc.IsAvailable)
             {
                 return pc;
             }
         }
 
         return null;
+    }
+
+    private void RepositionQueue()
+    {
+        RemoveMissingClients();
+
+        for (int i = 0; i < waitingClients.Count; i++)
+        {
+            waitingClients[i].SetWaitingPosition(GetQueuePosition(i));
+        }
+    }
+
+    private Vector3 GetQueuePosition(int index)
+    {
+        return transform.position + queueStartOffset + queueSpacing * index;
+    }
+
+    private void RemoveMissingClients()
+    {
+        waitingClients.RemoveAll(client => client == null);
     }
 
     private Sprite GetGeneratedClientSprite()
@@ -64,8 +170,9 @@ public sealed class ClientSpawner : MonoBehaviour
             return generatedClientSprite;
         }
 
-        Texture2D texture = new Texture2D(16, 16, TextureFormat.RGBA32, false);
+        Texture2D texture = new Texture2D(16, 16);
         Color[] pixels = new Color[16 * 16];
+
         for (int i = 0; i < pixels.Length; i++)
         {
             pixels[i] = Color.white;
@@ -73,7 +180,14 @@ public sealed class ClientSpawner : MonoBehaviour
 
         texture.SetPixels(pixels);
         texture.Apply();
-        generatedClientSprite = Sprite.Create(texture, new Rect(0, 0, 16, 16), new Vector2(0.5f, 0.5f), 16f);
+
+        generatedClientSprite = Sprite.Create(
+            texture,
+            new Rect(0f, 0f, 16f, 16f),
+            new Vector2(0.5f, 0.5f),
+            16f
+        );
+
         return generatedClientSprite;
     }
 }

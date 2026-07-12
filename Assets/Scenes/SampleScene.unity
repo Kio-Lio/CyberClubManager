@@ -514,8 +514,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spawnInterval: 5
+  maxQueueSize: 5
   clientMoveSpeed: 2
+  clientPatience: 15
   clientColor: {r: 0, g: 1, b: 1, a: 1}
+  queueStartOffset: {x: 1, y: 0, z: 0}
+  queueSpacing: {x: 0, y: -0.8, z: 0}
   exitPosition: {x: -6, y: 0, z: 0}
 --- !u!1 &1200000001
 GameObject:

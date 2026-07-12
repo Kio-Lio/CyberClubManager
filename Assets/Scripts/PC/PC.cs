@@ -22,6 +22,8 @@ public class PC : MonoBehaviour, IInteractable
     [SerializeField] private float breakdownChance = 0.25f;
     [SerializeField] private int repairCost = 50;
 
+    private bool isReserved;
+
     [Header("Visual Settings")]
     [SerializeField] private Color freeColor = Color.white;
     [SerializeField] private Color occupiedColor = Color.yellow;
@@ -34,6 +36,7 @@ public class PC : MonoBehaviour, IInteractable
     public bool IsFree => state == PCState.Free;
     public bool IsOccupied => state == PCState.Occupied;
     public bool IsBroken => state == PCState.Broken;
+    public bool IsAvailable => IsFree && !isReserved;
     public event Action<PCState> StateChanged;
 
     private void Awake()
@@ -53,7 +56,14 @@ public class PC : MonoBehaviour, IInteractable
         switch (state)
         {
             case PCState.Free:
-                TryOccupy();
+                if (isReserved)
+                {
+                    Debug.Log($"{name}: ПК уже назначен ожидающему клиенту.");
+                }
+                else
+                {
+                    TryOccupy();
+                }
                 break;
             case PCState.Occupied:
                 Debug.Log("ПК занят. Клиент уже играет.");
@@ -75,17 +85,54 @@ public class PC : MonoBehaviour, IInteractable
         }
 
         state = newState;
+
+        if (state != PCState.Free)
+        {
+            isReserved = false;
+        }
+
         UpdateVisual();
         StateChanged?.Invoke(state);
     }
 
     public bool TryOccupy()
     {
-        if (!IsFree)
+        if (!IsAvailable)
         {
             return false;
         }
 
+        Occupy();
+        return true;
+    }
+
+    public bool TryReserve()
+    {
+        if (!IsAvailable)
+        {
+            return false;
+        }
+
+        isReserved = true;
+        return true;
+    }
+
+    public void CancelReservation()
+    {
+        if (IsFree)
+        {
+            isReserved = false;
+        }
+    }
+
+    public bool TryOccupyReserved()
+    {
+        if (!IsFree || !isReserved)
+        {
+            return false;
+        }
+
+        isReserved = false;
         Occupy();
         return true;
     }
@@ -128,7 +175,7 @@ public class PC : MonoBehaviour, IInteractable
 
         sessionCoroutine = null;
 
-        if (Random.value < breakdownChance)
+        if (UnityEngine.Random.value < breakdownChance)
         {
             SetState(PCState.Broken);
             Debug.Log($"{name}: игровая сессия завершена, но ПК сломался.");

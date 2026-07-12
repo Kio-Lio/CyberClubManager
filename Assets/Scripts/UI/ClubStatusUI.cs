@@ -15,7 +15,7 @@ public sealed class ClubStatusUI : MonoBehaviour
 
     private void Start()
     {
-        pcs = FindObjectsByType<PC>(FindObjectsSortMode.None);
+        pcs = FindObjectsByType<PC>();
 
         foreach (PC pc in pcs)
         {
