@@ -19,7 +19,7 @@ public static class CyberClubSceneSetup
 
         EnsureObjectWithComponent<EconomyManager>("EconomyManager", Vector3.zero);
         EnsureObjectWithComponent<EconomyUI>("EconomyUI", Vector3.zero);
-        EnsurePcTest();
+        CreatePCs();
         EnsureObjectWithComponent<ClientSpawner>("ClientSpawner", new Vector3(-6f, 0f, 0f));
 
         EditorSceneManager.MarkSceneDirty(scene);
@@ -43,30 +43,49 @@ public static class CyberClubSceneSetup
         }
     }
 
-    private static void EnsurePcTest()
+    private static void CreatePCs()
     {
-        GameObject pcObject = GameObject.Find("PC_Test");
-        if (pcObject == null)
+        GameObject legacyPc = GameObject.Find("PC_Test");
+        if (legacyPc != null)
         {
-            pcObject = new GameObject("PC_Test");
-            pcObject.transform.position = new Vector3(2.2f, 1.4f, 0f);
+            Object.DestroyImmediate(legacyPc);
         }
 
-        SpriteRenderer renderer = pcObject.GetComponent<SpriteRenderer>() ?? pcObject.AddComponent<SpriteRenderer>();
-        if (renderer.sprite == null)
+        Vector3[] pcPositions =
         {
-            renderer.sprite = CreateRuntimeSquareSprite();
-        }
+            new Vector3(2f, 2f, 0f),
+            new Vector3(4f, 2f, 0f),
+            new Vector3(6f, 2f, 0f),
+            new Vector3(2f, 0f, 0f),
+            new Vector3(4f, 0f, 0f),
+        };
 
-        if (pcObject.GetComponent<BoxCollider2D>() == null)
+        for (int i = 0; i < pcPositions.Length; i++)
         {
-            BoxCollider2D collider = pcObject.AddComponent<BoxCollider2D>();
-            collider.isTrigger = true;
-        }
+            GameObject pcObject = GameObject.Find($"PC_{i + 1:00}");
+            if (pcObject == null)
+            {
+                pcObject = new GameObject($"PC_{i + 1:00}");
+            }
 
-        if (pcObject.GetComponent<PC>() == null)
-        {
-            pcObject.AddComponent<PC>();
+            pcObject.transform.position = pcPositions[i];
+            pcObject.transform.localScale = Vector3.one;
+
+            SpriteRenderer renderer = pcObject.GetComponent<SpriteRenderer>() ?? pcObject.AddComponent<SpriteRenderer>();
+            if (renderer.sprite == null)
+            {
+                renderer.sprite = CreateRuntimeSquareSprite();
+            }
+
+            renderer.color = Color.white;
+
+            BoxCollider2D collider = pcObject.GetComponent<BoxCollider2D>() ?? pcObject.AddComponent<BoxCollider2D>();
+            collider.isTrigger = false;
+
+            if (pcObject.GetComponent<PC>() == null)
+            {
+                pcObject.AddComponent<PC>();
+            }
         }
     }
 
