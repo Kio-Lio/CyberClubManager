@@ -20,12 +20,14 @@ public static class CyberClubSceneSetup
         EnsureObjectWithComponent<EconomyManager>("EconomyManager", Vector3.zero);
         EnsureObjectWithComponent<ClubReputationManager>("ClubReputationManager", Vector3.zero);
         EnsureObjectWithComponent<GameDayManager>("GameDayManager", Vector3.zero);
+        EnsureObjectWithComponent<BankruptcyManager>("BankruptcyManager", Vector3.zero);
         CreatePCs();
         EnsureObjectWithComponent<ClientSpawner>("ClientSpawner", new Vector3(-6f, 0f, 0f));
         EnsureObjectWithComponent<EconomyUI>("EconomyUI", Vector3.zero);
         EnsureObjectWithComponent<ClubStatusUI>("ClubStatusUI", Vector3.zero);
         EnsureObjectWithComponent<ReputationUI>("ReputationUI", Vector3.zero);
         EnsureObjectWithComponent<GameDayUI>("GameDayUI", Vector3.zero);
+        EnsureObjectWithComponent<BankruptcyUI>("BankruptcyUI", Vector3.zero);
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
