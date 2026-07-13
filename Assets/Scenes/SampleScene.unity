@@ -339,6 +339,52 @@ Sprite:
   m_Bones: []
   m_ScriptableObjects: []
   m_SpriteID: 
+--- !u!1 &246988174
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 246988176}
+  - component: {fileID: 246988175}
+  m_Layer: 0
+  m_Name: PCTierUI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &246988175
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 246988174}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b64e9aa5d5b4d03a63c64f0973125d2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PCTierUI
+  fontSize: 24
+  screenPosition: {x: 20, y: 265}
+--- !u!4 &246988176
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 246988174}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &407970926
 GameObject:
   m_ObjectHideFlags: 0
@@ -370,7 +416,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameDayManager
   dayDuration: 120
   fixedDailyCost: 200
-  electricityCostPerPC: 20
 --- !u!4 &407970928
 Transform:
   m_ObjectHideFlags: 0
@@ -1333,6 +1378,8 @@ MonoBehaviour:
   state: 0
   sessionPrice: 100
   sessionDuration: 10
+  tier: 0
+  dailyElectricityCost: 20
   breakdownChance: 0.25
   repairCost: 50
   freeColor: {r: 1, g: 1, b: 1, a: 1}
@@ -1493,6 +1540,8 @@ MonoBehaviour:
   state: 0
   sessionPrice: 100
   sessionDuration: 10
+  tier: 0
+  dailyElectricityCost: 20
   breakdownChance: 0.25
   repairCost: 50
   freeColor: {r: 1, g: 1, b: 1, a: 1}
@@ -1653,6 +1702,8 @@ MonoBehaviour:
   state: 0
   sessionPrice: 100
   sessionDuration: 10
+  tier: 0
+  dailyElectricityCost: 20
   breakdownChance: 0.25
   repairCost: 50
   freeColor: {r: 1, g: 1, b: 1, a: 1}
@@ -1813,6 +1864,8 @@ MonoBehaviour:
   state: 0
   sessionPrice: 100
   sessionDuration: 10
+  tier: 0
+  dailyElectricityCost: 20
   breakdownChance: 0.25
   repairCost: 50
   freeColor: {r: 1, g: 1, b: 1, a: 1}
@@ -1973,6 +2026,8 @@ MonoBehaviour:
   state: 0
   sessionPrice: 100
   sessionDuration: 10
+  tier: 0
+  dailyElectricityCost: 20
   breakdownChance: 0.25
   repairCost: 50
   freeColor: {r: 1, g: 1, b: 1, a: 1}
@@ -2293,3 +2348,4 @@ SceneRoots:
   - {fileID: 624240993}
   - {fileID: 665560412}
   - {fileID: 724427039}
+  - {fileID: 246988176}

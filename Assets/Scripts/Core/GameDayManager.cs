@@ -10,7 +10,6 @@ public sealed class GameDayManager : MonoBehaviour
 
     [Header("Operating Expenses")]
     [SerializeField] private int fixedDailyCost = 200;
-    [SerializeField] private int electricityCostPerPC = 20;
 
     private int currentDay = 1;
     private float timeRemaining;
@@ -90,7 +89,17 @@ public sealed class GameDayManager : MonoBehaviour
     private int CalculateOperatingExpenses()
     {
         PC[] pcs = FindObjectsByType<PC>();
-        return fixedDailyCost + pcs.Length * electricityCostPerPC;
+        int electricityExpenses = 0;
+
+        foreach (PC pc in pcs)
+        {
+            if (pc != null)
+            {
+                electricityExpenses += pc.DailyElectricityCost;
+            }
+        }
+
+        return fixedDailyCost + electricityExpenses;
     }
 
     private void SaveEconomySnapshot()
@@ -110,6 +119,5 @@ public sealed class GameDayManager : MonoBehaviour
     {
         dayDuration = Mathf.Max(1f, dayDuration);
         fixedDailyCost = Mathf.Max(0, fixedDailyCost);
-        electricityCostPerPC = Mathf.Max(0, electricityCostPerPC);
     }
 }

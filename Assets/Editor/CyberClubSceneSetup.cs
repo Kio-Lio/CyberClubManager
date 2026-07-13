@@ -31,6 +31,7 @@ public static class CyberClubSceneSetup
         EnsureObjectWithComponent<GameDayUI>("GameDayUI", Vector3.zero);
         EnsureObjectWithComponent<BankruptcyUI>("BankruptcyUI", Vector3.zero);
         EnsureObjectWithComponent<ExpansionUI>("ExpansionUI", Vector3.zero);
+        EnsureObjectWithComponent<PCTierUI>("PCTierUI", Vector3.zero);
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
