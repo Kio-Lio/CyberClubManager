@@ -8,6 +8,8 @@ public sealed class EconomyManager : MonoBehaviour
     [SerializeField] private int money = 0;
 
     public int Money => money;
+    public int TotalIncome { get; private set; }
+    public int TotalExpenses { get; private set; }
     public event Action<int> MoneyChanged;
 
     private void Awake()
@@ -30,6 +32,7 @@ public sealed class EconomyManager : MonoBehaviour
         }
 
         money += amount;
+        TotalIncome += amount;
         Debug.Log($"Получено денег: {amount}. Баланс клуба: {money}");
         MoneyChanged?.Invoke(money);
     }
@@ -49,8 +52,24 @@ public sealed class EconomyManager : MonoBehaviour
         }
 
         money -= amount;
+        TotalExpenses += amount;
         Debug.Log($"Потрачено денег: {amount}. Баланс клуба: {money}");
         MoneyChanged?.Invoke(money);
         return true;
+    }
+
+    public void ApplyMandatoryExpense(int amount)
+    {
+        if (amount <= 0)
+        {
+            Debug.LogWarning("Обязательный расход должен быть больше нуля.");
+            return;
+        }
+
+        money -= amount;
+        TotalExpenses += amount;
+
+        Debug.Log($"Обязательные расходы: {amount}. Баланс клуба: {money}");
+        MoneyChanged?.Invoke(money);
     }
 }
