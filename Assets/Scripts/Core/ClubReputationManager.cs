@@ -16,6 +16,7 @@ public sealed class ClubReputationManager : MonoBehaviour
     public int Reputation => reputation;
     public int ServedClients => servedClients;
     public int LostClients => lostClients;
+    public float NormalizedReputation => reputation / 100f;
 
     public event Action StatusChanged;
 

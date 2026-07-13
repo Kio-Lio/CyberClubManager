@@ -5,6 +5,8 @@ public sealed class ClientSpawner : MonoBehaviour
 {
     [Header("Spawn Settings")]
     [SerializeField] private float spawnInterval = 5f;
+    [SerializeField] private float minSpawnInterval = 2f;
+    [SerializeField] private float maxSpawnInterval = 8f;
     [SerializeField] private int maxQueueSize = 5;
 
     [Header("Client Settings")]
@@ -20,14 +22,66 @@ public sealed class ClientSpawner : MonoBehaviour
     private readonly List<Client> waitingClients = new();
 
     private float spawnTimer;
+    private float currentSpawnInterval;
     private int clientNumber;
     private Sprite generatedClientSprite;
+
+    private void Start()
+    {
+        if (ClubReputationManager.Instance != null)
+        {
+            ClubReputationManager.Instance.StatusChanged += RefreshSpawnInterval;
+        }
+
+        RefreshSpawnInterval();
+    }
+
+    private void OnDestroy()
+    {
+        if (ClubReputationManager.Instance != null)
+        {
+            ClubReputationManager.Instance.StatusChanged -= RefreshSpawnInterval;
+        }
+    }
+
+    private void OnValidate()
+    {
+        spawnInterval = Mathf.Max(0.1f, spawnInterval);
+        minSpawnInterval = Mathf.Max(0.1f, minSpawnInterval);
+        maxSpawnInterval = Mathf.Max(minSpawnInterval, maxSpawnInterval);
+    }
+
+    private void RefreshSpawnInterval()
+    {
+        if (ClubReputationManager.Instance == null)
+        {
+            currentSpawnInterval = spawnInterval;
+            Debug.LogWarning(
+                "ClubReputationManager is missing. " +
+                $"Using the default spawn interval: {currentSpawnInterval:F1} sec."
+            );
+            return;
+        }
+
+        float reputation = ClubReputationManager.Instance.NormalizedReputation;
+        currentSpawnInterval = Mathf.Lerp(
+            maxSpawnInterval,
+            minSpawnInterval,
+            reputation
+        );
+
+        Debug.Log(
+            "Client demand updated. " +
+            $"Reputation: {ClubReputationManager.Instance.Reputation}/100. " +
+            $"Spawn interval: {currentSpawnInterval:F1} sec."
+        );
+    }
 
     private void Update()
     {
         spawnTimer += Time.deltaTime;
 
-        if (spawnTimer >= spawnInterval)
+        if (spawnTimer >= currentSpawnInterval)
         {
             spawnTimer = 0f;
             TrySpawnClient();
