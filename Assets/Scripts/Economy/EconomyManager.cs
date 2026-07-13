@@ -12,6 +12,17 @@ public sealed class EconomyManager : MonoBehaviour
     public int TotalExpenses { get; private set; }
     public event Action<int> MoneyChanged;
 
+    public void RestoreState(
+        int savedMoney,
+        int savedTotalIncome,
+        int savedTotalExpenses)
+    {
+        money = savedMoney;
+        TotalIncome = Mathf.Max(0, savedTotalIncome);
+        TotalExpenses = Mathf.Max(0, savedTotalExpenses);
+        MoneyChanged?.Invoke(money);
+    }
+
     private void Awake()
     {
         if (Instance != null && Instance != this)

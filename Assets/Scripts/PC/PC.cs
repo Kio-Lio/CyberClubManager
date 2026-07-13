@@ -141,6 +141,16 @@ public class PC : MonoBehaviour, IInteractable
         };
     }
 
+    public void RestoreTier(PCTier savedTier)
+    {
+        if (!Enum.IsDefined(typeof(PCTier), savedTier))
+        {
+            savedTier = PCTier.Basic;
+        }
+
+        ApplyTier(savedTier);
+    }
+
     public void SetState(PCState newState)
     {
         if (state == newState)

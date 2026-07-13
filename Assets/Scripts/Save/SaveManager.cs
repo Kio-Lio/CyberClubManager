@@ -1,0 +1,314 @@
+using System;
+using System.Collections;
+using System.IO;
+using UnityEngine;
+
+public class SaveManager : MonoBehaviour
+{
+    private const int CurrentSaveVersion = 1;
+    private const string SaveFileName = "cyber_club_save.json";
+
+    private bool suppressSaving;
+    private Coroutine pendingSaveCoroutine;
+
+    private string SavePath =>
+        Path.Combine(Application.persistentDataPath, SaveFileName);
+
+    private void Start()
+    {
+        LoadGame();
+
+        if (GameDayManager.Instance != null)
+        {
+            GameDayManager.Instance.DayEnded += OnDayEnded;
+        }
+
+        if (BankruptcyManager.Instance != null)
+        {
+            BankruptcyManager.Instance.GameOverTriggered += OnGameOverTriggered;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (GameDayManager.Instance != null)
+        {
+            GameDayManager.Instance.DayEnded -= OnDayEnded;
+        }
+
+        if (BankruptcyManager.Instance != null)
+        {
+            BankruptcyManager.Instance.GameOverTriggered -= OnGameOverTriggered;
+        }
+    }
+
+    private void OnApplicationQuit()
+    {
+        SaveGame();
+    }
+
+    private void OnApplicationPause(bool isPaused)
+    {
+        if (isPaused)
+        {
+            SaveGame();
+        }
+    }
+
+    private void OnDayEnded(int completedDay, int income, int expenses, int profit)
+    {
+        if (pendingSaveCoroutine != null)
+        {
+            StopCoroutine(pendingSaveCoroutine);
+        }
+
+        pendingSaveCoroutine = StartCoroutine(SaveAfterDayEnd());
+    }
+
+    private IEnumerator SaveAfterDayEnd()
+    {
+        // Let every DayEnded handler, including bankruptcy tracking, finish first.
+        yield return null;
+
+        pendingSaveCoroutine = null;
+        SaveGame();
+    }
+
+    private void OnGameOverTriggered()
+    {
+        suppressSaving = true;
+        DeleteSave();
+
+        Debug.Log(
+            "Сохранение удалено после банкротства. " +
+            "Следующий запуск начнется с новой игры."
+        );
+    }
+
+    [ContextMenu("Save Game")]
+    public void SaveGame()
+    {
+        if (suppressSaving)
+        {
+            return;
+        }
+
+        if (!CanSave())
+        {
+            Debug.LogWarning(
+                "Сохранение невозможно: не все игровые менеджеры доступны."
+            );
+            return;
+        }
+
+        GameSaveData data = CreateSaveData();
+
+        try
+        {
+            string json = JsonUtility.ToJson(data, true);
+            File.WriteAllText(SavePath, json);
+            Debug.Log($"Игра сохранена: {SavePath}");
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError($"Ошибка сохранения игры: {exception.Message}");
+        }
+    }
+
+    private bool CanSave()
+    {
+        return EconomyManager.Instance != null &&
+               ClubReputationManager.Instance != null &&
+               GameDayManager.Instance != null &&
+               BankruptcyManager.Instance != null &&
+               PCExpansionManager.Instance != null;
+    }
+
+    private GameSaveData CreateSaveData()
+    {
+        EconomyManager economy = EconomyManager.Instance;
+        ClubReputationManager reputation = ClubReputationManager.Instance;
+        GameDayManager gameDay = GameDayManager.Instance;
+        BankruptcyManager bankruptcy = BankruptcyManager.Instance;
+        PCExpansionManager expansion = PCExpansionManager.Instance;
+
+        GameSaveData data = new GameSaveData
+        {
+            version = CurrentSaveVersion,
+            money = economy.Money,
+            totalIncome = economy.TotalIncome,
+            totalExpenses = economy.TotalExpenses,
+            reputation = reputation.Reputation,
+            servedClients = reputation.ServedClients,
+            lostClients = reputation.LostClients,
+            currentDay = gameDay.CurrentDay,
+            timeRemaining = gameDay.TimeRemaining,
+            incomeAtDayStart = gameDay.IncomeAtDayStart,
+            expensesAtDayStart = gameDay.ExpensesAtDayStart,
+            consecutiveDebtDays = bankruptcy.ConsecutiveDebtDays,
+            purchasedPCCount = expansion.PurchasedPCCount
+        };
+
+        PC[] pcs = FindObjectsByType<PC>();
+        foreach (PC pc in pcs)
+        {
+            if (pc == null)
+            {
+                continue;
+            }
+
+            data.pcs.Add(
+                new PCSaveData
+                {
+                    objectName = pc.name,
+                    tier = (int)pc.Tier
+                }
+            );
+        }
+
+        return data;
+    }
+
+    private void LoadGame()
+    {
+        if (!File.Exists(SavePath))
+        {
+            Debug.Log("Сохранение не найдено. Начата новая игра.");
+            return;
+        }
+
+        try
+        {
+            string json = File.ReadAllText(SavePath);
+            GameSaveData data = JsonUtility.FromJson<GameSaveData>(json);
+
+            if (data == null)
+            {
+                Debug.LogError("Файл сохранения не содержит данных.");
+                return;
+            }
+
+            if (data.version > CurrentSaveVersion)
+            {
+                Debug.LogError(
+                    "Сохранение создано более новой версией игры и не может быть загружено."
+                );
+                return;
+            }
+
+            RestoreGame(data);
+            Debug.Log($"Игра загружена: {SavePath}");
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError($"Ошибка загрузки игры: {exception.Message}");
+        }
+    }
+
+    private void RestoreGame(GameSaveData data)
+    {
+        if (!CanSave())
+        {
+            Debug.LogWarning(
+                "Загрузка невозможна: не все игровые менеджеры доступны."
+            );
+            return;
+        }
+
+        EconomyManager.Instance.RestoreState(
+            data.money,
+            data.totalIncome,
+            data.totalExpenses
+        );
+
+        ClubReputationManager.Instance.RestoreState(
+            data.reputation,
+            data.servedClients,
+            data.lostClients
+        );
+
+        GameDayManager.Instance.RestoreState(
+            data.currentDay,
+            data.timeRemaining,
+            data.incomeAtDayStart,
+            data.expensesAtDayStart
+        );
+
+        BankruptcyManager.Instance.RestoreState(data.consecutiveDebtDays);
+        PCExpansionManager.Instance.RestorePurchasedPCs(data.purchasedPCCount);
+        RestorePCTiers(data);
+    }
+
+    private void RestorePCTiers(GameSaveData data)
+    {
+        PC[] existingPCs = FindObjectsByType<PC>();
+
+        foreach (PC pc in existingPCs)
+        {
+            if (pc == null)
+            {
+                continue;
+            }
+
+            pc.CancelReservation();
+            pc.SetState(PCState.Free);
+        }
+
+        if (data.pcs == null)
+        {
+            return;
+        }
+
+        foreach (PCSaveData pcData in data.pcs)
+        {
+            if (pcData == null || string.IsNullOrWhiteSpace(pcData.objectName))
+            {
+                continue;
+            }
+
+            PC targetPC = null;
+            foreach (PC pc in existingPCs)
+            {
+                if (pc != null && pc.name == pcData.objectName)
+                {
+                    targetPC = pc;
+                    break;
+                }
+            }
+
+            if (targetPC == null)
+            {
+                Debug.LogWarning($"ПК из сохранения не найден: {pcData.objectName}.");
+                continue;
+            }
+
+            int tierValue = Mathf.Clamp(
+                pcData.tier,
+                (int)PCTier.Basic,
+                (int)PCTier.Premium
+            );
+
+            targetPC.RestoreTier((PCTier)tierValue);
+        }
+    }
+
+    [ContextMenu("Delete Save")]
+    public void DeleteSave()
+    {
+        try
+        {
+            if (!File.Exists(SavePath))
+            {
+                Debug.Log("Файл сохранения отсутствует.");
+                return;
+            }
+
+            File.Delete(SavePath);
+            Debug.Log("Файл сохранения удален.");
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError($"Ошибка удаления сохранения: {exception.Message}");
+        }
+    }
+}

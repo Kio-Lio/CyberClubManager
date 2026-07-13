@@ -21,6 +21,7 @@ public sealed class PCExpansionManager : MonoBehaviour
     private Sprite generatedPCSprite;
 
     public int PurchaseCost => pcPurchaseCost;
+    public int PurchasedPCCount => nextSlotIndex;
     public int RemainingSlots =>
         Mathf.Max(0, expansionPositions.Length - nextSlotIndex);
     public bool HasAvailableSlot => nextSlotIndex < expansionPositions.Length;
@@ -82,6 +83,23 @@ public sealed class PCExpansionManager : MonoBehaviour
 
         StatusChanged?.Invoke();
         return true;
+    }
+
+    public void RestorePurchasedPCs(int savedPurchasedPCCount)
+    {
+        int targetCount = Mathf.Clamp(
+            savedPurchasedPCCount,
+            0,
+            expansionPositions.Length
+        );
+
+        while (nextSlotIndex < targetCount)
+        {
+            CreatePC(expansionPositions[nextSlotIndex]);
+            nextSlotIndex++;
+        }
+
+        StatusChanged?.Invoke();
     }
 
     private void CreatePC(Vector3 position)

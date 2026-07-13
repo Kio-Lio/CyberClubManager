@@ -15,10 +15,13 @@ public sealed class GameDayManager : MonoBehaviour
     private float timeRemaining;
     private int incomeAtDayStart;
     private int expensesAtDayStart;
+    private bool stateRestored;
 
     public int CurrentDay => currentDay;
     public float TimeRemaining => timeRemaining;
     public float DayDuration => dayDuration;
+    public int IncomeAtDayStart => incomeAtDayStart;
+    public int ExpensesAtDayStart => expensesAtDayStart;
 
     public event Action<int, int, int, int> DayEnded;
 
@@ -35,8 +38,26 @@ public sealed class GameDayManager : MonoBehaviour
 
     private void Start()
     {
+        if (stateRestored)
+        {
+            return;
+        }
+
         timeRemaining = dayDuration;
         SaveEconomySnapshot();
+    }
+
+    public void RestoreState(
+        int savedCurrentDay,
+        float savedTimeRemaining,
+        int savedIncomeAtDayStart,
+        int savedExpensesAtDayStart)
+    {
+        currentDay = Mathf.Max(1, savedCurrentDay);
+        timeRemaining = Mathf.Clamp(savedTimeRemaining, 0.1f, dayDuration);
+        incomeAtDayStart = Mathf.Max(0, savedIncomeAtDayStart);
+        expensesAtDayStart = Mathf.Max(0, savedExpensesAtDayStart);
+        stateRestored = true;
     }
 
     private void Update()

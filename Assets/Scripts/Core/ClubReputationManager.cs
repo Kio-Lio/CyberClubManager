@@ -20,6 +20,17 @@ public sealed class ClubReputationManager : MonoBehaviour
 
     public event Action StatusChanged;
 
+    public void RestoreState(
+        int savedReputation,
+        int savedServedClients,
+        int savedLostClients)
+    {
+        reputation = Mathf.Clamp(savedReputation, 0, 100);
+        servedClients = Mathf.Max(0, savedServedClients);
+        lostClients = Mathf.Max(0, savedLostClients);
+        StatusChanged?.Invoke();
+    }
+
     private void Awake()
     {
         if (Instance != null && Instance != this)

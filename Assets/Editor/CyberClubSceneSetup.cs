@@ -22,6 +22,7 @@ public static class CyberClubSceneSetup
         EnsureObjectWithComponent<GameDayManager>("GameDayManager", Vector3.zero);
         EnsureObjectWithComponent<BankruptcyManager>("BankruptcyManager", Vector3.zero);
         EnsureObjectWithComponent<PCExpansionManager>("PCExpansionManager", Vector3.zero);
+        EnsureObjectWithComponent<SaveManager>("SaveManager", Vector3.zero);
         CreatePCs();
         EnsureExpansionTerminal();
         EnsureObjectWithComponent<ClientSpawner>("ClientSpawner", new Vector3(-6f, 0f, 0f));

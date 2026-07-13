@@ -24,6 +24,17 @@ public sealed class BankruptcyManager : MonoBehaviour
     public event Action StatusChanged;
     public event Action GameOverTriggered;
 
+    public void RestoreState(int savedConsecutiveDebtDays)
+    {
+        consecutiveDebtDays = Mathf.Clamp(
+            savedConsecutiveDebtDays,
+            0,
+            consecutiveDebtDaysToLose - 1
+        );
+
+        StatusChanged?.Invoke();
+    }
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
