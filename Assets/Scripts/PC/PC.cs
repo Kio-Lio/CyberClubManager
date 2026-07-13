@@ -12,6 +12,9 @@ public enum PCState
 [RequireComponent(typeof(SpriteRenderer))]
 public class PC : MonoBehaviour, IInteractable
 {
+    public static event Action<PC> PCRegistered;
+    public static event Action<PC> PCUnregistered;
+
     [Header("Session Settings")]
     [SerializeField] private PCState state = PCState.Free;
     [SerializeField] private int sessionPrice = 100;
@@ -39,10 +42,27 @@ public class PC : MonoBehaviour, IInteractable
     public bool IsAvailable => IsFree && !isReserved;
     public event Action<PCState> StateChanged;
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticEvents()
+    {
+        PCRegistered = null;
+        PCUnregistered = null;
+    }
+
     private void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
         UpdateVisual();
+    }
+
+    private void OnEnable()
+    {
+        PCRegistered?.Invoke(this);
+    }
+
+    private void OnDisable()
+    {
+        PCUnregistered?.Invoke(this);
     }
 
     private void OnValidate()
@@ -56,23 +76,13 @@ public class PC : MonoBehaviour, IInteractable
         switch (state)
         {
             case PCState.Free:
-                if (isReserved)
-                {
-                    Debug.Log($"{name}: ПК уже назначен ожидающему клиенту.");
-                }
-                else
-                {
-                    TryOccupy();
-                }
+                Debug.Log($"{name}: ПК свободен и ожидает клиента.");
                 break;
             case PCState.Occupied:
-                Debug.Log("ПК занят. Клиент уже играет.");
+                Debug.Log($"{name}: ПК занят. Клиент уже играет.");
                 break;
             case PCState.Broken:
                 TryRepair();
-                break;
-            default:
-                Debug.LogWarning($"Неизвестное состояние ПК: {state}");
                 break;
         }
     }

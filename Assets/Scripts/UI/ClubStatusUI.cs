@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public sealed class ClubStatusUI : MonoBehaviour
@@ -5,7 +6,7 @@ public sealed class ClubStatusUI : MonoBehaviour
     [SerializeField] private int fontSize = 24;
     [SerializeField] private Vector2 screenPosition = new Vector2(20f, 55f);
 
-    private PC[] pcs;
+    private readonly List<PC> pcs = new();
 
     private int freeCount;
     private int occupiedCount;
@@ -15,11 +16,13 @@ public sealed class ClubStatusUI : MonoBehaviour
 
     private void Start()
     {
-        pcs = FindObjectsByType<PC>();
+        PC.PCRegistered += RegisterPC;
+        PC.PCUnregistered += UnregisterPC;
 
-        foreach (PC pc in pcs)
+        PC[] existingPCs = FindObjectsByType<PC>();
+        foreach (PC pc in existingPCs)
         {
-            pc.StateChanged += OnPCStateChanged;
+            RegisterPC(pc);
         }
 
         RecalculateCounts();
@@ -27,10 +30,8 @@ public sealed class ClubStatusUI : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (pcs == null)
-        {
-            return;
-        }
+        PC.PCRegistered -= RegisterPC;
+        PC.PCUnregistered -= UnregisterPC;
 
         foreach (PC pc in pcs)
         {
@@ -39,6 +40,30 @@ public sealed class ClubStatusUI : MonoBehaviour
                 pc.StateChanged -= OnPCStateChanged;
             }
         }
+    }
+
+    private void RegisterPC(PC pc)
+    {
+        if (pc == null || pcs.Contains(pc))
+        {
+            return;
+        }
+
+        pcs.Add(pc);
+        pc.StateChanged += OnPCStateChanged;
+        RecalculateCounts();
+    }
+
+    private void UnregisterPC(PC pc)
+    {
+        if (pc == null)
+        {
+            return;
+        }
+
+        pc.StateChanged -= OnPCStateChanged;
+        pcs.Remove(pc);
+        RecalculateCounts();
     }
 
     private void OnPCStateChanged(PCState newState)
@@ -51,11 +76,6 @@ public sealed class ClubStatusUI : MonoBehaviour
         freeCount = 0;
         occupiedCount = 0;
         brokenCount = 0;
-
-        if (pcs == null)
-        {
-            return;
-        }
 
         foreach (PC pc in pcs)
         {

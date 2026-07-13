@@ -21,18 +21,59 @@ public static class CyberClubSceneSetup
         EnsureObjectWithComponent<ClubReputationManager>("ClubReputationManager", Vector3.zero);
         EnsureObjectWithComponent<GameDayManager>("GameDayManager", Vector3.zero);
         EnsureObjectWithComponent<BankruptcyManager>("BankruptcyManager", Vector3.zero);
+        EnsureObjectWithComponent<PCExpansionManager>("PCExpansionManager", Vector3.zero);
         CreatePCs();
+        EnsureExpansionTerminal();
         EnsureObjectWithComponent<ClientSpawner>("ClientSpawner", new Vector3(-6f, 0f, 0f));
         EnsureObjectWithComponent<EconomyUI>("EconomyUI", Vector3.zero);
         EnsureObjectWithComponent<ClubStatusUI>("ClubStatusUI", Vector3.zero);
         EnsureObjectWithComponent<ReputationUI>("ReputationUI", Vector3.zero);
         EnsureObjectWithComponent<GameDayUI>("GameDayUI", Vector3.zero);
         EnsureObjectWithComponent<BankruptcyUI>("BankruptcyUI", Vector3.zero);
+        EnsureObjectWithComponent<ExpansionUI>("ExpansionUI", Vector3.zero);
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
+    }
+
+    private static void EnsureExpansionTerminal()
+    {
+        GameObject terminalObject = GameObject.Find("PCExpansionTerminal");
+        if (terminalObject == null)
+        {
+            terminalObject = new GameObject("PCExpansionTerminal");
+        }
+
+        terminalObject.transform.position = new Vector3(-2f, 2f, 0f);
+        terminalObject.transform.localScale = Vector3.one;
+
+        SpriteRenderer renderer = terminalObject.GetComponent<SpriteRenderer>();
+        if (renderer == null)
+        {
+            renderer = terminalObject.AddComponent<SpriteRenderer>();
+        }
+
+        if (renderer.sprite == null)
+        {
+            renderer.sprite = CreateRuntimeSquareSprite();
+        }
+
+        renderer.color = new Color(0.2f, 0.8f, 0.3f);
+
+        BoxCollider2D collider = terminalObject.GetComponent<BoxCollider2D>();
+        if (collider == null)
+        {
+            collider = terminalObject.AddComponent<BoxCollider2D>();
+        }
+
+        collider.isTrigger = false;
+
+        if (terminalObject.GetComponent<PCExpansionTerminal>() == null)
+        {
+            terminalObject.AddComponent<PCExpansionTerminal>();
+        }
     }
 
     private static void EnsureObjectWithComponent<T>(string name, Vector3 position) where T : Component
