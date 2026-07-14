@@ -88,6 +88,7 @@ public class PC : MonoBehaviour, IInteractable
     private void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
+        ConfigureYSorting();
         UpdateVisual();
     }
 
@@ -189,6 +190,11 @@ public class PC : MonoBehaviour, IInteractable
     public void SetApproachNode(ClientNavigationNode navigationNode)
     {
         approachNode = navigationNode;
+    }
+
+    public void ConfigureYSorting()
+    {
+        YSortRenderer.Ensure(gameObject, 0, -0.45f);
     }
 
     public void SetState(PCState newState)

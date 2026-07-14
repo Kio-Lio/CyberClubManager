@@ -199,7 +199,10 @@ public sealed class ClientSpawner : MonoBehaviour
         SpriteRenderer spriteRenderer = clientObject.AddComponent<SpriteRenderer>();
         spriteRenderer.sprite = GetGeneratedClientSprite();
         spriteRenderer.color = GetClientColor(clientType);
-        spriteRenderer.sortingOrder = 2;
+        YSortRenderer.SetSortingLayer(spriteRenderer, "World");
+
+        YSortRenderer ySort = clientObject.AddComponent<YSortRenderer>();
+        ySort.SetSortingOffset(10);
 
         Client client = clientObject.AddComponent<Client>();
         client.Initialize(

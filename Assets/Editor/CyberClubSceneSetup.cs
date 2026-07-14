@@ -63,6 +63,7 @@ public static class CyberClubSceneSetup
         }
 
         renderer.color = new Color(0.2f, 0.8f, 0.3f);
+        YSortRenderer.Ensure(terminalObject, 0, -0.45f);
 
         BoxCollider2D collider = terminalObject.GetComponent<BoxCollider2D>();
         if (collider == null)
@@ -166,10 +167,13 @@ public static class CyberClubSceneSetup
             BoxCollider2D collider = pcObject.GetComponent<BoxCollider2D>() ?? pcObject.AddComponent<BoxCollider2D>();
             collider.isTrigger = false;
 
-            if (pcObject.GetComponent<PC>() == null)
+            PC pc = pcObject.GetComponent<PC>();
+            if (pc == null)
             {
-                pcObject.AddComponent<PC>();
+                pc = pcObject.AddComponent<PC>();
             }
+
+            pc.ConfigureYSorting();
         }
     }
 
@@ -214,7 +218,7 @@ public static class CyberClubSceneSetup
         SpriteRenderer renderer = playerObject.GetComponent<SpriteRenderer>();
         if (renderer != null)
         {
-            renderer.sortingOrder = 3;
+            YSortRenderer.Ensure(playerObject, 20, -0.45f);
         }
 
         Camera mainCamera = Camera.main ??

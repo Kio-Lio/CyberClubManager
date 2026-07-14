@@ -177,6 +177,7 @@ public sealed class PCExpansionManager : MonoBehaviour
         BoxCollider2D collider = pcObject.AddComponent<BoxCollider2D>();
         collider.isTrigger = false;
         PC pc = pcObject.AddComponent<PC>();
+        pc.ConfigureYSorting();
 
         ClientNavigationManager navigation =
             ClientNavigationManager.Instance ??

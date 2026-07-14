@@ -115,7 +115,8 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
             Vector3.zero,
             roomSize,
             floorColor,
-            -10
+            -10000,
+            false
         );
 
         floor.layer = 0;
@@ -131,35 +132,40 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
             parent,
             new Vector3(0f, halfHeight, 0f),
             new Vector2(roomSize.x + wallThickness, wallThickness),
-            wallColor
+            wallColor,
+            false
         );
         CreateObstacle(
             "Wall_Bottom_Left",
             parent,
             new Vector3(-5f, -halfHeight, 0f),
             new Vector2(6f, wallThickness),
-            wallColor
+            wallColor,
+            false
         );
         CreateObstacle(
             "Wall_Bottom_Right",
             parent,
             new Vector3(4.5f, -halfHeight, 0f),
             new Vector2(7f, wallThickness),
-            wallColor
+            wallColor,
+            false
         );
         CreateObstacle(
             "Wall_Left",
             parent,
             new Vector3(-halfWidth, 0f, 0f),
             new Vector2(wallThickness, roomSize.y),
-            wallColor
+            wallColor,
+            false
         );
         CreateObstacle(
             "Wall_Right",
             parent,
             new Vector3(halfWidth, 0f, 0f),
             new Vector2(wallThickness, roomSize.y),
-            wallColor
+            wallColor,
+            false
         );
     }
 
@@ -204,7 +210,8 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         Transform parent,
         Vector3 position,
         Vector2 size,
-        Color color)
+        Color color,
+        bool useYSorting = true)
     {
         GameObject obstacle = CreateVisualObject(
             objectName,
@@ -212,7 +219,8 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
             position,
             size,
             color,
-            -1
+            useYSorting ? -1 : 5000,
+            useYSorting
         );
 
         int obstacleLayer = LayerMask.NameToLayer(ObstacleLayerName);
@@ -230,7 +238,8 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         Vector3 position,
         Vector2 size,
         Color color,
-        int sortingOrder)
+        int sortingOffset,
+        bool useYSorting = true)
     {
         GameObject visualObject = new GameObject(objectName);
         visualObject.transform.SetParent(parent);
@@ -240,9 +249,43 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         SpriteRenderer renderer = visualObject.AddComponent<SpriteRenderer>();
         renderer.sprite = GetSquareSprite();
         renderer.color = color;
-        renderer.sortingOrder = sortingOrder;
+        YSortRenderer.SetSortingLayer(
+            renderer,
+            sortingOffset == -10000 ? "Background" : "World"
+        );
+
+        if (useYSorting)
+        {
+            YSortRenderer ySort = visualObject.AddComponent<YSortRenderer>();
+            ySort.SetSortingPoint(CreateSortingPoint(
+                visualObject.transform,
+                size
+            ));
+            ySort.SetSortingOffset(sortingOffset);
+        }
+        else
+        {
+            renderer.sortingOrder = sortingOffset;
+        }
 
         return visualObject;
+    }
+
+    private static Transform CreateSortingPoint(
+        Transform parent,
+        Vector2 objectSize)
+    {
+        GameObject pointObject = new GameObject("SortingPoint");
+        pointObject.transform.SetParent(parent, false);
+
+        float parentScaleY = Mathf.Abs(parent.localScale.y);
+        float localBottomY = parentScaleY > 0f
+            ? -objectSize.y * 0.5f / parentScaleY
+            : -0.5f;
+        pointObject.transform.localPosition =
+            new Vector3(0f, localBottomY, 0f);
+
+        return pointObject.transform;
     }
 
     private void ConfigureScenePresentation()
@@ -272,7 +315,7 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         SpriteRenderer playerRenderer = player.GetComponent<SpriteRenderer>();
         if (playerRenderer != null)
         {
-            playerRenderer.sortingOrder = 3;
+            YSortRenderer.Ensure(player, 20, -0.45f);
         }
     }
 
