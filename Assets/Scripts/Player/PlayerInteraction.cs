@@ -1,45 +1,143 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class PlayerInteraction : MonoBehaviour
 {
-    private IInteractable currentInteractable;
+    private readonly List<MonoBehaviour> candidates = new();
+
+    private MonoBehaviour currentBehaviour;
+    private string currentPrompt = string.Empty;
+
+    public string CurrentPrompt => currentPrompt;
+
+    public event Action<string> PromptChanged;
+
+    private void Update()
+    {
+        RefreshCurrentTarget();
+    }
+
+    public void OnInteract(InputValue inputValue)
+    {
+        if (!inputValue.isPressed || currentBehaviour == null)
+        {
+            return;
+        }
+
+        if (currentBehaviour is not IInteractable interactable)
+        {
+            return;
+        }
+
+        interactable.Interact();
+        RefreshPrompt();
+    }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.TryGetComponent(out IInteractable interactable))
+        MonoBehaviour interactableBehaviour = FindInteractableBehaviour(other);
+
+        if (interactableBehaviour == null)
         {
-            currentInteractable = interactable;
-            Debug.Log("Рядом есть объект для взаимодействия");
+            return;
         }
+
+        if (!candidates.Contains(interactableBehaviour))
+        {
+            candidates.Add(interactableBehaviour);
+        }
+
+        RefreshCurrentTarget();
     }
 
     private void OnTriggerExit2D(Collider2D other)
     {
-        if (other.TryGetComponent(out IInteractable interactable))
+        MonoBehaviour interactableBehaviour = FindInteractableBehaviour(other);
+
+        if (interactableBehaviour == null)
         {
-            if (interactable == currentInteractable)
-            {
-                currentInteractable = null;
-                Debug.Log("Объект взаимодействия потерян");
-            }
+            return;
         }
+
+        candidates.Remove(interactableBehaviour);
+        RefreshCurrentTarget();
     }
 
-    public void OnInteract(InputValue value)
+    private void OnDisable()
     {
-        Debug.Log("Нажата кнопка Interact");
+        candidates.Clear();
+        currentBehaviour = null;
+        SetPrompt(string.Empty);
+    }
 
-        if (!value.isPressed)
+    private void RefreshCurrentTarget()
+    {
+        candidates.RemoveAll(
+            candidate =>
+                candidate == null ||
+                !candidate.isActiveAndEnabled
+        );
+
+        MonoBehaviour nearestCandidate = null;
+        float nearestDistanceSquared = float.MaxValue;
+
+        foreach (MonoBehaviour candidate in candidates)
+        {
+            float distanceSquared =
+                (candidate.transform.position - transform.position).sqrMagnitude;
+
+            if (distanceSquared >= nearestDistanceSquared)
+            {
+                continue;
+            }
+
+            nearestDistanceSquared = distanceSquared;
+            nearestCandidate = candidate;
+        }
+
+        currentBehaviour = nearestCandidate;
+        RefreshPrompt();
+    }
+
+    private void RefreshPrompt()
+    {
+        if (currentBehaviour is IInteractable interactable)
+        {
+            SetPrompt(interactable.GetInteractionPrompt());
             return;
+        }
 
-        if (currentInteractable != null)
+        SetPrompt(string.Empty);
+    }
+
+    private void SetPrompt(string newPrompt)
+    {
+        newPrompt ??= string.Empty;
+
+        if (currentPrompt == newPrompt)
         {
-            currentInteractable.Interact();
+            return;
         }
-        else
+
+        currentPrompt = newPrompt;
+        PromptChanged?.Invoke(currentPrompt);
+    }
+
+    private static MonoBehaviour FindInteractableBehaviour(Collider2D other)
+    {
+        MonoBehaviour[] behaviours =
+            other.GetComponentsInParent<MonoBehaviour>(true);
+
+        foreach (MonoBehaviour behaviour in behaviours)
         {
-            Debug.Log("Рядом нет объекта для взаимодействия");
+            if (behaviour is IInteractable)
+            {
+                return behaviour;
+            }
         }
+
+        return null;
     }
 }

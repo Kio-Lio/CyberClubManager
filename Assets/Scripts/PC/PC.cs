@@ -141,6 +141,36 @@ public class PC : MonoBehaviour, IInteractable
         };
     }
 
+    public string GetInteractionPrompt()
+    {
+        switch (state)
+        {
+            case PCState.Broken:
+                return $"E — Отремонтировать за {repairCost} ₽";
+
+            case PCState.Occupied:
+                return "ПК занят";
+
+            case PCState.Free:
+                if (isReserved)
+                {
+                    return "ПК зарезервирован клиентом";
+                }
+
+                if (!CanUpgrade)
+                {
+                    return "Премиальный ПК — максимальный класс";
+                }
+
+                return
+                    $"E — Улучшить до {GetNextTierDisplayName()} " +
+                    $"за {NextUpgradeCost} ₽";
+
+            default:
+                return string.Empty;
+        }
+    }
+
     public void RestoreTier(PCTier savedTier)
     {
         if (!Enum.IsDefined(typeof(PCTier), savedTier))
@@ -334,6 +364,16 @@ public class PC : MonoBehaviour, IInteractable
 
         UpdateVisual();
         TierChanged?.Invoke(tier);
+    }
+
+    private string GetNextTierDisplayName()
+    {
+        return tier switch
+        {
+            PCTier.Basic => "Gaming",
+            PCTier.Gaming => "Premium",
+            _ => string.Empty
+        };
     }
 
     private void TryRepair()
