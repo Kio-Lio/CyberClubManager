@@ -28,6 +28,8 @@ public sealed class ClientSpawner : MonoBehaviour
     [Header("Testing")]
     [SerializeField] private bool forceClientType;
     [SerializeField] private ClientType forcedClientType;
+    [SerializeField, Range(0.05f, 1f)]
+    private float forcedPatienceMultiplier = 1f;
 
     [Header("Positions")]
     [SerializeField] private Vector3 queueStartOffset = new Vector3(1f, 0f, 0f);
@@ -71,6 +73,11 @@ public sealed class ClientSpawner : MonoBehaviour
         regularPatience = Mathf.Max(1f, regularPatience);
         gamerPatience = Mathf.Max(1f, gamerPatience);
         vipPatience = Mathf.Max(1f, vipPatience);
+        forcedPatienceMultiplier = Mathf.Clamp(
+            forcedPatienceMultiplier,
+            0.05f,
+            1f
+        );
     }
 
     private void RefreshSpawnInterval()
@@ -150,6 +157,12 @@ public sealed class ClientSpawner : MonoBehaviour
         RemoveMissingClients();
 
         ClientType clientType = GenerateClientType();
+        float patience = GetPatience(clientType);
+
+        if (forceClientType)
+        {
+            patience *= forcedPatienceMultiplier;
+        }
 
         if (waitingClients.Count >= maxQueueSize)
         {
@@ -182,7 +195,7 @@ public sealed class ClientSpawner : MonoBehaviour
             this,
             clientType,
             clientMoveSpeed,
-            GetPatience(clientType),
+            patience,
             exitPosition,
             GetQueuePosition(waitingClients.Count)
         );

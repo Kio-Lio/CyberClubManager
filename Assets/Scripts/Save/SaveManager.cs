@@ -8,7 +8,7 @@ public class SaveManager : MonoBehaviour
 {
     public static SaveManager Instance { get; private set; }
 
-    private const int CurrentSaveVersion = 3;
+    private const int CurrentSaveVersion = 4;
     private const string SaveFileName = "cyber_club_save.json";
 
     private bool suppressSaving;
@@ -198,6 +198,9 @@ public class SaveManager : MonoBehaviour
             reputation = reputation.Reputation,
             servedClients = reputation.ServedClients,
             lostClients = reputation.LostClients,
+            excellentClients = reputation.ExcellentClients,
+            normalClients = reputation.NormalClients,
+            poorClients = reputation.PoorClients,
             currentDay = gameDay.CurrentDay,
             timeRemaining = gameDay.TimeRemaining,
             incomeAtDayStart = gameDay.IncomeAtDayStart,
@@ -290,7 +293,10 @@ public class SaveManager : MonoBehaviour
         ClubReputationManager.Instance.RestoreState(
             data.reputation,
             data.servedClients,
-            data.lostClients
+            data.lostClients,
+            data.excellentClients,
+            data.normalClients,
+            data.poorClients
         );
 
         GameDayManager.Instance.RestoreState(

@@ -9,10 +9,16 @@ public sealed class ClubReputationManager : MonoBehaviour
 
     private int servedClients;
     private int lostClients;
+    private int excellentClients;
+    private int normalClients;
+    private int poorClients;
 
     public int Reputation => reputation;
     public int ServedClients => servedClients;
     public int LostClients => lostClients;
+    public int ExcellentClients => excellentClients;
+    public int NormalClients => normalClients;
+    public int PoorClients => poorClients;
     public float NormalizedReputation => reputation / 100f;
 
     public event Action StatusChanged;
@@ -23,9 +29,30 @@ public sealed class ClubReputationManager : MonoBehaviour
         int savedServedClients,
         int savedLostClients)
     {
+        RestoreState(
+            savedReputation,
+            savedServedClients,
+            savedLostClients,
+            0,
+            0,
+            0
+        );
+    }
+
+    public void RestoreState(
+        int savedReputation,
+        int savedServedClients,
+        int savedLostClients,
+        int savedExcellentClients,
+        int savedNormalClients,
+        int savedPoorClients)
+    {
         reputation = Mathf.Clamp(savedReputation, 0, 100);
         servedClients = Mathf.Max(0, savedServedClients);
         lostClients = Mathf.Max(0, savedLostClients);
+        excellentClients = Mathf.Max(0, savedExcellentClients);
+        normalClients = Mathf.Max(0, savedNormalClients);
+        poorClients = Mathf.Max(0, savedPoorClients);
         StatusChanged?.Invoke();
     }
 
@@ -42,18 +69,52 @@ public sealed class ClubReputationManager : MonoBehaviour
 
     public void RegisterServedClient()
     {
-        RegisterServedClient(ClientType.Regular);
+        RegisterServedClient(
+            ClientType.Regular,
+            ClientSatisfaction.Normal
+        );
     }
 
     public void RegisterServedClient(ClientType clientType)
     {
-        int reputationChange = GetServedReputationReward(clientType);
+        RegisterServedClient(clientType, ClientSatisfaction.Normal);
+    }
+
+    public void RegisterServedClient(
+        ClientType clientType,
+        ClientSatisfaction satisfaction)
+    {
+        int typeReward = GetServedReputationReward(clientType);
+        int satisfactionModifier = GetSatisfactionReputationModifier(
+            satisfaction
+        );
+        int totalReputationChange = typeReward + satisfactionModifier;
         servedClients++;
-        reputation = Mathf.Clamp(reputation + reputationChange, 0, 100);
+        reputation = Mathf.Clamp(
+            reputation + totalReputationChange,
+            0,
+            100
+        );
+
+        switch (satisfaction)
+        {
+            case ClientSatisfaction.Excellent:
+                excellentClients++;
+                break;
+            case ClientSatisfaction.Normal:
+                normalClients++;
+                break;
+            case ClientSatisfaction.Poor:
+                poorClients++;
+                break;
+        }
+
+        string changePrefix = totalReputationChange >= 0 ? "+" : string.Empty;
 
         Debug.Log(
             $"Обслужен клиент типа {GetClientTypeDisplayName(clientType)}. " +
-            $"Репутация +{reputationChange}. " +
+            $"Оценка: {GetSatisfactionDisplayName(satisfaction)}. " +
+            $"Репутация {changePrefix}{totalReputationChange}. " +
             $"Текущая репутация: {reputation}/100. " +
             $"Всего обслужено: {servedClients}."
         );
@@ -105,6 +166,18 @@ public sealed class ClubReputationManager : MonoBehaviour
         };
     }
 
+    private static int GetSatisfactionReputationModifier(
+        ClientSatisfaction satisfaction)
+    {
+        return satisfaction switch
+        {
+            ClientSatisfaction.Excellent => 2,
+            ClientSatisfaction.Normal => 0,
+            ClientSatisfaction.Poor => -2,
+            _ => 0
+        };
+    }
+
     private static string GetClientTypeDisplayName(ClientType clientType)
     {
         return clientType switch
@@ -113,6 +186,18 @@ public sealed class ClubReputationManager : MonoBehaviour
             ClientType.Gamer => "Геймер",
             ClientType.VIP => "VIP",
             _ => clientType.ToString()
+        };
+    }
+
+    private static string GetSatisfactionDisplayName(
+        ClientSatisfaction satisfaction)
+    {
+        return satisfaction switch
+        {
+            ClientSatisfaction.Excellent => "Отлично",
+            ClientSatisfaction.Normal => "Нормально",
+            ClientSatisfaction.Poor => "Плохо",
+            _ => satisfaction.ToString()
         };
     }
 }

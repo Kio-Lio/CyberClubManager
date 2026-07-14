@@ -7,6 +7,13 @@ public enum ClientType
     VIP
 }
 
+public enum ClientSatisfaction
+{
+    Poor,
+    Normal,
+    Excellent
+}
+
 public sealed class Client : MonoBehaviour
 {
     private enum ClientState
@@ -23,6 +30,8 @@ public sealed class Client : MonoBehaviour
 
     private float moveSpeed;
     private float patienceRemaining;
+    private float initialPatience;
+    private float waitingTime;
 
     private Vector3 waitingPosition;
     private Vector3 seatPosition;
@@ -30,8 +39,11 @@ public sealed class Client : MonoBehaviour
 
     private ClientState state;
     private bool outcomeRegistered;
+    private ClientSatisfaction satisfaction = ClientSatisfaction.Excellent;
 
     public ClientType Type => clientType;
+    public float WaitingTime => waitingTime;
+    public ClientSatisfaction Satisfaction => satisfaction;
 
     public void Initialize(
         ClientSpawner ownerSpawner,
@@ -44,7 +56,9 @@ public sealed class Client : MonoBehaviour
         spawner = ownerSpawner;
         clientType = type;
         moveSpeed = speed;
-        patienceRemaining = patience;
+        initialPatience = Mathf.Max(0.1f, patience);
+        patienceRemaining = initialPatience;
+        waitingTime = 0f;
         exitPosition = exit;
         waitingPosition = initialWaitingPosition;
         state = ClientState.Waiting;
@@ -76,6 +90,17 @@ public sealed class Client : MonoBehaviour
             ClientType.Gamer => "Геймер",
             ClientType.VIP => "VIP",
             _ => clientType.ToString()
+        };
+    }
+
+    public string GetSatisfactionDisplayName()
+    {
+        return satisfaction switch
+        {
+            ClientSatisfaction.Excellent => "Отлично",
+            ClientSatisfaction.Normal => "Нормально",
+            ClientSatisfaction.Poor => "Плохо",
+            _ => satisfaction.ToString()
         };
     }
 
@@ -118,16 +143,20 @@ public sealed class Client : MonoBehaviour
 
         targetPc = pc;
         seatPosition = targetPc.transform.position + new Vector3(0f, -0.8f, 0f);
+        satisfaction = CalculateSatisfaction();
         state = ClientState.MovingToPC;
         Debug.Log(
             $"{name}: клиент типа {GetTypeDisplayName()} " +
-            $"получил ПК класса {pc.GetTierDisplayName()}."
+            $"получил ПК класса {pc.GetTierDisplayName()}. " +
+            $"Ожидание: {waitingTime:F1} сек. " +
+            $"Оценка: {GetSatisfactionDisplayName()}."
         );
     }
 
     private void UpdateWaiting()
     {
         MoveTowards(waitingPosition);
+        waitingTime += Time.deltaTime;
         patienceRemaining -= Time.deltaTime;
 
         if (patienceRemaining > 0f)
@@ -212,6 +241,25 @@ public sealed class Client : MonoBehaviour
         );
     }
 
+    private ClientSatisfaction CalculateSatisfaction()
+    {
+        float patienceRatio = Mathf.Clamp01(
+            patienceRemaining / initialPatience
+        );
+
+        if (patienceRatio >= 0.7f)
+        {
+            return ClientSatisfaction.Excellent;
+        }
+
+        if (patienceRatio >= 0.35f)
+        {
+            return ClientSatisfaction.Normal;
+        }
+
+        return ClientSatisfaction.Poor;
+    }
+
     private void RegisterServedOutcome()
     {
         if (outcomeRegistered)
@@ -223,7 +271,10 @@ public sealed class Client : MonoBehaviour
 
         if (ClubReputationManager.Instance != null)
         {
-            ClubReputationManager.Instance.RegisterServedClient(clientType);
+            ClubReputationManager.Instance.RegisterServedClient(
+                clientType,
+                satisfaction
+            );
         }
         else
         {

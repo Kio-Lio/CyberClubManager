@@ -13,6 +13,9 @@ public class GameSaveData
     public int reputation;
     public int servedClients;
     public int lostClients;
+    public int excellentClients;
+    public int normalClients;
+    public int poorClients;
 
     public int currentDay;
     public float timeRemaining;

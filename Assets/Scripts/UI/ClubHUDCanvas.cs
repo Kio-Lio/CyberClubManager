@@ -21,6 +21,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private Text pcStateText;
     private Text clientQueueText;
     private Text reputationText;
+    private Text satisfactionText;
     private Text dayText;
     private Text dailyGoalText;
     private Text dayReportText;
@@ -151,6 +152,10 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             panelTransform
         );
         reputationText = CreateInformationLine("ReputationText", panelTransform);
+        satisfactionText = CreateInformationLine(
+            "SatisfactionText",
+            panelTransform
+        );
         dayText = CreateInformationLine("DayText", panelTransform);
         dailyGoalText = CreateInformationLine(
             "DailyGoalText",
@@ -570,6 +575,13 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         if (manager == null)
         {
             reputationText.text = "Репутация: недоступна";
+
+            if (satisfactionText != null)
+            {
+                satisfactionText.text =
+                    "Оценки клиентов: недоступны";
+            }
+
             return;
         }
 
@@ -577,6 +589,14 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             $"Репутация: {manager.Reputation}/100 | " +
             $"Обслужено: {manager.ServedClients} | " +
             $"Потеряно: {manager.LostClients}";
+
+        if (satisfactionText != null)
+        {
+            satisfactionText.text =
+                $"Оценки: отлично {manager.ExcellentClients} | " +
+                $"нормально {manager.NormalClients} | " +
+                $"плохо {manager.PoorClients}";
+        }
     }
 
     private void RefreshDayTimer()
