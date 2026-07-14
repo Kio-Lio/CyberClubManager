@@ -7,18 +7,6 @@ public static class CyberClubSceneSetup
 {
     private const string ScenePath = "Assets/Scenes/SampleScene.unity";
 
-    private static readonly string[] LegacyUIObjectNames =
-    {
-        "EconomyUI",
-        "ClubStatusUI",
-        "ReputationUI",
-        "GameDayUI",
-        "BankruptcyUI",
-        "ExpansionUI",
-        "PCTierUI",
-        "InteractionPromptUI"
-    };
-
     [MenuItem("Tools/Cyber Club/Apply Prototype Setup")]
     public static void ApplyFromMenu()
     {
@@ -38,7 +26,6 @@ public static class CyberClubSceneSetup
         CreatePCs();
         EnsureExpansionTerminal();
         EnsureObjectWithComponent<ClientSpawner>("ClientSpawner", new Vector3(-6f, 0f, 0f));
-        RemoveLegacyUIObjects();
         EnsureClubHUDCanvas();
         EnsurePauseMenuController();
 
@@ -112,18 +99,6 @@ public static class CyberClubSceneSetup
         if (hudCanvasObject.GetComponent<ClubHUDCanvas>() == null)
         {
             hudCanvasObject.AddComponent<ClubHUDCanvas>();
-        }
-    }
-
-    private static void RemoveLegacyUIObjects()
-    {
-        foreach (string objectName in LegacyUIObjectNames)
-        {
-            GameObject legacyObject = GameObject.Find(objectName);
-            if (legacyObject != null)
-            {
-                Object.DestroyImmediate(legacyObject);
-            }
         }
     }
 
