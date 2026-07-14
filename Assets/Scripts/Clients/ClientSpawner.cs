@@ -25,6 +25,10 @@ public sealed class ClientSpawner : MonoBehaviour
     [SerializeField] private Color vipColor =
         new Color(1f, 0.65f, 0.15f);
 
+    [Header("Testing")]
+    [SerializeField] private bool forceClientType;
+    [SerializeField] private ClientType forcedClientType;
+
     [Header("Positions")]
     [SerializeField] private Vector3 queueStartOffset = new Vector3(1f, 0f, 0f);
     [SerializeField] private Vector3 queueSpacing = new Vector3(0f, -0.8f, 0f);
@@ -145,19 +149,22 @@ public sealed class ClientSpawner : MonoBehaviour
     {
         RemoveMissingClients();
 
+        ClientType clientType = GenerateClientType();
+
         if (waitingClients.Count >= maxQueueSize)
         {
-            Debug.Log("Queue is full. The new client did not enter the club.");
+            Debug.Log(
+                $"Очередь заполнена. Клиент типа " +
+                $"{GetClientTypeDisplayName(clientType)} не вошел в клуб."
+            );
 
             if (ClubReputationManager.Instance != null)
             {
-                ClubReputationManager.Instance.RegisterLostClient();
+                ClubReputationManager.Instance.RegisterLostClient(clientType);
             }
 
             return;
         }
-
-        ClientType clientType = GenerateClientType();
 
         GameObject clientObject = new GameObject(
             $"Client_{clientType}_{++clientNumber:00}"
@@ -299,6 +306,11 @@ public sealed class ClientSpawner : MonoBehaviour
 
     private ClientType GenerateClientType()
     {
+        if (forceClientType)
+        {
+            return forcedClientType;
+        }
+
         int clubLevel = ClubProgressionManager.Instance != null
             ? ClubProgressionManager.Instance.Level
             : 1;
@@ -325,6 +337,17 @@ public sealed class ClientSpawner : MonoBehaviour
         }
 
         return ClientType.Regular;
+    }
+
+    private static string GetClientTypeDisplayName(ClientType clientType)
+    {
+        return clientType switch
+        {
+            ClientType.Regular => "Обычный",
+            ClientType.Gamer => "Геймер",
+            ClientType.VIP => "VIP",
+            _ => clientType.ToString()
+        };
     }
 
     private float GetPatience(ClientType type)

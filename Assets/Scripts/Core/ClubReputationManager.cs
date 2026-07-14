@@ -5,10 +5,7 @@ public sealed class ClubReputationManager : MonoBehaviour
 {
     public static ClubReputationManager Instance { get; private set; }
 
-    [Header("Reputation Settings")]
     [SerializeField, Range(0, 100)] private int reputation = 50;
-    [SerializeField] private int rewardForServedClient = 1;
-    [SerializeField] private int penaltyForLostClient = 5;
 
     private int servedClients;
     private int lostClients;
@@ -45,18 +42,77 @@ public sealed class ClubReputationManager : MonoBehaviour
 
     public void RegisterServedClient()
     {
+        RegisterServedClient(ClientType.Regular);
+    }
+
+    public void RegisterServedClient(ClientType clientType)
+    {
+        int reputationChange = GetServedReputationReward(clientType);
         servedClients++;
-        reputation = Mathf.Clamp(reputation + rewardForServedClient, 0, 100);
-        Debug.Log($"Client served. Reputation: {reputation}/100. Served: {servedClients}.");
+        reputation = Mathf.Clamp(reputation + reputationChange, 0, 100);
+
+        Debug.Log(
+            $"Обслужен клиент типа {GetClientTypeDisplayName(clientType)}. " +
+            $"Репутация +{reputationChange}. " +
+            $"Текущая репутация: {reputation}/100. " +
+            $"Всего обслужено: {servedClients}."
+        );
+
         StatusChanged?.Invoke();
         ClientServed?.Invoke();
     }
 
     public void RegisterLostClient()
     {
+        RegisterLostClient(ClientType.Regular);
+    }
+
+    public void RegisterLostClient(ClientType clientType)
+    {
+        int reputationPenalty = GetLostReputationPenalty(clientType);
         lostClients++;
-        reputation = Mathf.Clamp(reputation - penaltyForLostClient, 0, 100);
-        Debug.Log($"Client lost. Reputation: {reputation}/100. Lost: {lostClients}.");
+        reputation = Mathf.Clamp(reputation - reputationPenalty, 0, 100);
+
+        Debug.Log(
+            $"Потерян клиент типа {GetClientTypeDisplayName(clientType)}. " +
+            $"Репутация -{reputationPenalty}. " +
+            $"Текущая репутация: {reputation}/100. " +
+            $"Всего потеряно: {lostClients}."
+        );
+
         StatusChanged?.Invoke();
+    }
+
+    private static int GetServedReputationReward(ClientType clientType)
+    {
+        return clientType switch
+        {
+            ClientType.Regular => 1,
+            ClientType.Gamer => 2,
+            ClientType.VIP => 4,
+            _ => 1
+        };
+    }
+
+    private static int GetLostReputationPenalty(ClientType clientType)
+    {
+        return clientType switch
+        {
+            ClientType.Regular => 5,
+            ClientType.Gamer => 7,
+            ClientType.VIP => 10,
+            _ => 5
+        };
+    }
+
+    private static string GetClientTypeDisplayName(ClientType clientType)
+    {
+        return clientType switch
+        {
+            ClientType.Regular => "Обычный",
+            ClientType.Gamer => "Геймер",
+            ClientType.VIP => "VIP",
+            _ => clientType.ToString()
+        };
     }
 }

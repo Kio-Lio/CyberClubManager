@@ -56,6 +56,7 @@ public class PC : MonoBehaviour, IInteractable
     public bool IsAvailable => IsFree && !isReserved;
     public PCTier Tier => tier;
     public int DailyElectricityCost => dailyElectricityCost;
+    public int LastSessionIncome { get; private set; }
     public bool CanUpgrade => tier != PCTier.Premium;
     public int NextUpgradeCost
     {
@@ -206,7 +207,7 @@ public class PC : MonoBehaviour, IInteractable
             return false;
         }
 
-        Occupy();
+        Occupy(ClientType.Regular);
         return true;
     }
 
@@ -229,7 +230,7 @@ public class PC : MonoBehaviour, IInteractable
         }
     }
 
-    public bool TryOccupyReserved()
+    public bool TryOccupyReserved(ClientType clientType)
     {
         if (!IsFree || !isReserved)
         {
@@ -237,18 +238,25 @@ public class PC : MonoBehaviour, IInteractable
         }
 
         isReserved = false;
-        Occupy();
+        Occupy(clientType);
         return true;
     }
 
-    private void Occupy()
+    private void Occupy(ClientType clientType)
     {
         SetState(PCState.Occupied);
-        Debug.Log("Клиент посажен за ПК. ПК теперь занят.");
+
+        int clientBonus = GetClientSessionBonus(clientType);
+        LastSessionIncome = sessionPrice + clientBonus;
+
+        Debug.Log(
+            $"{name}: клиент типа {GetClientTypeDisplayName(clientType)} " +
+            $"начал сессию. Доход: {LastSessionIncome} ₽."
+        );
 
         if (EconomyManager.Instance != null)
         {
-            EconomyManager.Instance.AddMoney(sessionPrice);
+            EconomyManager.Instance.AddMoney(LastSessionIncome);
         }
         else
         {
@@ -261,6 +269,28 @@ public class PC : MonoBehaviour, IInteractable
         }
 
         sessionCoroutine = StartCoroutine(SessionTimer());
+    }
+
+    private static int GetClientSessionBonus(ClientType clientType)
+    {
+        return clientType switch
+        {
+            ClientType.Regular => 0,
+            ClientType.Gamer => 40,
+            ClientType.VIP => 100,
+            _ => 0
+        };
+    }
+
+    private static string GetClientTypeDisplayName(ClientType clientType)
+    {
+        return clientType switch
+        {
+            ClientType.Regular => "Обычный",
+            ClientType.Gamer => "Геймер",
+            ClientType.VIP => "VIP",
+            _ => clientType.ToString()
+        };
     }
 
     private IEnumerator SessionTimer()

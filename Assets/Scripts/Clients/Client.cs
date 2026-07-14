@@ -156,7 +156,7 @@ public sealed class Client : MonoBehaviour
             return;
         }
 
-        if (targetPc.TryOccupyReserved())
+        if (targetPc.TryOccupyReserved(clientType))
         {
             state = ClientState.Playing;
             Debug.Log($"{name}: client started playing.");
@@ -223,7 +223,7 @@ public sealed class Client : MonoBehaviour
 
         if (ClubReputationManager.Instance != null)
         {
-            ClubReputationManager.Instance.RegisterServedClient();
+            ClubReputationManager.Instance.RegisterServedClient(clientType);
         }
         else
         {
@@ -242,7 +242,7 @@ public sealed class Client : MonoBehaviour
 
         if (ClubReputationManager.Instance != null)
         {
-            ClubReputationManager.Instance.RegisterLostClient();
+            ClubReputationManager.Instance.RegisterLostClient(clientType);
         }
         else
         {
