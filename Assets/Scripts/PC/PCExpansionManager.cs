@@ -3,6 +3,14 @@ using UnityEngine;
 
 public sealed class PCExpansionManager : MonoBehaviour
 {
+    private static readonly Vector3[] DefaultExpansionPositions =
+    {
+        new Vector3(6.2f, -1.4f, 0f),
+        new Vector3(1.4f, -3.4f, 0f),
+        new Vector3(3.8f, -3.4f, 0f),
+        new Vector3(6.2f, -3.4f, 0f)
+    };
+
     public static PCExpansionManager Instance { get; private set; }
 
     [Header("Purchase Settings")]
@@ -10,12 +18,7 @@ public sealed class PCExpansionManager : MonoBehaviour
 
     [Header("Expansion Positions")]
     [SerializeField] private Vector3[] expansionPositions =
-    {
-        new Vector3(6f, 0f, 0f),
-        new Vector3(2f, -2f, 0f),
-        new Vector3(4f, -2f, 0f),
-        new Vector3(6f, -2f, 0f)
-    };
+        DefaultExpansionPositions;
 
     private int nextSlotIndex;
     private Sprite generatedPCSprite;
@@ -51,6 +54,8 @@ public sealed class PCExpansionManager : MonoBehaviour
 
     private void Awake()
     {
+        EnsureExpansionPositions();
+
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -85,6 +90,8 @@ public sealed class PCExpansionManager : MonoBehaviour
 
     public bool TryPurchaseNextPC()
     {
+        EnsureExpansionPositions();
+
         if (BankruptcyManager.Instance != null && BankruptcyManager.Instance.IsGameOver)
         {
             return false;
@@ -135,6 +142,8 @@ public sealed class PCExpansionManager : MonoBehaviour
 
     public void RestorePurchasedPCs(int savedPurchasedPCCount)
     {
+        EnsureExpansionPositions();
+
         int targetCount = Mathf.Clamp(
             savedPurchasedPCCount,
             0,
@@ -169,29 +178,10 @@ public sealed class PCExpansionManager : MonoBehaviour
         collider.isTrigger = false;
         PC pc = pcObject.AddComponent<PC>();
 
-        GameObject approachNodeObject = new GameObject(
-            $"{pcObject.name}_ApproachNode"
-        );
-        approachNodeObject.transform.position =
-            position + new Vector3(0f, -0.8f, 0f);
-
-        ClientNavigationNode approachNode =
-            approachNodeObject.AddComponent<ClientNavigationNode>();
-        pc.SetApproachNode(approachNode);
-
         ClientNavigationManager navigation =
             ClientNavigationManager.Instance ??
             ClientNavigationManager.EnsureRuntimeGraph();
-
-        ClientNavigationNode closestNode = navigation.FindClosestNode(
-            approachNode.transform.position,
-            approachNode
-        );
-
-        if (closestNode != null)
-        {
-            approachNode.AddNeighbour(closestNode);
-        }
+        navigation.EnsureApproachNode(pc);
     }
 
     private Sprite GetGeneratedPCSprite()
@@ -228,6 +218,34 @@ public sealed class PCExpansionManager : MonoBehaviour
 
     private void OnValidate()
     {
+        EnsureExpansionPositions();
         pcPurchaseCost = Mathf.Max(1, pcPurchaseCost);
+    }
+
+    private void EnsureExpansionPositions()
+    {
+        if (expansionPositions != null &&
+            expansionPositions.Length == DefaultExpansionPositions.Length)
+        {
+            bool matchesDefault = true;
+
+            for (int i = 0; i < DefaultExpansionPositions.Length; i++)
+            {
+                if (expansionPositions[i] == DefaultExpansionPositions[i])
+                {
+                    continue;
+                }
+
+                matchesDefault = false;
+                break;
+            }
+
+            if (matchesDefault)
+            {
+                return;
+            }
+        }
+
+        expansionPositions = (Vector3[])DefaultExpansionPositions.Clone();
     }
 }

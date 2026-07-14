@@ -25,6 +25,8 @@ public static class CyberClubSceneSetup
         EnsureObjectWithComponent<DailyGoalManager>("DailyGoalManager", Vector3.zero);
         EnsureObjectWithComponent<ClubProgressionManager>("ClubProgressionManager", Vector3.zero);
         EnsureObjectWithComponent<SaveManager>("SaveManager", Vector3.zero);
+        EnsureObjectWithComponent<ClubLayoutBuilder>("ClubLayoutBuilder", Vector3.zero);
+        EnsurePlayerPhysicsAndVisuals();
         CreatePCs();
         EnsureNavigationNetwork();
         EnsureExpansionTerminal();
@@ -135,11 +137,11 @@ public static class CyberClubSceneSetup
 
         Vector3[] pcPositions =
         {
-            new Vector3(2f, 2f, 0f),
-            new Vector3(4f, 2f, 0f),
-            new Vector3(6f, 2f, 0f),
-            new Vector3(2f, 0f, 0f),
-            new Vector3(4f, 0f, 0f),
+            new Vector3(1.4f, 2.6f, 0f),
+            new Vector3(3.8f, 2.6f, 0f),
+            new Vector3(6.2f, 2.6f, 0f),
+            new Vector3(1.4f, -1.4f, 0f),
+            new Vector3(3.8f, -1.4f, 0f),
         };
 
         for (int i = 0; i < pcPositions.Length; i++)
@@ -174,6 +176,42 @@ public static class CyberClubSceneSetup
     private static void EnsureNavigationNetwork()
     {
         ClientNavigationManager.EnsureRuntimeGraph();
+    }
+
+    private static void EnsurePlayerPhysicsAndVisuals()
+    {
+        GameObject playerObject = GameObject.Find("Player");
+        if (playerObject == null)
+        {
+            Debug.LogWarning("Player не найден. Физика игрока не настроена.");
+            return;
+        }
+
+        Rigidbody2D body = playerObject.GetComponent<Rigidbody2D>() ??
+            playerObject.AddComponent<Rigidbody2D>();
+        body.bodyType = RigidbodyType2D.Dynamic;
+        body.gravityScale = 0f;
+        body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+        body.interpolation = RigidbodyInterpolation2D.Interpolate;
+        body.constraints = RigidbodyConstraints2D.FreezeRotation;
+
+        if (playerObject.GetComponent<Collider2D>() == null)
+        {
+            playerObject.AddComponent<CircleCollider2D>();
+        }
+
+        SpriteRenderer renderer = playerObject.GetComponent<SpriteRenderer>();
+        if (renderer != null)
+        {
+            renderer.sortingOrder = 3;
+        }
+
+        Camera mainCamera = Camera.main ??
+            Object.FindAnyObjectByType<Camera>();
+        if (mainCamera != null && mainCamera.orthographic)
+        {
+            mainCamera.orthographicSize = 6.5f;
+        }
     }
 
     private static Sprite CreateRuntimeSquareSprite()

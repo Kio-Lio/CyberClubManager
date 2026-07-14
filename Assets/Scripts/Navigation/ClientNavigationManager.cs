@@ -9,6 +9,12 @@ public sealed class ClientNavigationManager : MonoBehaviour
     [SerializeField] private ClientNavigationNode entranceNode;
     [SerializeField] private ClientNavigationNode queueNode;
     [SerializeField] private ClientNavigationNode exitNode;
+    [SerializeField] private ClientNavigationNode mainAisleLeft;
+    [SerializeField] private ClientNavigationNode mainAisleCenter;
+    [SerializeField] private ClientNavigationNode mainAisleRight;
+    [SerializeField] private ClientNavigationNode lowerAisleLeft;
+    [SerializeField] private ClientNavigationNode lowerAisleCenter;
+    [SerializeField] private ClientNavigationNode lowerAisleRight;
 
     public ClientNavigationNode EntranceNode => entranceNode;
     public ClientNavigationNode QueueNode => queueNode;
@@ -59,52 +65,66 @@ public sealed class ClientNavigationManager : MonoBehaviour
 
     public void EnsureDefaultGraph()
     {
-        ClientNavigationNode entrance = EnsureNode(
+        RemoveLegacyNode("MainAisle_01");
+        RemoveLegacyNode("MainAisle_02");
+        RemoveLegacyNode("MainAisle_03");
+
+        entranceNode = EnsureNode(
             "EntranceNode",
-            new Vector3(-6f, 0f, 0f)
+            new Vector3(-3.5f, -4.2f, 0f)
         );
-        ClientNavigationNode queue = EnsureNode(
+        queueNode = EnsureNode(
             "QueueNode",
-            new Vector3(-5f, 0f, 0f)
+            new Vector3(-3.5f, 2f, 0f)
         );
-        ClientNavigationNode mainAisle01 = EnsureNode(
-            "MainAisle_01",
-            new Vector3(-1f, 0f, 0f)
+        mainAisleLeft = EnsureNode(
+            "MainAisle_Left",
+            new Vector3(-0.5f, 1f, 0f)
         );
-        ClientNavigationNode mainAisle02 = EnsureNode(
-            "MainAisle_02",
-            new Vector3(3f, 0f, 0f)
+        mainAisleCenter = EnsureNode(
+            "MainAisle_Center",
+            new Vector3(3.8f, 1f, 0f)
         );
-        ClientNavigationNode mainAisle03 = EnsureNode(
-            "MainAisle_03",
-            new Vector3(6f, 0f, 0f)
+        mainAisleRight = EnsureNode(
+            "MainAisle_Right",
+            new Vector3(6.8f, 1f, 0f)
         );
-        ClientNavigationNode exit = EnsureNode(
+        lowerAisleLeft = EnsureNode(
+            "LowerAisle_Left",
+            new Vector3(-0.5f, -2.5f, 0f)
+        );
+        lowerAisleCenter = EnsureNode(
+            "LowerAisle_Center",
+            new Vector3(3.8f, -2.5f, 0f)
+        );
+        lowerAisleRight = EnsureNode(
+            "LowerAisle_Right",
+            new Vector3(6.8f, -2.5f, 0f)
+        );
+        exitNode = EnsureNode(
             "ExitNode",
-            new Vector3(-5f, -1f, 0f)
+            new Vector3(-1.5f, -4.2f, 0f)
         );
 
-        entrance.AddNeighbour(queue);
-        queue.AddNeighbour(mainAisle01);
-        mainAisle01.AddNeighbour(mainAisle02);
-        mainAisle02.AddNeighbour(mainAisle03);
-        mainAisle01.AddNeighbour(exit);
-        SetMainNodes(entrance, queue, exit);
+        foreach (ClientNavigationNode node in
+                 FindObjectsByType<ClientNavigationNode>())
+        {
+            node.ClearNeighbours();
+        }
+
+        entranceNode.AddNeighbour(queueNode);
+        queueNode.AddNeighbour(mainAisleLeft);
+        mainAisleLeft.AddNeighbour(mainAisleCenter);
+        mainAisleCenter.AddNeighbour(mainAisleRight);
+        mainAisleLeft.AddNeighbour(lowerAisleLeft);
+        lowerAisleLeft.AddNeighbour(lowerAisleCenter);
+        lowerAisleCenter.AddNeighbour(lowerAisleRight);
+        lowerAisleLeft.AddNeighbour(exitNode);
 
         foreach (PC pc in FindObjectsByType<PC>())
         {
             EnsureApproachNode(pc);
         }
-    }
-
-    public void SetMainNodes(
-        ClientNavigationNode entrance,
-        ClientNavigationNode queue,
-        ClientNavigationNode exit)
-    {
-        entranceNode = entrance;
-        queueNode = queue;
-        exitNode = exit;
     }
 
     public List<Vector3> BuildPath(
@@ -160,7 +180,7 @@ public sealed class ClientNavigationManager : MonoBehaviour
         if (!pathFound)
         {
             Debug.LogWarning(
-                $"Маршрут не найден: {start.name} -> {destination.name}."
+                $"Navigation path was not found: {start.name} -> {destination.name}."
             );
             return result;
         }
@@ -188,13 +208,11 @@ public sealed class ClientNavigationManager : MonoBehaviour
         Vector3 position,
         ClientNavigationNode excludedNode = null)
     {
-        ClientNavigationNode[] nodes =
-            FindObjectsByType<ClientNavigationNode>();
-
         ClientNavigationNode closestNode = null;
         float closestDistanceSquared = float.MaxValue;
 
-        foreach (ClientNavigationNode node in nodes)
+        foreach (ClientNavigationNode node in
+                 FindObjectsByType<ClientNavigationNode>())
         {
             if (node == null || node == excludedNode)
             {
@@ -216,6 +234,70 @@ public sealed class ClientNavigationManager : MonoBehaviour
         return closestNode;
     }
 
+    public ClientNavigationNode EnsureApproachNode(PC pc)
+    {
+        if (pc == null)
+        {
+            return null;
+        }
+
+        ClientNavigationNode approachNode = EnsureNode(
+            $"{pc.name}_ApproachNode",
+            GetApproachPosition(pc)
+        );
+        pc.SetApproachNode(approachNode);
+
+        ClientNavigationNode anchor = GetApproachAnchor(pc);
+        if (anchor != null)
+        {
+            approachNode.AddNeighbour(anchor);
+        }
+
+        return approachNode;
+    }
+
+    private Vector3 GetApproachPosition(PC pc)
+    {
+        int pcNumber = GetPcNumber(pc);
+
+        if (pcNumber >= 1 && pcNumber <= 3)
+        {
+            return pc.transform.position + Vector3.down;
+        }
+
+        return pc.transform.position + Vector3.up;
+    }
+
+    private ClientNavigationNode GetApproachAnchor(PC pc)
+    {
+        int pcNumber = GetPcNumber(pc);
+
+        return pcNumber switch
+        {
+            1 => mainAisleLeft,
+            2 => mainAisleCenter,
+            3 => mainAisleRight,
+            4 => mainAisleLeft,
+            5 => mainAisleCenter,
+            6 => mainAisleRight,
+            7 => lowerAisleLeft,
+            8 => lowerAisleCenter,
+            9 => lowerAisleRight,
+            _ => FindClosestNode(pc.transform.position)
+        };
+    }
+
+    private static int GetPcNumber(PC pc)
+    {
+        if (pc == null)
+        {
+            return 0;
+        }
+
+        string numberText = pc.name.Replace("PC_", string.Empty);
+        return int.TryParse(numberText, out int pcNumber) ? pcNumber : 0;
+    }
+
     private static ClientNavigationNode EnsureNode(
         string objectName,
         Vector3 position)
@@ -233,29 +315,21 @@ public sealed class ClientNavigationManager : MonoBehaviour
             nodeObject.AddComponent<ClientNavigationNode>();
     }
 
-    private void EnsureApproachNode(PC pc)
+    private static void RemoveLegacyNode(string objectName)
     {
-        if (pc == null)
+        GameObject legacyNode = GameObject.Find(objectName);
+
+        if (legacyNode == null)
         {
             return;
         }
 
-        Vector3 approachPosition =
-            pc.transform.position + new Vector3(0f, -0.8f, 0f);
-        ClientNavigationNode approachNode = EnsureNode(
-            $"{pc.name}_ApproachNode",
-            approachPosition
-        );
-        pc.SetApproachNode(approachNode);
-
-        ClientNavigationNode closestNode = FindClosestNode(
-            approachPosition,
-            approachNode
-        );
-
-        if (closestNode != null)
+        if (Application.isPlaying)
         {
-            approachNode.AddNeighbour(closestNode);
+            Destroy(legacyNode);
+            return;
         }
+
+        DestroyImmediate(legacyNode);
     }
 }

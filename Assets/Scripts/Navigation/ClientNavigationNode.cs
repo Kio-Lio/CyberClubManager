@@ -7,6 +7,11 @@ public sealed class ClientNavigationNode : MonoBehaviour
 
     public IReadOnlyList<ClientNavigationNode> Neighbours => neighbours;
 
+    public void ClearNeighbours()
+    {
+        neighbours.Clear();
+    }
+
     public void AddNeighbour(
         ClientNavigationNode neighbour,
         bool addReverseConnection = true)
