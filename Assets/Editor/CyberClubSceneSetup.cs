@@ -7,6 +7,18 @@ public static class CyberClubSceneSetup
 {
     private const string ScenePath = "Assets/Scenes/SampleScene.unity";
 
+    private static readonly string[] LegacyUIObjectNames =
+    {
+        "EconomyUI",
+        "ClubStatusUI",
+        "ReputationUI",
+        "GameDayUI",
+        "BankruptcyUI",
+        "ExpansionUI",
+        "PCTierUI",
+        "InteractionPromptUI"
+    };
+
     [MenuItem("Tools/Cyber Club/Apply Prototype Setup")]
     public static void ApplyFromMenu()
     {
@@ -26,14 +38,8 @@ public static class CyberClubSceneSetup
         CreatePCs();
         EnsureExpansionTerminal();
         EnsureObjectWithComponent<ClientSpawner>("ClientSpawner", new Vector3(-6f, 0f, 0f));
-        EnsureObjectWithComponent<EconomyUI>("EconomyUI", Vector3.zero);
-        EnsureObjectWithComponent<ClubStatusUI>("ClubStatusUI", Vector3.zero);
-        EnsureObjectWithComponent<ReputationUI>("ReputationUI", Vector3.zero);
-        EnsureObjectWithComponent<GameDayUI>("GameDayUI", Vector3.zero);
-        EnsureObjectWithComponent<BankruptcyUI>("BankruptcyUI", Vector3.zero);
-        EnsureObjectWithComponent<ExpansionUI>("ExpansionUI", Vector3.zero);
-        EnsureObjectWithComponent<PCTierUI>("PCTierUI", Vector3.zero);
-        EnsureObjectWithComponent<InteractionPromptUI>("InteractionPromptUI", Vector3.zero);
+        RemoveLegacyUIObjects();
+        EnsureClubHUDCanvas();
         EnsurePauseMenuController();
 
         EditorSceneManager.MarkSceneDirty(scene);
@@ -92,6 +98,32 @@ public static class CyberClubSceneSetup
         if (playerObject.GetComponent<PauseMenuController>() == null)
         {
             playerObject.AddComponent<PauseMenuController>();
+        }
+    }
+
+    private static void EnsureClubHUDCanvas()
+    {
+        GameObject hudCanvasObject = GameObject.Find("ClubHUDCanvas");
+        if (hudCanvasObject == null)
+        {
+            hudCanvasObject = new GameObject("ClubHUDCanvas");
+        }
+
+        if (hudCanvasObject.GetComponent<ClubHUDCanvas>() == null)
+        {
+            hudCanvasObject.AddComponent<ClubHUDCanvas>();
+        }
+    }
+
+    private static void RemoveLegacyUIObjects()
+    {
+        foreach (string objectName in LegacyUIObjectNames)
+        {
+            GameObject legacyObject = GameObject.Find(objectName);
+            if (legacyObject != null)
+            {
+                Object.DestroyImmediate(legacyObject);
+            }
         }
     }
 
