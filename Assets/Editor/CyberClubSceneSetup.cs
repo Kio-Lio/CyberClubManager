@@ -195,10 +195,7 @@ public static class CyberClubSceneSetup
         body.interpolation = RigidbodyInterpolation2D.Interpolate;
         body.constraints = RigidbodyConstraints2D.FreezeRotation;
 
-        if (playerObject.GetComponent<Collider2D>() == null)
-        {
-            playerObject.AddComponent<CircleCollider2D>();
-        }
+        EnsureSolidPlayerCollider(playerObject);
 
         SpriteRenderer renderer = playerObject.GetComponent<SpriteRenderer>();
         if (renderer != null)
@@ -212,6 +209,23 @@ public static class CyberClubSceneSetup
         {
             mainCamera.orthographicSize = 6.5f;
         }
+    }
+
+    private static void EnsureSolidPlayerCollider(GameObject playerObject)
+    {
+        foreach (Collider2D collider in
+                 playerObject.GetComponents<Collider2D>())
+        {
+            if (!collider.isTrigger)
+            {
+                return;
+            }
+        }
+
+        CircleCollider2D solidCollider =
+            playerObject.AddComponent<CircleCollider2D>();
+        solidCollider.radius = 0.45f;
+        solidCollider.isTrigger = false;
     }
 
     private static Sprite CreateRuntimeSquareSprite()

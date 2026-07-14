@@ -267,10 +267,7 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         body.interpolation = RigidbodyInterpolation2D.Interpolate;
         body.constraints = RigidbodyConstraints2D.FreezeRotation;
 
-        if (player.GetComponent<Collider2D>() == null)
-        {
-            player.AddComponent<CircleCollider2D>();
-        }
+        EnsureSolidPlayerCollider(player);
 
         SpriteRenderer playerRenderer = player.GetComponent<SpriteRenderer>();
         if (playerRenderer != null)
@@ -289,6 +286,21 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
                 pc.transform.position = StartingPCPositions[i];
             }
         }
+    }
+
+    private static void EnsureSolidPlayerCollider(GameObject player)
+    {
+        foreach (Collider2D collider in player.GetComponents<Collider2D>())
+        {
+            if (!collider.isTrigger)
+            {
+                return;
+            }
+        }
+
+        CircleCollider2D solidCollider = player.AddComponent<CircleCollider2D>();
+        solidCollider.radius = 0.45f;
+        solidCollider.isTrigger = false;
     }
 
     private void RefreshRestoredPCLayout()
