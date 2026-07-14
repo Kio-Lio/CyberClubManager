@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -11,8 +12,18 @@ public sealed class ClientSpawner : MonoBehaviour
 
     [Header("Client Settings")]
     [SerializeField] private float clientMoveSpeed = 2f;
-    [SerializeField] private float clientPatience = 15f;
-    [SerializeField] private Color clientColor = Color.cyan;
+
+    [Header("Client Patience")]
+    [SerializeField] private float regularPatience = 15f;
+    [SerializeField] private float gamerPatience = 18f;
+    [SerializeField] private float vipPatience = 22f;
+
+    [Header("Client Visuals")]
+    [SerializeField] private Color regularColor = Color.cyan;
+    [SerializeField] private Color gamerColor =
+        new Color(0.3f, 0.9f, 0.35f);
+    [SerializeField] private Color vipColor =
+        new Color(1f, 0.65f, 0.15f);
 
     [Header("Positions")]
     [SerializeField] private Vector3 queueStartOffset = new Vector3(1f, 0f, 0f);
@@ -25,6 +36,10 @@ public sealed class ClientSpawner : MonoBehaviour
     private float currentSpawnInterval;
     private int clientNumber;
     private Sprite generatedClientSprite;
+
+    public int WaitingClientCount => waitingClients.Count;
+
+    public event Action QueueChanged;
 
     private void Start()
     {
@@ -49,6 +64,9 @@ public sealed class ClientSpawner : MonoBehaviour
         spawnInterval = Mathf.Max(0.1f, spawnInterval);
         minSpawnInterval = Mathf.Max(0.1f, minSpawnInterval);
         maxSpawnInterval = Mathf.Max(minSpawnInterval, maxSpawnInterval);
+        regularPatience = Mathf.Max(1f, regularPatience);
+        gamerPatience = Mathf.Max(1f, gamerPatience);
+        vipPatience = Mathf.Max(1f, vipPatience);
     }
 
     private void RefreshSpawnInterval()
@@ -97,7 +115,12 @@ public sealed class ClientSpawner : MonoBehaviour
             return;
         }
 
-        waitingClients.Remove(client);
+        if (!waitingClients.Remove(client))
+        {
+            return;
+        }
+
+        QueueChanged?.Invoke();
         RepositionQueue();
     }
 
@@ -111,6 +134,7 @@ public sealed class ClientSpawner : MonoBehaviour
         if (!waitingClients.Contains(client))
         {
             waitingClients.Add(client);
+            QueueChanged?.Invoke();
         }
 
         client.ResumeWaiting();
@@ -133,27 +157,36 @@ public sealed class ClientSpawner : MonoBehaviour
             return;
         }
 
-        GameObject clientObject = new GameObject($"Client_{++clientNumber:00}");
+        ClientType clientType = GenerateClientType();
+
+        GameObject clientObject = new GameObject(
+            $"Client_{clientType}_{++clientNumber:00}"
+        );
         clientObject.transform.position = transform.position;
         clientObject.transform.localScale = new Vector3(0.6f, 0.6f, 1f);
 
         SpriteRenderer spriteRenderer = clientObject.AddComponent<SpriteRenderer>();
         spriteRenderer.sprite = GetGeneratedClientSprite();
-        spriteRenderer.color = clientColor;
+        spriteRenderer.color = GetClientColor(clientType);
         spriteRenderer.sortingOrder = 50;
 
         Client client = clientObject.AddComponent<Client>();
-        waitingClients.Add(client);
-
         client.Initialize(
             this,
+            clientType,
             clientMoveSpeed,
-            clientPatience,
+            GetPatience(clientType),
             exitPosition,
-            GetQueuePosition(waitingClients.Count - 1)
+            GetQueuePosition(waitingClients.Count)
         );
 
-        Debug.Log($"{clientObject.name}: new client entered the club.");
+        waitingClients.Add(client);
+        QueueChanged?.Invoke();
+
+        Debug.Log(
+            $"{clientObject.name}: в клуб пришел клиент типа " +
+            $"{client.GetTypeDisplayName()}."
+        );
         RepositionQueue();
     }
 
@@ -161,46 +194,81 @@ public sealed class ClientSpawner : MonoBehaviour
     {
         RemoveMissingClients();
 
-        while (waitingClients.Count > 0)
+        bool assignmentMade;
+
+        do
         {
-            PC availablePc = FindAvailablePC();
-            if (availablePc == null)
+            assignmentMade = false;
+
+            for (int clientIndex = 0;
+                 clientIndex < waitingClients.Count;
+                 clientIndex++)
             {
-                return;
+                Client client = waitingClients[clientIndex];
+
+                if (client == null)
+                {
+                    continue;
+                }
+
+                PC availablePc = FindBestAvailablePC(client);
+
+                if (availablePc == null || !availablePc.TryReserve())
+                {
+                    continue;
+                }
+
+                waitingClients.RemoveAt(clientIndex);
+                QueueChanged?.Invoke();
+
+                client.AssignPC(availablePc);
+                RepositionQueue();
+
+                assignmentMade = true;
+                break;
             }
-
-            if (!availablePc.TryReserve())
-            {
-                continue;
-            }
-
-            Client client = waitingClients[0];
-            waitingClients.RemoveAt(0);
-
-            if (client == null)
-            {
-                availablePc.CancelReservation();
-                continue;
-            }
-
-            client.AssignPC(availablePc);
-            RepositionQueue();
         }
+        while (assignmentMade);
     }
 
-    private PC FindAvailablePC()
+    public int GetWaitingClientCount(ClientType type)
     {
-        PC[] pcs = FindObjectsByType<PC>();
+        int count = 0;
 
-        foreach (PC pc in pcs)
+        foreach (Client client in waitingClients)
         {
-            if (pc != null && pc.IsAvailable)
+            if (client != null && client.Type == type)
             {
-                return pc;
+                count++;
             }
         }
 
-        return null;
+        return count;
+    }
+
+    private PC FindBestAvailablePC(Client client)
+    {
+        if (client == null)
+        {
+            return null;
+        }
+
+        PC bestPc = null;
+
+        foreach (PC pc in FindObjectsByType<PC>())
+        {
+            if (!client.CanUsePC(pc))
+            {
+                continue;
+            }
+
+            if (bestPc == null || pc.Tier < bestPc.Tier)
+            {
+                bestPc = pc;
+            }
+        }
+
+        return bestPc;
     }
 
     private void RepositionQueue()
@@ -220,7 +288,65 @@ public sealed class ClientSpawner : MonoBehaviour
 
     private void RemoveMissingClients()
     {
+        int previousCount = waitingClients.Count;
         waitingClients.RemoveAll(client => client == null);
+
+        if (waitingClients.Count != previousCount)
+        {
+            QueueChanged?.Invoke();
+        }
+    }
+
+    private ClientType GenerateClientType()
+    {
+        int clubLevel = ClubProgressionManager.Instance != null
+            ? ClubProgressionManager.Instance.Level
+            : 1;
+
+        float roll = UnityEngine.Random.value;
+
+        if (clubLevel >= 4)
+        {
+            if (roll < 0.15f)
+            {
+                return ClientType.VIP;
+            }
+
+            return roll < 0.45f
+                ? ClientType.Gamer
+                : ClientType.Regular;
+        }
+
+        if (clubLevel >= 2)
+        {
+            return roll < 0.25f
+                ? ClientType.Gamer
+                : ClientType.Regular;
+        }
+
+        return ClientType.Regular;
+    }
+
+    private float GetPatience(ClientType type)
+    {
+        return type switch
+        {
+            ClientType.Regular => regularPatience,
+            ClientType.Gamer => gamerPatience,
+            ClientType.VIP => vipPatience,
+            _ => regularPatience
+        };
+    }
+
+    private Color GetClientColor(ClientType type)
+    {
+        return type switch
+        {
+            ClientType.Regular => regularColor,
+            ClientType.Gamer => gamerColor,
+            ClientType.VIP => vipColor,
+            _ => regularColor
+        };
     }
 
     private Sprite GetGeneratedClientSprite()

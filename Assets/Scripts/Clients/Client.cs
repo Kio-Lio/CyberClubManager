@@ -1,5 +1,12 @@
 using UnityEngine;
 
+public enum ClientType
+{
+    Regular,
+    Gamer,
+    VIP
+}
+
 public sealed class Client : MonoBehaviour
 {
     private enum ClientState
@@ -12,6 +19,7 @@ public sealed class Client : MonoBehaviour
 
     private ClientSpawner spawner;
     private PC targetPc;
+    private ClientType clientType;
 
     private float moveSpeed;
     private float patienceRemaining;
@@ -23,19 +31,52 @@ public sealed class Client : MonoBehaviour
     private ClientState state;
     private bool outcomeRegistered;
 
+    public ClientType Type => clientType;
+
     public void Initialize(
         ClientSpawner ownerSpawner,
+        ClientType type,
         float speed,
         float patience,
         Vector3 exit,
         Vector3 initialWaitingPosition)
     {
         spawner = ownerSpawner;
+        clientType = type;
         moveSpeed = speed;
         patienceRemaining = patience;
         exitPosition = exit;
         waitingPosition = initialWaitingPosition;
         state = ClientState.Waiting;
+    }
+
+    public bool CanUsePC(PC pc)
+    {
+        if (pc == null || !pc.IsAvailable)
+        {
+            return false;
+        }
+
+        return clientType switch
+        {
+            ClientType.Regular => true,
+            ClientType.Gamer =>
+                pc.Tier == PCTier.Gaming ||
+                pc.Tier == PCTier.Premium,
+            ClientType.VIP => pc.Tier == PCTier.Premium,
+            _ => false
+        };
+    }
+
+    public string GetTypeDisplayName()
+    {
+        return clientType switch
+        {
+            ClientType.Regular => "Обычный",
+            ClientType.Gamer => "Геймер",
+            ClientType.VIP => "VIP",
+            _ => clientType.ToString()
+        };
     }
 
     private void Update()
@@ -78,7 +119,10 @@ public sealed class Client : MonoBehaviour
         targetPc = pc;
         seatPosition = targetPc.transform.position + new Vector3(0f, -0.8f, 0f);
         state = ClientState.MovingToPC;
-        Debug.Log($"{name}: client assigned to a free PC.");
+        Debug.Log(
+            $"{name}: клиент типа {GetTypeDisplayName()} " +
+            $"получил ПК класса {pc.GetTierDisplayName()}."
+        );
     }
 
     private void UpdateWaiting()

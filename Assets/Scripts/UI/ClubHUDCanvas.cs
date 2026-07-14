@@ -19,6 +19,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private Text balanceText;
     private Text clubLevelText;
     private Text pcStateText;
+    private Text clientQueueText;
     private Text reputationText;
     private Text dayText;
     private Text dailyGoalText;
@@ -31,6 +32,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private Text interactionPromptText;
 
     private PlayerInteraction playerInteraction;
+    private ClientSpawner clientSpawner;
     private string currentInteractionPrompt = string.Empty;
     private string lastDayReport = "Итоги прошлого дня: пока нет";
     private Font runtimeFont;
@@ -45,6 +47,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         SubscribeToManagers();
         RegisterExistingPCs();
         SubscribeToPlayerInteraction();
+        SubscribeToClientSpawner();
         RefreshAll();
     }
 
@@ -59,6 +62,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         UnsubscribeFromManagers();
         UnsubscribeFromPCs();
         UnsubscribeFromPlayerInteraction();
+
+        if (clientSpawner != null)
+        {
+            clientSpawner.QueueChanged -= RefreshClientQueue;
+        }
     }
 
     private void BuildCanvas()
@@ -138,6 +146,10 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             panelTransform
         );
         pcStateText = CreateInformationLine("PCStateText", panelTransform);
+        clientQueueText = CreateInformationLine(
+            "ClientQueueText",
+            panelTransform
+        );
         reputationText = CreateInformationLine("ReputationText", panelTransform);
         dayText = CreateInformationLine("DayText", panelTransform);
         dailyGoalText = CreateInformationLine(
@@ -385,11 +397,30 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         }
     }
 
+    private void SubscribeToClientSpawner()
+    {
+        clientSpawner = FindAnyObjectByType<ClientSpawner>();
+
+        if (clientSpawner == null)
+        {
+            if (clientQueueText != null)
+            {
+                clientQueueText.text = "Очередь: недоступна";
+            }
+
+            return;
+        }
+
+        clientSpawner.QueueChanged += RefreshClientQueue;
+        RefreshClientQueue();
+    }
+
     private void RefreshAll()
     {
         RefreshBalance();
         RefreshClubProgression();
         RefreshPCInformation();
+        RefreshClientQueue();
         RefreshReputation();
         RefreshDayTimer();
         RefreshDailyGoal();
@@ -501,6 +532,35 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             $"Premium {premiumCount}\n" +
             $"Улучшения: {PC.BasicToGamingUpgradeCost} ₽ / " +
             $"{PC.GamingToPremiumUpgradeCost} ₽";
+    }
+
+    private void RefreshClientQueue()
+    {
+        if (clientQueueText == null)
+        {
+            return;
+        }
+
+        if (clientSpawner == null)
+        {
+            clientQueueText.text = "Очередь: недоступна";
+            return;
+        }
+
+        int regularCount = clientSpawner.GetWaitingClientCount(
+            ClientType.Regular
+        );
+        int gamerCount = clientSpawner.GetWaitingClientCount(
+            ClientType.Gamer
+        );
+        int vipCount = clientSpawner.GetWaitingClientCount(
+            ClientType.VIP
+        );
+
+        clientQueueText.text =
+            $"Очередь: {clientSpawner.WaitingClientCount} | " +
+            $"Обычные: {regularCount} | " +
+            $"Геймеры: {gamerCount} | VIP: {vipCount}";
     }
 
     private void RefreshReputation()
