@@ -8,7 +8,7 @@ public class SaveManager : MonoBehaviour
 {
     public static SaveManager Instance { get; private set; }
 
-    private const int CurrentSaveVersion = 1;
+    private const int CurrentSaveVersion = 2;
     private const string SaveFileName = "cyber_club_save.json";
 
     private bool suppressSaving;
@@ -174,7 +174,8 @@ public class SaveManager : MonoBehaviour
                ClubReputationManager.Instance != null &&
                GameDayManager.Instance != null &&
                BankruptcyManager.Instance != null &&
-               PCExpansionManager.Instance != null;
+               PCExpansionManager.Instance != null &&
+               DailyGoalManager.Instance != null;
     }
 
     private GameSaveData CreateSaveData()
@@ -184,6 +185,7 @@ public class SaveManager : MonoBehaviour
         GameDayManager gameDay = GameDayManager.Instance;
         BankruptcyManager bankruptcy = BankruptcyManager.Instance;
         PCExpansionManager expansion = PCExpansionManager.Instance;
+        DailyGoalManager dailyGoal = DailyGoalManager.Instance;
 
         GameSaveData data = new GameSaveData
         {
@@ -198,6 +200,13 @@ public class SaveManager : MonoBehaviour
             timeRemaining = gameDay.TimeRemaining,
             incomeAtDayStart = gameDay.IncomeAtDayStart,
             expensesAtDayStart = gameDay.ExpensesAtDayStart,
+            activeGoalDay = dailyGoal.ActiveGoalDay,
+            dailyGoalType = (int)dailyGoal.GoalType,
+            dailyGoalTarget = dailyGoal.TargetValue,
+            dailyGoalReward = dailyGoal.RewardMoney,
+            dailyGoalServedBaseline = dailyGoal.ServedClientsBaseline,
+            dailyGoalIncomeBaseline = dailyGoal.IncomeBaseline,
+            dailyGoalCompleted = dailyGoal.GoalCompleted,
             consecutiveDebtDays = bankruptcy.ConsecutiveDebtDays,
             purchasedPCCount = expansion.PurchasedPCCount
         };
@@ -285,6 +294,16 @@ public class SaveManager : MonoBehaviour
             data.timeRemaining,
             data.incomeAtDayStart,
             data.expensesAtDayStart
+        );
+
+        DailyGoalManager.Instance.RestoreState(
+            data.activeGoalDay,
+            data.dailyGoalType,
+            data.dailyGoalTarget,
+            data.dailyGoalReward,
+            data.dailyGoalServedBaseline,
+            data.dailyGoalIncomeBaseline,
+            data.dailyGoalCompleted
         );
 
         BankruptcyManager.Instance.RestoreState(data.consecutiveDebtDays);

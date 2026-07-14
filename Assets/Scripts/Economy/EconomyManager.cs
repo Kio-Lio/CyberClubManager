@@ -48,6 +48,19 @@ public sealed class EconomyManager : MonoBehaviour
         MoneyChanged?.Invoke(money);
     }
 
+    public void AddBonusMoney(int amount)
+    {
+        if (amount <= 0)
+        {
+            Debug.LogWarning("Бонус должен быть больше нуля.");
+            return;
+        }
+
+        money += amount;
+        Debug.Log($"Получен бонус: {amount}. Баланс клуба: {money}");
+        MoneyChanged?.Invoke(money);
+    }
+
     public bool SpendMoney(int amount)
     {
         if (amount <= 0)

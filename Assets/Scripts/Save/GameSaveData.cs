@@ -19,6 +19,14 @@ public class GameSaveData
     public int incomeAtDayStart;
     public int expensesAtDayStart;
 
+    public int activeGoalDay;
+    public int dailyGoalType;
+    public int dailyGoalTarget;
+    public int dailyGoalReward;
+    public int dailyGoalServedBaseline;
+    public int dailyGoalIncomeBaseline;
+    public bool dailyGoalCompleted;
+
     public int consecutiveDebtDays;
 
     public int purchasedPCCount;

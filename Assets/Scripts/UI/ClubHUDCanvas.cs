@@ -20,6 +20,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private Text pcStateText;
     private Text reputationText;
     private Text dayText;
+    private Text dailyGoalText;
     private Text dayReportText;
     private Text financialRiskText;
     private Text expansionText;
@@ -134,6 +135,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         pcStateText = CreateInformationLine("PCStateText", panelTransform);
         reputationText = CreateInformationLine("ReputationText", panelTransform);
         dayText = CreateInformationLine("DayText", panelTransform);
+        dailyGoalText = CreateInformationLine(
+            "DailyGoalText",
+            panelTransform,
+            54f
+        );
         dayReportText = CreateInformationLine("DayReportText", panelTransform, 54f);
         financialRiskText =
             CreateInformationLine("FinancialRiskText", panelTransform);
@@ -235,6 +241,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             GameDayManager.Instance.DayEnded += OnDayEnded;
         }
 
+        if (DailyGoalManager.Instance != null)
+        {
+            DailyGoalManager.Instance.StatusChanged += RefreshDailyGoal;
+        }
+
         if (BankruptcyManager.Instance != null)
         {
             BankruptcyManager.Instance.StatusChanged += RefreshFinancialRisk;
@@ -264,6 +275,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         if (GameDayManager.Instance != null)
         {
             GameDayManager.Instance.DayEnded -= OnDayEnded;
+        }
+
+        if (DailyGoalManager.Instance != null)
+        {
+            DailyGoalManager.Instance.StatusChanged -= RefreshDailyGoal;
         }
 
         if (BankruptcyManager.Instance != null)
@@ -358,6 +374,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         RefreshPCInformation();
         RefreshReputation();
         RefreshDayTimer();
+        RefreshDailyGoal();
         RefreshFinancialRisk();
         RefreshExpansion();
         RefreshInteractionPromptVisibility();
@@ -478,6 +495,40 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             $"До конца дня: {minutes:00}:{seconds:00}";
 
         dayReportText.text = lastDayReport;
+    }
+
+    private void RefreshDailyGoal()
+    {
+        if (dailyGoalText == null)
+        {
+            return;
+        }
+
+        DailyGoalManager manager = DailyGoalManager.Instance;
+
+        if (manager == null)
+        {
+            dailyGoalText.text = "Цель дня: недоступна";
+            return;
+        }
+
+        int displayedProgress = Mathf.Min(
+            manager.CurrentProgress,
+            manager.TargetValue
+        );
+
+        if (manager.GoalCompleted)
+        {
+            dailyGoalText.text =
+                $"Цель дня выполнена: {manager.GetGoalDescription()}\n" +
+                $"Награда получена: {manager.RewardMoney} ₽";
+            return;
+        }
+
+        dailyGoalText.text =
+            $"Цель дня: {manager.GetGoalDescription()} | " +
+            $"{displayedProgress}/{manager.TargetValue}\n" +
+            $"Награда: {manager.RewardMoney} ₽";
     }
 
     private void OnDayEnded(
