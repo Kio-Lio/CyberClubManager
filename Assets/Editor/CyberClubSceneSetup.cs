@@ -26,6 +26,7 @@ public static class CyberClubSceneSetup
         EnsureObjectWithComponent<ClubProgressionManager>("ClubProgressionManager", Vector3.zero);
         EnsureObjectWithComponent<SaveManager>("SaveManager", Vector3.zero);
         CreatePCs();
+        EnsureNavigationNetwork();
         EnsureExpansionTerminal();
         EnsureObjectWithComponent<ClientSpawner>("ClientSpawner", new Vector3(-6f, 0f, 0f));
         EnsureClubHUDCanvas();
@@ -168,6 +169,11 @@ public static class CyberClubSceneSetup
                 pcObject.AddComponent<PC>();
             }
         }
+    }
+
+    private static void EnsureNavigationNetwork()
+    {
+        ClientNavigationManager.EnsureRuntimeGraph();
     }
 
     private static Sprite CreateRuntimeSquareSprite()

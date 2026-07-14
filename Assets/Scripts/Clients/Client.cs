@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public enum ClientType
@@ -32,6 +33,10 @@ public sealed class Client : MonoBehaviour
     private float patienceRemaining;
     private float initialPatience;
     private float waitingTime;
+
+    private readonly List<Vector3> navigationPath = new();
+    private int navigationPathIndex;
+    private bool hasNavigationPath;
 
     private Vector3 waitingPosition;
     private Vector3 seatPosition;
@@ -143,6 +148,7 @@ public sealed class Client : MonoBehaviour
 
         targetPc = pc;
         seatPosition = targetPc.transform.position + new Vector3(0f, -0.8f, 0f);
+        BeginNavigation(seatPosition, targetPc.ApproachNode);
         satisfaction = CalculateSatisfaction();
         state = ClientState.MovingToPC;
         Debug.Log(
@@ -178,9 +184,7 @@ public sealed class Client : MonoBehaviour
             return;
         }
 
-        MoveTowards(seatPosition);
-
-        if (Vector3.Distance(transform.position, seatPosition) > 0.05f)
+        if (!UpdateNavigation())
         {
             return;
         }
@@ -213,9 +217,7 @@ public sealed class Client : MonoBehaviour
 
     private void UpdateLeaving()
     {
-        MoveTowards(exitPosition);
-
-        if (Vector3.Distance(transform.position, exitPosition) <= 0.05f)
+        if (UpdateNavigation())
         {
             Destroy(gameObject);
         }
@@ -229,7 +231,78 @@ public sealed class Client : MonoBehaviour
             targetPc = null;
         }
 
+        ClientNavigationManager navigation =
+            ClientNavigationManager.Instance ??
+            ClientNavigationManager.EnsureRuntimeGraph();
+
+        BeginNavigation(exitPosition, navigation.ExitNode);
         state = ClientState.Leaving;
+    }
+
+    private void BeginNavigation(
+        Vector3 destination,
+        ClientNavigationNode destinationNode = null)
+    {
+        navigationPath.Clear();
+        navigationPathIndex = 0;
+        hasNavigationPath = false;
+
+        ClientNavigationManager navigation =
+            ClientNavigationManager.Instance ??
+            ClientNavigationManager.EnsureRuntimeGraph();
+
+        if (navigation == null || destinationNode == null)
+        {
+            navigationPath.Add(destination);
+            hasNavigationPath = true;
+            return;
+        }
+
+        ClientNavigationNode startNode = navigation.FindClosestNode(
+            transform.position
+        );
+
+        if (startNode != null)
+        {
+            navigationPath.AddRange(
+                navigation.BuildPath(startNode, destinationNode)
+            );
+        }
+
+        if (navigationPath.Count == 0 ||
+            Vector3.Distance(navigationPath[^1], destination) > 0.05f)
+        {
+            navigationPath.Add(destination);
+        }
+
+        hasNavigationPath = navigationPath.Count > 0;
+    }
+
+    private bool UpdateNavigation()
+    {
+        if (!hasNavigationPath ||
+            navigationPathIndex >= navigationPath.Count)
+        {
+            return true;
+        }
+
+        Vector3 targetPosition = navigationPath[navigationPathIndex];
+        MoveTowards(targetPosition);
+
+        if (Vector3.Distance(transform.position, targetPosition) > 0.05f)
+        {
+            return false;
+        }
+
+        navigationPathIndex++;
+
+        if (navigationPathIndex < navigationPath.Count)
+        {
+            return false;
+        }
+
+        hasNavigationPath = false;
+        return true;
     }
 
     private void MoveTowards(Vector3 destination)

@@ -167,7 +167,31 @@ public sealed class PCExpansionManager : MonoBehaviour
 
         BoxCollider2D collider = pcObject.AddComponent<BoxCollider2D>();
         collider.isTrigger = false;
-        pcObject.AddComponent<PC>();
+        PC pc = pcObject.AddComponent<PC>();
+
+        GameObject approachNodeObject = new GameObject(
+            $"{pcObject.name}_ApproachNode"
+        );
+        approachNodeObject.transform.position =
+            position + new Vector3(0f, -0.8f, 0f);
+
+        ClientNavigationNode approachNode =
+            approachNodeObject.AddComponent<ClientNavigationNode>();
+        pc.SetApproachNode(approachNode);
+
+        ClientNavigationManager navigation =
+            ClientNavigationManager.Instance ??
+            ClientNavigationManager.EnsureRuntimeGraph();
+
+        ClientNavigationNode closestNode = navigation.FindClosestNode(
+            approachNode.transform.position,
+            approachNode
+        );
+
+        if (closestNode != null)
+        {
+            approachNode.AddNeighbour(closestNode);
+        }
     }
 
     private Sprite GetGeneratedPCSprite()

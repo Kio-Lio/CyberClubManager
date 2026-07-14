@@ -41,6 +41,9 @@ public class PC : MonoBehaviour, IInteractable
 
     private bool isReserved;
 
+    [Header("Navigation")]
+    [SerializeField] private ClientNavigationNode approachNode;
+
     [Header("Visual Settings")]
     [SerializeField] private Color freeColor = Color.white;
     [SerializeField] private Color occupiedColor = Color.yellow;
@@ -55,6 +58,7 @@ public class PC : MonoBehaviour, IInteractable
     public bool IsBroken => state == PCState.Broken;
     public bool IsAvailable => IsFree && !isReserved;
     public PCTier Tier => tier;
+    public ClientNavigationNode ApproachNode => approachNode;
     public int DailyElectricityCost => dailyElectricityCost;
     public int LastSessionIncome { get; private set; }
     public bool CanUpgrade => tier != PCTier.Premium;
@@ -180,6 +184,11 @@ public class PC : MonoBehaviour, IInteractable
         }
 
         ApplyTier(savedTier);
+    }
+
+    public void SetApproachNode(ClientNavigationNode navigationNode)
+    {
+        approachNode = navigationNode;
     }
 
     public void SetState(PCState newState)
