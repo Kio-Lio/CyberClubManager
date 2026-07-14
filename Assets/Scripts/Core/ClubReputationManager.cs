@@ -19,6 +19,7 @@ public sealed class ClubReputationManager : MonoBehaviour
     public float NormalizedReputation => reputation / 100f;
 
     public event Action StatusChanged;
+    public event Action ClientServed;
 
     public void RestoreState(
         int savedReputation,
@@ -48,6 +49,7 @@ public sealed class ClubReputationManager : MonoBehaviour
         reputation = Mathf.Clamp(reputation + rewardForServedClient, 0, 100);
         Debug.Log($"Client served. Reputation: {reputation}/100. Served: {servedClients}.");
         StatusChanged?.Invoke();
+        ClientServed?.Invoke();
     }
 
     public void RegisterLostClient()

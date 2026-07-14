@@ -22,9 +22,30 @@ public sealed class PCExpansionManager : MonoBehaviour
 
     public int PurchaseCost => pcPurchaseCost;
     public int PurchasedPCCount => nextSlotIndex;
+    public int TotalExpansionSlots => expansionPositions.Length;
+    public int UnlockedSlotCount
+    {
+        get
+        {
+            int totalSlots = expansionPositions.Length;
+
+            if (ClubProgressionManager.Instance == null)
+            {
+                return totalSlots;
+            }
+
+            return Mathf.Min(
+                totalSlots,
+                ClubProgressionManager.Instance.UnlockedExpansionSlots
+            );
+        }
+    }
+
     public int RemainingSlots =>
-        Mathf.Max(0, expansionPositions.Length - nextSlotIndex);
-    public bool HasAvailableSlot => nextSlotIndex < expansionPositions.Length;
+        Mathf.Max(0, UnlockedSlotCount - nextSlotIndex);
+    public bool HasAvailableSlot =>
+        nextSlotIndex < UnlockedSlotCount &&
+        nextSlotIndex < expansionPositions.Length;
 
     public event Action StatusChanged;
 
@@ -39,8 +60,23 @@ public sealed class PCExpansionManager : MonoBehaviour
         Instance = this;
     }
 
+    private void Start()
+    {
+        if (ClubProgressionManager.Instance != null)
+        {
+            ClubProgressionManager.Instance.StatusChanged +=
+                OnProgressionChanged;
+        }
+    }
+
     private void OnDestroy()
     {
+        if (ClubProgressionManager.Instance != null)
+        {
+            ClubProgressionManager.Instance.StatusChanged -=
+                OnProgressionChanged;
+        }
+
         if (Instance == this)
         {
             Instance = null;
@@ -51,6 +87,18 @@ public sealed class PCExpansionManager : MonoBehaviour
     {
         if (BankruptcyManager.Instance != null && BankruptcyManager.Instance.IsGameOver)
         {
+            return false;
+        }
+
+        if (nextSlotIndex >= UnlockedSlotCount &&
+            nextSlotIndex < expansionPositions.Length)
+        {
+            int requiredLevel = Mathf.Min(4, nextSlotIndex + 1);
+
+            Debug.Log(
+                $"Следующее место для ПК откроется на уровне клуба {requiredLevel}."
+            );
+
             return false;
         }
 
@@ -99,6 +147,11 @@ public sealed class PCExpansionManager : MonoBehaviour
             nextSlotIndex++;
         }
 
+        StatusChanged?.Invoke();
+    }
+
+    private void OnProgressionChanged()
+    {
         StatusChanged?.Invoke();
     }
 

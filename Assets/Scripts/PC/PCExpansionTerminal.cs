@@ -17,7 +17,19 @@ public sealed class PCExpansionTerminal : MonoBehaviour, IInteractable
             return string.Empty;
         }
 
-        if (!manager.HasAvailableSlot)
+        if (manager.PurchasedPCCount >= manager.UnlockedSlotCount &&
+            manager.PurchasedPCCount < manager.TotalExpansionSlots)
+        {
+            int requiredLevel = Mathf.Min(
+                4,
+                manager.PurchasedPCCount + 1
+            );
+
+            return
+                $"Следующее место откроется на уровне клуба {requiredLevel}";
+        }
+
+        if (manager.PurchasedPCCount >= manager.TotalExpansionSlots)
         {
             return "Все места для расширения куплены";
         }

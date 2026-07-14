@@ -8,7 +8,7 @@ public class SaveManager : MonoBehaviour
 {
     public static SaveManager Instance { get; private set; }
 
-    private const int CurrentSaveVersion = 2;
+    private const int CurrentSaveVersion = 3;
     private const string SaveFileName = "cyber_club_save.json";
 
     private bool suppressSaving;
@@ -175,7 +175,8 @@ public class SaveManager : MonoBehaviour
                GameDayManager.Instance != null &&
                BankruptcyManager.Instance != null &&
                PCExpansionManager.Instance != null &&
-               DailyGoalManager.Instance != null;
+               DailyGoalManager.Instance != null &&
+               ClubProgressionManager.Instance != null;
     }
 
     private GameSaveData CreateSaveData()
@@ -186,6 +187,7 @@ public class SaveManager : MonoBehaviour
         BankruptcyManager bankruptcy = BankruptcyManager.Instance;
         PCExpansionManager expansion = PCExpansionManager.Instance;
         DailyGoalManager dailyGoal = DailyGoalManager.Instance;
+        ClubProgressionManager progression = ClubProgressionManager.Instance;
 
         GameSaveData data = new GameSaveData
         {
@@ -207,6 +209,8 @@ public class SaveManager : MonoBehaviour
             dailyGoalServedBaseline = dailyGoal.ServedClientsBaseline,
             dailyGoalIncomeBaseline = dailyGoal.IncomeBaseline,
             dailyGoalCompleted = dailyGoal.GoalCompleted,
+            clubLevel = progression.Level,
+            clubExperience = progression.Experience,
             consecutiveDebtDays = bankruptcy.ConsecutiveDebtDays,
             purchasedPCCount = expansion.PurchasedPCCount
         };
@@ -307,6 +311,12 @@ public class SaveManager : MonoBehaviour
         );
 
         BankruptcyManager.Instance.RestoreState(data.consecutiveDebtDays);
+
+        ClubProgressionManager.Instance.RestoreState(
+            data.clubLevel <= 0 ? 1 : data.clubLevel,
+            data.clubExperience
+        );
+
         PCExpansionManager.Instance.RestorePurchasedPCs(data.purchasedPCCount);
         RestorePCTiers(data);
     }

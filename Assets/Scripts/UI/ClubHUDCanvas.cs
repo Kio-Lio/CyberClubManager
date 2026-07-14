@@ -17,6 +17,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private readonly List<PC> pcs = new();
 
     private Text balanceText;
+    private Text clubLevelText;
     private Text pcStateText;
     private Text reputationText;
     private Text dayText;
@@ -132,6 +133,10 @@ public sealed class ClubHUDCanvas : MonoBehaviour
 
         Transform panelTransform = panelObject.transform;
         balanceText = CreateInformationLine("BalanceText", panelTransform);
+        clubLevelText = CreateInformationLine(
+            "ClubLevelText",
+            panelTransform
+        );
         pcStateText = CreateInformationLine("PCStateText", panelTransform);
         reputationText = CreateInformationLine("ReputationText", panelTransform);
         dayText = CreateInformationLine("DayText", panelTransform);
@@ -231,6 +236,12 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             EconomyManager.Instance.MoneyChanged += OnMoneyChanged;
         }
 
+        if (ClubProgressionManager.Instance != null)
+        {
+            ClubProgressionManager.Instance.StatusChanged +=
+                RefreshClubProgression;
+        }
+
         if (ClubReputationManager.Instance != null)
         {
             ClubReputationManager.Instance.StatusChanged += RefreshReputation;
@@ -265,6 +276,12 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         if (EconomyManager.Instance != null)
         {
             EconomyManager.Instance.MoneyChanged -= OnMoneyChanged;
+        }
+
+        if (ClubProgressionManager.Instance != null)
+        {
+            ClubProgressionManager.Instance.StatusChanged -=
+                RefreshClubProgression;
         }
 
         if (ClubReputationManager.Instance != null)
@@ -371,6 +388,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private void RefreshAll()
     {
         RefreshBalance();
+        RefreshClubProgression();
         RefreshPCInformation();
         RefreshReputation();
         RefreshDayTimer();
@@ -392,6 +410,34 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             : 0;
 
         balanceText.text = $"Баланс: {balance} ₽";
+    }
+
+    private void RefreshClubProgression()
+    {
+        if (clubLevelText == null)
+        {
+            return;
+        }
+
+        ClubProgressionManager manager = ClubProgressionManager.Instance;
+
+        if (manager == null)
+        {
+            clubLevelText.text = "Уровень клуба: недоступен";
+            return;
+        }
+
+        if (manager.IsMaxLevel)
+        {
+            clubLevelText.text =
+                $"Уровень клуба: {manager.Level} — максимальный";
+            return;
+        }
+
+        clubLevelText.text =
+            $"Уровень клуба: {manager.Level} | " +
+            $"Опыт: {manager.Experience}/" +
+            $"{manager.ExperienceToNextLevel}";
     }
 
     private void OnPCStateChanged(PCState newState)
@@ -583,10 +629,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             return;
         }
 
-        expansionText.text = manager.HasAvailableSlot
-            ? $"Новый ПК: {manager.PurchaseCost} ₽ | " +
-              $"Свободных мест: {manager.RemainingSlots}"
-            : "Все доступные места для ПК приобретены";
+        expansionText.text =
+            $"Новый ПК: {manager.PurchaseCost} ₽ | " +
+            $"Доступно мест: {manager.RemainingSlots} | " +
+            $"Открыто: {manager.UnlockedSlotCount}/" +
+            $"{manager.TotalExpansionSlots}";
     }
 
     private void OnInteractionPromptChanged(string prompt)

@@ -27,6 +27,9 @@ public class GameSaveData
     public int dailyGoalIncomeBaseline;
     public bool dailyGoalCompleted;
 
+    public int clubLevel;
+    public int clubExperience;
+
     public int consecutiveDebtDays;
 
     public int purchasedPCCount;
