@@ -6,7 +6,6 @@ public sealed class BankruptcyUI : MonoBehaviour
     [SerializeField] private Vector2 statusPosition = new Vector2(20f, 195f);
 
     private GUIStyle labelStyle;
-    private GUIStyle gameOverStyle;
 
     private void Start()
     {
@@ -42,11 +41,6 @@ public sealed class BankruptcyUI : MonoBehaviour
 
         InitializeStyles();
         DrawFinancialRisk(manager);
-
-        if (manager.IsGameOver)
-        {
-            DrawGameOverWindow(manager);
-        }
     }
 
     private void InitializeStyles()
@@ -56,16 +50,6 @@ public sealed class BankruptcyUI : MonoBehaviour
             labelStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = fontSize
-            };
-        }
-
-        if (gameOverStyle == null)
-        {
-            gameOverStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 28,
-                alignment = TextAnchor.MiddleCenter,
-                wordWrap = true
             };
         }
     }
@@ -95,26 +79,4 @@ public sealed class BankruptcyUI : MonoBehaviour
         );
     }
 
-    private void DrawGameOverWindow(BankruptcyManager manager)
-    {
-        const float width = 560f;
-        const float height = 220f;
-
-        Rect windowRect = new Rect(
-            (Screen.width - width) / 2f,
-            (Screen.height - height) / 2f,
-            width,
-            height
-        );
-
-        GUI.Box(windowRect, string.Empty);
-
-        string gameOverText =
-            "КЛУБ ОБАНКРОТИЛСЯ\n\n" +
-            $"Пройдено дней: {manager.GameOverDay}\n" +
-            $"Итоговый баланс: {manager.FinalBalance} ₽\n\n" +
-            "Останови Play Mode для новой попытки.";
-
-        GUI.Label(windowRect, gameOverText, gameOverStyle);
-    }
 }

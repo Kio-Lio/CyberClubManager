@@ -34,6 +34,7 @@ public static class CyberClubSceneSetup
         EnsureObjectWithComponent<ExpansionUI>("ExpansionUI", Vector3.zero);
         EnsureObjectWithComponent<PCTierUI>("PCTierUI", Vector3.zero);
         EnsureObjectWithComponent<InteractionPromptUI>("InteractionPromptUI", Vector3.zero);
+        EnsurePauseMenuController();
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
@@ -76,6 +77,21 @@ public static class CyberClubSceneSetup
         if (terminalObject.GetComponent<PCExpansionTerminal>() == null)
         {
             terminalObject.AddComponent<PCExpansionTerminal>();
+        }
+    }
+
+    private static void EnsurePauseMenuController()
+    {
+        GameObject playerObject = GameObject.Find("Player");
+        if (playerObject == null)
+        {
+            Debug.LogWarning("Player не найден. Меню паузы не добавлено.");
+            return;
+        }
+
+        if (playerObject.GetComponent<PauseMenuController>() == null)
+        {
+            playerObject.AddComponent<PauseMenuController>();
         }
     }
 

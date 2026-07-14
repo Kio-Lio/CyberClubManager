@@ -43,6 +43,12 @@ public class InteractionPromptUI : MonoBehaviour
 
     private void OnGUI()
     {
+        if (PauseMenuController.Instance != null &&
+            PauseMenuController.Instance.IsMenuOpen)
+        {
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(currentPrompt))
         {
             return;

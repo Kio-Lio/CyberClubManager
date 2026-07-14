@@ -21,7 +21,18 @@ public class PlayerInteraction : MonoBehaviour
 
     public void OnInteract(InputValue inputValue)
     {
-        if (!inputValue.isPressed || currentBehaviour == null)
+        if (!inputValue.isPressed)
+        {
+            return;
+        }
+
+        if (PauseMenuController.Instance != null &&
+            PauseMenuController.Instance.BlocksGameplayInput)
+        {
+            return;
+        }
+
+        if (currentBehaviour == null)
         {
             return;
         }

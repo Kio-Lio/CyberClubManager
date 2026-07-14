@@ -2,9 +2,12 @@ using System;
 using System.Collections;
 using System.IO;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class SaveManager : MonoBehaviour
 {
+    public static SaveManager Instance { get; private set; }
+
     private const int CurrentSaveVersion = 1;
     private const string SaveFileName = "cyber_club_save.json";
 
@@ -13,6 +16,17 @@ public class SaveManager : MonoBehaviour
 
     private string SavePath =>
         Path.Combine(Application.persistentDataPath, SaveFileName);
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+    }
 
     private void Start()
     {
@@ -39,6 +53,11 @@ public class SaveManager : MonoBehaviour
         if (BankruptcyManager.Instance != null)
         {
             BankruptcyManager.Instance.GameOverTriggered -= OnGameOverTriggered;
+        }
+
+        if (Instance == this)
+        {
+            Instance = null;
         }
     }
 
@@ -88,9 +107,17 @@ public class SaveManager : MonoBehaviour
     [ContextMenu("Save Game")]
     public void SaveGame()
     {
+        TrySaveGame();
+    }
+
+    public bool TrySaveGame()
+    {
         if (suppressSaving)
         {
-            return;
+            Debug.LogWarning(
+                "Сохранение заблокировано после завершения игры."
+            );
+            return false;
         }
 
         if (!CanSave())
@@ -98,7 +125,7 @@ public class SaveManager : MonoBehaviour
             Debug.LogWarning(
                 "Сохранение невозможно: не все игровые менеджеры доступны."
             );
-            return;
+            return false;
         }
 
         GameSaveData data = CreateSaveData();
@@ -108,11 +135,37 @@ public class SaveManager : MonoBehaviour
             string json = JsonUtility.ToJson(data, true);
             File.WriteAllText(SavePath, json);
             Debug.Log($"Игра сохранена: {SavePath}");
+            return true;
         }
         catch (Exception exception)
         {
             Debug.LogError($"Ошибка сохранения игры: {exception.Message}");
+            return false;
         }
+    }
+
+    public void StartNewGame()
+    {
+        Scene activeScene = SceneManager.GetActiveScene();
+
+        if (activeScene.buildIndex < 0)
+        {
+            Debug.LogError(
+                "Невозможно начать новую игру: " +
+                "текущая сцена не добавлена в Build Settings."
+            );
+            return;
+        }
+
+        suppressSaving = true;
+        DeleteSave();
+
+        Time.timeScale = 1f;
+
+        SceneManager.LoadScene(
+            activeScene.buildIndex,
+            LoadSceneMode.Single
+        );
     }
 
     private bool CanSave()
