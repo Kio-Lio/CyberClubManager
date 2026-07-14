@@ -102,6 +102,11 @@ public static class CyberClubSceneSetup
         {
             hudCanvasObject.AddComponent<ClubHUDCanvas>();
         }
+
+        if (hudCanvasObject.GetComponent<ClientFeedbackUI>() == null)
+        {
+            hudCanvasObject.AddComponent<ClientFeedbackUI>();
+        }
     }
 
     private static void EnsureObjectWithComponent<T>(string name, Vector3 position) where T : Component

@@ -273,7 +273,8 @@ public sealed class Client : MonoBehaviour
         {
             ClubReputationManager.Instance.RegisterServedClient(
                 clientType,
-                satisfaction
+                satisfaction,
+                waitingTime
             );
         }
         else
@@ -293,7 +294,10 @@ public sealed class Client : MonoBehaviour
 
         if (ClubReputationManager.Instance != null)
         {
-            ClubReputationManager.Instance.RegisterLostClient(clientType);
+            ClubReputationManager.Instance.RegisterLostClient(
+                clientType,
+                waitingTime
+            );
         }
         else
         {

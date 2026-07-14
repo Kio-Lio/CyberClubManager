@@ -23,6 +23,7 @@ public sealed class ClubReputationManager : MonoBehaviour
 
     public event Action StatusChanged;
     public event Action ClientServed;
+    public event Action<ClientFeedbackData> ClientFeedbackCreated;
 
     public void RestoreState(
         int savedReputation,
@@ -71,18 +72,31 @@ public sealed class ClubReputationManager : MonoBehaviour
     {
         RegisterServedClient(
             ClientType.Regular,
-            ClientSatisfaction.Normal
+            ClientSatisfaction.Normal,
+            0f
         );
     }
 
     public void RegisterServedClient(ClientType clientType)
     {
-        RegisterServedClient(clientType, ClientSatisfaction.Normal);
+        RegisterServedClient(
+            clientType,
+            ClientSatisfaction.Normal,
+            0f
+        );
     }
 
     public void RegisterServedClient(
         ClientType clientType,
         ClientSatisfaction satisfaction)
+    {
+        RegisterServedClient(clientType, satisfaction, 0f);
+    }
+
+    public void RegisterServedClient(
+        ClientType clientType,
+        ClientSatisfaction satisfaction,
+        float waitingTime)
     {
         int typeReward = GetServedReputationReward(clientType);
         int satisfactionModifier = GetSatisfactionReputationModifier(
@@ -121,14 +135,26 @@ public sealed class ClubReputationManager : MonoBehaviour
 
         StatusChanged?.Invoke();
         ClientServed?.Invoke();
+        ClientFeedbackCreated?.Invoke(
+            new ClientFeedbackData(
+                clientType,
+                satisfaction,
+                true,
+                totalReputationChange,
+                Mathf.Max(0f, waitingTime),
+                GetServedFeedbackMessage(satisfaction)
+            )
+        );
     }
 
     public void RegisterLostClient()
     {
-        RegisterLostClient(ClientType.Regular);
+        RegisterLostClient(ClientType.Regular, 0f);
     }
 
-    public void RegisterLostClient(ClientType clientType)
+    public void RegisterLostClient(
+        ClientType clientType,
+        float waitingTime = 0f)
     {
         int reputationPenalty = GetLostReputationPenalty(clientType);
         lostClients++;
@@ -142,6 +168,16 @@ public sealed class ClubReputationManager : MonoBehaviour
         );
 
         StatusChanged?.Invoke();
+        ClientFeedbackCreated?.Invoke(
+            new ClientFeedbackData(
+                clientType,
+                ClientSatisfaction.Poor,
+                false,
+                -reputationPenalty,
+                Mathf.Max(0f, waitingTime),
+                "Не дождался подходящего компьютера и ушел."
+            )
+        );
     }
 
     private static int GetServedReputationReward(ClientType clientType)
@@ -175,6 +211,21 @@ public sealed class ClubReputationManager : MonoBehaviour
             ClientSatisfaction.Normal => 0,
             ClientSatisfaction.Poor => -2,
             _ => 0
+        };
+    }
+
+    private static string GetServedFeedbackMessage(
+        ClientSatisfaction satisfaction)
+    {
+        return satisfaction switch
+        {
+            ClientSatisfaction.Excellent =>
+                "Все отлично, быстро нашли место!",
+            ClientSatisfaction.Normal =>
+                "Нормально, но пришлось немного подождать.",
+            ClientSatisfaction.Poor =>
+                "Слишком долго ждал свободный компьютер.",
+            _ => "Посещение завершено."
         };
     }
 
