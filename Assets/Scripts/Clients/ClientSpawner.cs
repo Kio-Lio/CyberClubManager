@@ -4,6 +4,9 @@ using UnityEngine;
 
 public sealed class ClientSpawner : MonoBehaviour
 {
+    private static readonly Vector3 ClubEntrancePosition =
+        new Vector3(-0.5f, -5.8f, 0f);
+
     [Header("Spawn Settings")]
     [SerializeField] private float spawnInterval = 5f;
     [SerializeField] private float minSpawnInterval = 2f;
@@ -49,12 +52,20 @@ public sealed class ClientSpawner : MonoBehaviour
 
     private void Start()
     {
+        ApplyLayoutPositions();
+
         if (ClubReputationManager.Instance != null)
         {
             ClubReputationManager.Instance.StatusChanged += RefreshSpawnInterval;
         }
 
         RefreshSpawnInterval();
+    }
+
+    public void ApplyLayoutPositions()
+    {
+        transform.position = ClubEntrancePosition;
+        exitPosition = ClubEntrancePosition;
     }
 
     private void OnDestroy()

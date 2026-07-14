@@ -30,7 +30,7 @@ public static class CyberClubSceneSetup
         CreatePCs();
         EnsureNavigationNetwork();
         EnsureExpansionTerminal();
-        EnsureObjectWithComponent<ClientSpawner>("ClientSpawner", new Vector3(-6f, 0f, 0f));
+        EnsureClientSpawner();
         EnsureClubHUDCanvas();
         EnsurePauseMenuController();
 
@@ -176,6 +176,20 @@ public static class CyberClubSceneSetup
     private static void EnsureNavigationNetwork()
     {
         ClientNavigationManager.EnsureRuntimeGraph();
+    }
+
+    private static void EnsureClientSpawner()
+    {
+        GameObject spawnerObject = GameObject.Find("ClientSpawner");
+        if (spawnerObject == null)
+        {
+            spawnerObject = new GameObject("ClientSpawner");
+        }
+
+        ClientSpawner spawner =
+            spawnerObject.GetComponent<ClientSpawner>() ??
+            spawnerObject.AddComponent<ClientSpawner>();
+        spawner.ApplyLayoutPositions();
     }
 
     private static void EnsurePlayerPhysicsAndVisuals()

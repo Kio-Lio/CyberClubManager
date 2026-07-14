@@ -71,7 +71,7 @@ public sealed class ClientNavigationManager : MonoBehaviour
 
         entranceNode = EnsureNode(
             "EntranceNode",
-            new Vector3(-3.5f, -4.2f, 0f)
+            new Vector3(-0.5f, -4.2f, 0f)
         );
         queueNode = EnsureNode(
             "QueueNode",
