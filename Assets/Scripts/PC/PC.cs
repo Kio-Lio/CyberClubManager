@@ -112,6 +112,7 @@ public class PC : MonoBehaviour, IInteractable
     public event Action<PCState> StateChanged;
     public event Action<PCTier> TierChanged;
     public event Action EquipmentChanged;
+    public event Action<PC> SessionCompleted;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStaticEvents()
@@ -433,6 +434,7 @@ public class PC : MonoBehaviour, IInteractable
 
         sessionCoroutine = null;
         ApplyEquipmentWear();
+        SessionCompleted?.Invoke(this);
 
         if (UnityEngine.Random.value < breakdownChance)
         {

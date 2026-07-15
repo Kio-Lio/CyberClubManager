@@ -40,6 +40,7 @@ public class GameSaveData
     public RoomDoorSaveData[] roomDoors;
     public PCEquipmentSaveData[] pcEquipment;
     public bool technicianHired;
+    public TrashSaveData[] trashItems;
 }
 
 [Serializable]

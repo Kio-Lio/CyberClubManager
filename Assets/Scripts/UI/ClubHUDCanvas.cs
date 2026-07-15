@@ -20,6 +20,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private Text clubLevelText;
     private Text pcStateText;
     private Text equipmentStatusText;
+    private Text cleanlinessText;
     private Text technicianStatusText;
     private Text clientQueueText;
     private Text reputationText;
@@ -152,6 +153,10 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         pcStateText = CreateInformationLine("PCStateText", panelTransform);
         equipmentStatusText = CreateInformationLine(
             "EquipmentStatusText",
+            panelTransform
+        );
+        cleanlinessText = CreateInformationLine(
+            "CleanlinessText",
             panelTransform
         );
         technicianStatusText = CreateInformationLine(
@@ -311,6 +316,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             TechnicianManager.Instance.StatusChanged += RefreshTechnicianStatus;
         }
 
+        if (ClubCleanlinessManager.Instance != null)
+        {
+            ClubCleanlinessManager.Instance.StatusChanged += RefreshCleanliness;
+        }
+
         PC.PCRegistered += RegisterPC;
         PC.PCUnregistered += UnregisterPC;
     }
@@ -361,6 +371,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         if (TechnicianManager.Instance != null)
         {
             TechnicianManager.Instance.StatusChanged -= RefreshTechnicianStatus;
+        }
+
+        if (ClubCleanlinessManager.Instance != null)
+        {
+            ClubCleanlinessManager.Instance.StatusChanged -= RefreshCleanliness;
         }
 
         PC.PCRegistered -= RegisterPC;
@@ -468,6 +483,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         RefreshClubProgression();
         RefreshPCInformation();
         RefreshEquipmentStatus();
+        RefreshCleanliness();
         RefreshTechnicianStatus();
         RefreshClientQueue();
         RefreshReputation();
@@ -639,6 +655,25 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             $"Оборудование: исправно {healthyCount} | " +
             $"изношено {wornCount} | " +
             $"критично {criticalCount}";
+    }
+
+    private void RefreshCleanliness()
+    {
+        if (cleanlinessText == null)
+        {
+            return;
+        }
+
+        ClubCleanlinessManager manager = ClubCleanlinessManager.Instance;
+        if (manager == null)
+        {
+            cleanlinessText.text = "Чистота: недоступна";
+            return;
+        }
+
+        cleanlinessText.text =
+            $"Чистота: {manager.Cleanliness:F0}/100 | " +
+            $"Мусор: {manager.TrashCount}";
     }
 
     private void RefreshTechnicianStatus()

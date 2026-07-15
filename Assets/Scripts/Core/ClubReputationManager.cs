@@ -112,6 +112,22 @@ public sealed class ClubReputationManager : MonoBehaviour
         float waitingTime,
         float equipmentCondition)
     {
+        RegisterServedClient(
+            clientType,
+            satisfaction,
+            waitingTime,
+            equipmentCondition,
+            100f
+        );
+    }
+
+    public void RegisterServedClient(
+        ClientType clientType,
+        ClientSatisfaction satisfaction,
+        float waitingTime,
+        float equipmentCondition,
+        float clubCleanliness)
+    {
         int typeReward = GetServedReputationReward(clientType);
         int satisfactionModifier = GetSatisfactionReputationModifier(
             satisfaction
@@ -157,7 +173,12 @@ public sealed class ClubReputationManager : MonoBehaviour
                 totalReputationChange,
                 Mathf.Max(0f, waitingTime),
                 Mathf.Clamp(equipmentCondition, 0f, 100f),
-                GetServedFeedbackMessage(satisfaction, equipmentCondition)
+                Mathf.Clamp(clubCleanliness, 0f, 100f),
+                GetServedFeedbackMessage(
+                    satisfaction,
+                    equipmentCondition,
+                    clubCleanliness
+                )
             )
         );
     }
@@ -190,6 +211,7 @@ public sealed class ClubReputationManager : MonoBehaviour
                 false,
                 -reputationPenalty,
                 Mathf.Max(0f, waitingTime),
+                100f,
                 100f,
                 "Не дождался подходящего компьютера и ушел."
             )
@@ -232,8 +254,19 @@ public sealed class ClubReputationManager : MonoBehaviour
 
     private static string GetServedFeedbackMessage(
         ClientSatisfaction satisfaction,
-        float equipmentCondition)
+        float equipmentCondition,
+        float clubCleanliness)
     {
+        if (clubCleanliness < 35f)
+        {
+            return "В клубе очень грязно, находиться неприятно.";
+        }
+
+        if (clubCleanliness < 70f)
+        {
+            return "В игровом зале стоит прибраться.";
+        }
+
         if (equipmentCondition <= 20f)
         {
             return "Оборудование почти сломано, играть неудобно.";

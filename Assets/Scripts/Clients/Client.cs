@@ -34,6 +34,7 @@ public sealed class Client : MonoBehaviour
     private float initialPatience;
     private float waitingTime;
     private float assignedPCEquipmentCondition = 100f;
+    private float assignedClubCleanliness = 100f;
 
     private readonly List<Vector3> navigationPath = new();
     private int navigationPathIndex;
@@ -149,12 +150,19 @@ public sealed class Client : MonoBehaviour
 
         targetPc = pc;
         assignedPCEquipmentCondition = targetPc.LowestEquipmentCondition;
+        assignedClubCleanliness = ClubCleanlinessManager.Instance != null
+            ? ClubCleanlinessManager.Instance.Cleanliness
+            : 100f;
         seatPosition = targetPc.transform.position + new Vector3(0f, -0.8f, 0f);
         BeginNavigation(seatPosition, targetPc.ApproachNode);
         satisfaction = CalculateSatisfaction();
         satisfaction = ApplyEquipmentSatisfactionPenalty(
             satisfaction,
             assignedPCEquipmentCondition
+        );
+        satisfaction = ApplyCleanlinessSatisfactionPenalty(
+            satisfaction,
+            assignedClubCleanliness
         );
         state = ClientState.MovingToPC;
         Debug.Log(
@@ -358,6 +366,25 @@ public sealed class Client : MonoBehaviour
         return (ClientSatisfaction)satisfactionValue;
     }
 
+    private static ClientSatisfaction ApplyCleanlinessSatisfactionPenalty(
+        ClientSatisfaction currentSatisfaction,
+        float cleanliness)
+    {
+        int penaltySteps = cleanliness < 35f
+            ? 2
+            : cleanliness < 70f
+                ? 1
+                : 0;
+
+        int satisfactionValue = Mathf.Clamp(
+            (int)currentSatisfaction - penaltySteps,
+            (int)ClientSatisfaction.Poor,
+            (int)ClientSatisfaction.Excellent
+        );
+
+        return (ClientSatisfaction)satisfactionValue;
+    }
+
     private void RegisterServedOutcome()
     {
         if (outcomeRegistered)
@@ -373,7 +400,8 @@ public sealed class Client : MonoBehaviour
                 clientType,
                 satisfaction,
                 waitingTime,
-                assignedPCEquipmentCondition
+                assignedPCEquipmentCondition,
+                assignedClubCleanliness
             );
         }
         else
