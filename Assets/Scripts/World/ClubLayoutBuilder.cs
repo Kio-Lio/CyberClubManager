@@ -28,6 +28,9 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
     [SerializeField] private Vector2 roomSize = new Vector2(16f, 10f);
     [SerializeField] private float wallThickness = 0.35f;
 
+    [Header("Camera Bounds")]
+    [SerializeField, Min(0f)] private float cameraBoundsPadding = 0.25f;
+
     [Header("Colors")]
     [SerializeField] private Color floorColor = new Color(0.12f, 0.13f, 0.16f);
     [SerializeField] private Color wallColor = new Color(0.30f, 0.32f, 0.38f);
@@ -91,6 +94,7 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         Transform existingRoot = transform.Find(LayoutRootName);
         if (existingRoot != null)
         {
+            CreateCameraBounds();
             ConfigureScenePresentation();
             ClientNavigationManager.EnsureRuntimeGraph();
             return;
@@ -103,6 +107,7 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         CreateOuterWalls(root.transform);
         CreateAdminDesk(root.transform);
         CreatePCTables(root.transform);
+        CreateCameraBounds();
         ConfigureScenePresentation();
         ClientNavigationManager.EnsureRuntimeGraph();
     }
@@ -290,32 +295,64 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
 
     private void ConfigureScenePresentation()
     {
-        Camera mainCamera = Camera.main ?? FindAnyObjectByType<Camera>();
-        if (mainCamera != null && mainCamera.orthographic)
-        {
-            mainCamera.orthographicSize = 6.5f;
-        }
-
         GameObject player = GameObject.Find("Player");
-        if (player == null)
+        if (player != null)
         {
-            return;
+            Rigidbody2D body = player.GetComponent<Rigidbody2D>() ??
+                player.AddComponent<Rigidbody2D>();
+            body.bodyType = RigidbodyType2D.Dynamic;
+            body.gravityScale = 0f;
+            body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+            body.interpolation = RigidbodyInterpolation2D.Interpolate;
+            body.constraints = RigidbodyConstraints2D.FreezeRotation;
+
+            EnsureSolidPlayerCollider(player);
+
+            SpriteRenderer playerRenderer = player.GetComponent<SpriteRenderer>();
+            if (playerRenderer != null)
+            {
+                YSortRenderer.Ensure(player, 20, -0.45f);
+            }
         }
 
-        Rigidbody2D body = player.GetComponent<Rigidbody2D>() ??
-            player.AddComponent<Rigidbody2D>();
-        body.bodyType = RigidbodyType2D.Dynamic;
-        body.gravityScale = 0f;
-        body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-        body.interpolation = RigidbodyInterpolation2D.Interpolate;
-        body.constraints = RigidbodyConstraints2D.FreezeRotation;
-
-        EnsureSolidPlayerCollider(player);
-
-        SpriteRenderer playerRenderer = player.GetComponent<SpriteRenderer>();
-        if (playerRenderer != null)
+        CameraFollow cameraFollow = FindAnyObjectByType<CameraFollow>();
+        CameraBounds2D cameraBounds = FindAnyObjectByType<CameraBounds2D>();
+        if (cameraFollow != null && cameraBounds != null)
         {
-            YSortRenderer.Ensure(player, 20, -0.45f);
+            cameraFollow.SetBounds(cameraBounds);
+        }
+
+        if (cameraFollow != null && player != null)
+        {
+            cameraFollow.SetTarget(player.transform);
+        }
+    }
+
+    private void CreateCameraBounds()
+    {
+        Transform existingBounds = transform.Find("CameraBounds");
+        GameObject boundsObject = existingBounds != null
+            ? existingBounds.gameObject
+            : new GameObject("CameraBounds");
+
+        if (existingBounds == null)
+        {
+            boundsObject.transform.SetParent(transform, false);
+        }
+
+        boundsObject.transform.localPosition = Vector3.zero;
+
+        CameraBounds2D bounds = boundsObject.GetComponent<CameraBounds2D>() ??
+            boundsObject.AddComponent<CameraBounds2D>();
+        bounds.Configure(new Vector2(
+            Mathf.Max(1f, roomSize.x - cameraBoundsPadding * 2f),
+            Mathf.Max(1f, roomSize.y - cameraBoundsPadding * 2f)
+        ));
+
+        SpriteRenderer renderer = boundsObject.GetComponent<SpriteRenderer>();
+        if (renderer != null)
+        {
+            Destroy(renderer);
         }
     }
 
@@ -393,5 +430,6 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         roomSize.x = Mathf.Max(8f, roomSize.x);
         roomSize.y = Mathf.Max(6f, roomSize.y);
         wallThickness = Mathf.Clamp(wallThickness, 0.1f, 1f);
+        cameraBoundsPadding = Mathf.Max(0f, cameraBoundsPadding);
     }
 }

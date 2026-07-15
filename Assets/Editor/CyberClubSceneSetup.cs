@@ -221,11 +221,19 @@ public static class CyberClubSceneSetup
             YSortRenderer.Ensure(playerObject, 20, -0.45f);
         }
 
-        Camera mainCamera = Camera.main ??
-            Object.FindAnyObjectByType<Camera>();
-        if (mainCamera != null && mainCamera.orthographic)
+        Camera mainCamera = Camera.main ?? Object.FindAnyObjectByType<Camera>();
+        if (mainCamera != null)
         {
-            mainCamera.orthographicSize = 6.5f;
+            CameraFollow cameraFollow = mainCamera.GetComponent<CameraFollow>() ??
+                mainCamera.gameObject.AddComponent<CameraFollow>();
+            cameraFollow.SetTarget(playerObject.transform);
+
+            CameraBounds2D cameraBounds =
+                Object.FindAnyObjectByType<CameraBounds2D>();
+            if (cameraBounds != null)
+            {
+                cameraFollow.SetBounds(cameraBounds);
+            }
         }
     }
 
