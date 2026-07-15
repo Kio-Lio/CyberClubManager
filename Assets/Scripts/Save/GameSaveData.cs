@@ -37,6 +37,7 @@ public class GameSaveData
 
     public int purchasedPCCount;
     public List<PCSaveData> pcs = new();
+    public RoomDoorSaveData[] roomDoors;
 }
 
 [Serializable]
@@ -44,4 +45,11 @@ public class PCSaveData
 {
     public string objectName;
     public int tier;
+}
+
+[Serializable]
+public sealed class RoomDoorSaveData
+{
+    public string doorId;
+    public bool isUnlocked;
 }

@@ -166,7 +166,7 @@ public sealed class PCExpansionManager : MonoBehaviour
 
     private void CreatePC(Vector3 position)
     {
-        int pcNumber = FindObjectsByType<PC>().Length + 1;
+        int pcNumber = nextSlotIndex + 6;
         GameObject pcObject = new GameObject($"PC_{pcNumber:00}");
         pcObject.transform.position = position;
 

@@ -27,6 +27,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private Text dayReportText;
     private Text financialRiskText;
     private Text expansionText;
+    private Text roomStatusText;
     private Text pcTierText;
 
     private GameObject interactionPromptPanel;
@@ -166,6 +167,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         financialRiskText =
             CreateInformationLine("FinancialRiskText", panelTransform);
         expansionText = CreateInformationLine("ExpansionText", panelTransform);
+        roomStatusText = CreateInformationLine("RoomStatusText", panelTransform);
         pcTierText = CreateInformationLine("PCTierText", panelTransform, 54f);
     }
 
@@ -284,6 +286,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             PCExpansionManager.Instance.StatusChanged += RefreshExpansion;
         }
 
+        if (RoomUnlockManager.Instance != null)
+        {
+            RoomUnlockManager.Instance.StatusChanged += OnRoomStatusChanged;
+        }
+
         PC.PCRegistered += RegisterPC;
         PC.PCUnregistered += UnregisterPC;
     }
@@ -324,6 +331,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         if (PCExpansionManager.Instance != null)
         {
             PCExpansionManager.Instance.StatusChanged -= RefreshExpansion;
+        }
+
+        if (RoomUnlockManager.Instance != null)
+        {
+            RoomUnlockManager.Instance.StatusChanged -= OnRoomStatusChanged;
         }
 
         PC.PCRegistered -= RegisterPC;
@@ -431,6 +443,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         RefreshDailyGoal();
         RefreshFinancialRisk();
         RefreshExpansion();
+        RefreshRoomStatus();
         RefreshInteractionPromptVisibility();
     }
 
@@ -499,6 +512,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
 
         foreach (PC pc in pcs)
         {
+            if (!pc.HasRoomAccess)
+            {
+                continue;
+            }
+
             switch (pc.State)
             {
                 case PCState.Free:
@@ -714,6 +732,39 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             $"Доступно мест: {manager.RemainingSlots} | " +
             $"Открыто: {manager.UnlockedSlotCount}/" +
             $"{manager.TotalExpansionSlots}";
+    }
+
+    private void RefreshRoomStatus()
+    {
+        if (roomStatusText == null)
+        {
+            return;
+        }
+
+        RoomUnlockManager manager = RoomUnlockManager.Instance;
+        if (manager == null || manager.RoomDoors.Count == 0)
+        {
+            roomStatusText.text = "Комнаты: недоступны";
+            return;
+        }
+
+        RoomDoor door = manager.RoomDoors[0];
+        if (door == null)
+        {
+            roomStatusText.text = "Комнаты: недоступны";
+            return;
+        }
+
+        roomStatusText.text = door.IsUnlocked
+            ? $"{door.RoomDisplayName}: открыта"
+            : $"{door.RoomDisplayName}: закрыта | " +
+              $"уровень {door.RequiredClubLevel} | {door.UnlockCost} ₽";
+    }
+
+    private void OnRoomStatusChanged()
+    {
+        RefreshRoomStatus();
+        RefreshPCInformation();
     }
 
     private void OnInteractionPromptChanged(string prompt)

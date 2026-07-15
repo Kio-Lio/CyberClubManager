@@ -25,11 +25,17 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
     public static ClubLayoutBuilder Instance { get; private set; }
 
     [Header("Room")]
-    [SerializeField] private Vector2 roomSize = new Vector2(16f, 10f);
+    [SerializeField] private Vector2 roomSize = new Vector2(23.5f, 10f);
     [SerializeField] private float wallThickness = 0.35f;
 
     [Header("Camera Bounds")]
     [SerializeField, Min(0f)] private float cameraBoundsPadding = 0.25f;
+
+    [Header("Private Room")]
+    [SerializeField] private Vector2 privateRoomCenter =
+        new Vector2(9.5f, 3.4f);
+    [SerializeField] private Vector2 privateRoomSize =
+        new Vector2(4.5f, 2.6f);
 
     [Header("Colors")]
     [SerializeField] private Color floorColor = new Color(0.12f, 0.13f, 0.16f);
@@ -94,6 +100,8 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         Transform existingRoot = transform.Find(LayoutRootName);
         if (existingRoot != null)
         {
+            CreatePrivateRoom(existingRoot);
+            CreatePrivateRoomContent();
             CreateCameraBounds();
             ConfigureScenePresentation();
             ClientNavigationManager.EnsureRuntimeGraph();
@@ -107,6 +115,8 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         CreateOuterWalls(root.transform);
         CreateAdminDesk(root.transform);
         CreatePCTables(root.transform);
+        CreatePrivateRoom(root.transform);
+        CreatePrivateRoomContent();
         CreateCameraBounds();
         ConfigureScenePresentation();
         ClientNavigationManager.EnsureRuntimeGraph();
@@ -140,19 +150,34 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
             wallColor,
             false
         );
+        const float entranceCenterX = -0.5f;
+        const float entranceWidth = 1.2f;
+        float entranceLeft = entranceCenterX - entranceWidth * 0.5f;
+        float entranceRight = entranceCenterX + entranceWidth * 0.5f;
+        float leftSegmentWidth = entranceLeft + halfWidth;
+        float rightSegmentWidth = halfWidth - entranceRight;
+
         CreateObstacle(
             "Wall_Bottom_Left",
             parent,
-            new Vector3(-5f, -halfHeight, 0f),
-            new Vector2(6f, wallThickness),
+            new Vector3(
+                -halfWidth + leftSegmentWidth * 0.5f,
+                -halfHeight,
+                0f
+            ),
+            new Vector2(leftSegmentWidth, wallThickness),
             wallColor,
             false
         );
         CreateObstacle(
             "Wall_Bottom_Right",
             parent,
-            new Vector3(4.5f, -halfHeight, 0f),
-            new Vector2(7f, wallThickness),
+            new Vector3(
+                entranceRight + rightSegmentWidth * 0.5f,
+                -halfHeight,
+                0f
+            ),
+            new Vector2(rightSegmentWidth, wallThickness),
             wallColor,
             false
         );
@@ -208,6 +233,172 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
             new Vector2(7.4f, 1.1f),
             tableColor
         );
+    }
+
+    private void CreatePrivateRoom(Transform parent)
+    {
+        float halfWidth = privateRoomSize.x * 0.5f;
+        float halfHeight = privateRoomSize.y * 0.5f;
+        Vector3 center = new Vector3(
+            privateRoomCenter.x,
+            privateRoomCenter.y,
+            0f
+        );
+
+        EnsurePrivateRoomObstacle(
+            "PrivateRoom_Wall_Top",
+            parent,
+            center + new Vector3(0f, halfHeight, 0f),
+            new Vector2(privateRoomSize.x, wallThickness)
+        );
+        EnsurePrivateRoomObstacle(
+            "PrivateRoom_Wall_Left",
+            parent,
+            center + new Vector3(-halfWidth, 0f, 0f),
+            new Vector2(wallThickness, privateRoomSize.y)
+        );
+        EnsurePrivateRoomObstacle(
+            "PrivateRoom_Wall_Right",
+            parent,
+            center + new Vector3(halfWidth, 0f, 0f),
+            new Vector2(wallThickness, privateRoomSize.y)
+        );
+
+        const float doorwayWidth = 1.2f;
+        float bottomSegmentWidth =
+            (privateRoomSize.x - doorwayWidth) * 0.5f;
+
+        EnsurePrivateRoomObstacle(
+            "PrivateRoom_Wall_Bottom_Left",
+            parent,
+            center + new Vector3(
+                -doorwayWidth * 0.5f - bottomSegmentWidth * 0.5f,
+                -halfHeight,
+                0f
+            ),
+            new Vector2(bottomSegmentWidth, wallThickness)
+        );
+        EnsurePrivateRoomObstacle(
+            "PrivateRoom_Wall_Bottom_Right",
+            parent,
+            center + new Vector3(
+                doorwayWidth * 0.5f + bottomSegmentWidth * 0.5f,
+                -halfHeight,
+                0f
+            ),
+            new Vector2(bottomSegmentWidth, wallThickness)
+        );
+    }
+
+    private void EnsurePrivateRoomObstacle(
+        string objectName,
+        Transform parent,
+        Vector3 position,
+        Vector2 size)
+    {
+        if (parent.Find(objectName) != null)
+        {
+            return;
+        }
+
+        CreateObstacle(
+            objectName,
+            parent,
+            position,
+            size,
+            wallColor,
+            false
+        );
+    }
+
+    private void CreatePrivateRoomContent()
+    {
+        ClientNavigationManager navigation =
+            ClientNavigationManager.EnsureRuntimeGraph();
+
+        GameObject managerObject = GameObject.Find("RoomUnlockManager");
+        if (managerObject == null)
+        {
+            managerObject = new GameObject("RoomUnlockManager");
+        }
+
+        RoomUnlockManager roomManager =
+            managerObject.GetComponent<RoomUnlockManager>() ??
+            managerObject.AddComponent<RoomUnlockManager>();
+
+        ClientNavigationNode doorNode = GameObject.Find(
+            "PrivateRoomDoorNode"
+        )?.GetComponent<ClientNavigationNode>();
+
+        GameObject doorObject = GameObject.Find("PrivateRoomDoor");
+        if (doorObject == null)
+        {
+            doorObject = new GameObject("PrivateRoomDoor");
+            doorObject.transform.position =
+                new Vector3(privateRoomCenter.x, 2.1f, 0f);
+            doorObject.transform.localScale =
+                new Vector3(1.2f, wallThickness, 1f);
+
+            SpriteRenderer doorRenderer =
+                doorObject.AddComponent<SpriteRenderer>();
+            doorRenderer.sprite = GetSquareSprite();
+            YSortRenderer.SetSortingLayer(doorRenderer, "World");
+            doorObject.AddComponent<BoxCollider2D>();
+            doorObject.AddComponent<RoomDoor>();
+        }
+
+        RoomDoor roomDoor = doorObject.GetComponent<RoomDoor>();
+        roomDoor.Configure(
+            "PrivateRoom01",
+            "Приватная комната",
+            3,
+            1500,
+            doorNode
+        );
+        roomManager.RegisterDoor(roomDoor);
+
+        EnsurePrivateRoomPC(
+            "PC_10",
+            new Vector3(8.55f, 3.55f, 0f),
+            roomDoor
+        );
+        EnsurePrivateRoomPC(
+            "PC_11",
+            new Vector3(10.45f, 3.55f, 0f),
+            roomDoor
+        );
+
+        navigation.EnsureDefaultGraph();
+    }
+
+    private void EnsurePrivateRoomPC(
+        string pcName,
+        Vector3 position,
+        RoomDoor roomDoor)
+    {
+        GameObject pcObject = GameObject.Find(pcName);
+        bool created = pcObject == null;
+
+        if (created)
+        {
+            pcObject = new GameObject(pcName);
+            pcObject.transform.position = position;
+            pcObject.transform.localScale = Vector3.one;
+
+            SpriteRenderer renderer = pcObject.AddComponent<SpriteRenderer>();
+            renderer.sprite = GetSquareSprite();
+            pcObject.AddComponent<BoxCollider2D>();
+            pcObject.AddComponent<PC>();
+        }
+
+        PC pc = pcObject.GetComponent<PC>();
+        pc.SetRequiredRoomDoor(roomDoor);
+        pc.ConfigureYSorting();
+
+        if (created)
+        {
+            pc.RestoreTier(PCTier.Gaming);
+        }
     }
 
     private void CreateObstacle(
@@ -431,5 +622,7 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         roomSize.y = Mathf.Max(6f, roomSize.y);
         wallThickness = Mathf.Clamp(wallThickness, 0.1f, 1f);
         cameraBoundsPadding = Mathf.Max(0f, cameraBoundsPadding);
+        privateRoomSize.x = Mathf.Max(2f, privateRoomSize.x);
+        privateRoomSize.y = Mathf.Max(2f, privateRoomSize.y);
     }
 }

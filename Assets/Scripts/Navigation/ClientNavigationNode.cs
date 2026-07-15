@@ -4,8 +4,15 @@ using UnityEngine;
 public sealed class ClientNavigationNode : MonoBehaviour
 {
     [SerializeField] private List<ClientNavigationNode> neighbours = new();
+    [SerializeField] private bool isWalkable = true;
 
     public IReadOnlyList<ClientNavigationNode> Neighbours => neighbours;
+    public bool IsWalkable => isWalkable;
+
+    public void SetWalkable(bool walkable)
+    {
+        isWalkable = walkable;
+    }
 
     public void ClearNeighbours()
     {
@@ -33,6 +40,7 @@ public sealed class ClientNavigationNode : MonoBehaviour
 
     private void OnDrawGizmos()
     {
+        Gizmos.color = isWalkable ? Color.green : Color.red;
         Gizmos.DrawSphere(transform.position, 0.12f);
 
         foreach (ClientNavigationNode neighbour in neighbours)

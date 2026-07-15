@@ -41,6 +41,9 @@ public class PC : MonoBehaviour, IInteractable
 
     private bool isReserved;
 
+    [Header("Room Access")]
+    [SerializeField] private RoomDoor requiredRoomDoor;
+
     [Header("Navigation")]
     [SerializeField] private ClientNavigationNode approachNode;
 
@@ -56,9 +59,12 @@ public class PC : MonoBehaviour, IInteractable
     public bool IsFree => state == PCState.Free;
     public bool IsOccupied => state == PCState.Occupied;
     public bool IsBroken => state == PCState.Broken;
-    public bool IsAvailable => IsFree && !isReserved;
+    public bool IsAvailable => IsFree && !isReserved && HasRoomAccess;
     public PCTier Tier => tier;
     public ClientNavigationNode ApproachNode => approachNode;
+    public RoomDoor RequiredRoomDoor => requiredRoomDoor;
+    public bool HasRoomAccess =>
+        requiredRoomDoor == null || requiredRoomDoor.IsUnlocked;
     public int DailyElectricityCost => dailyElectricityCost;
     public int LastSessionIncome { get; private set; }
     public bool CanUpgrade => tier != PCTier.Premium;
@@ -111,6 +117,11 @@ public class PC : MonoBehaviour, IInteractable
 
     public void Interact()
     {
+        if (!HasRoomAccess)
+        {
+            return;
+        }
+
         switch (state)
         {
             case PCState.Free:
@@ -149,6 +160,11 @@ public class PC : MonoBehaviour, IInteractable
 
     public string GetInteractionPrompt()
     {
+        if (!HasRoomAccess)
+        {
+            return $"{name}: находится в закрытой комнате";
+        }
+
         switch (state)
         {
             case PCState.Broken:
@@ -190,6 +206,11 @@ public class PC : MonoBehaviour, IInteractable
     public void SetApproachNode(ClientNavigationNode navigationNode)
     {
         approachNode = navigationNode;
+    }
+
+    public void SetRequiredRoomDoor(RoomDoor roomDoor)
+    {
+        requiredRoomDoor = roomDoor;
     }
 
     public void ConfigureYSorting()
@@ -247,7 +268,7 @@ public class PC : MonoBehaviour, IInteractable
 
     public bool TryOccupyReserved(ClientType clientType)
     {
-        if (!IsFree || !isReserved)
+        if (!IsFree || !isReserved || !HasRoomAccess)
         {
             return false;
         }
@@ -338,7 +359,7 @@ public class PC : MonoBehaviour, IInteractable
 
     private void TryUpgrade()
     {
-        if (!IsFree || isReserved)
+        if (!IsFree || isReserved || !HasRoomAccess)
         {
             Debug.Log($"{name}: сейчас этот ПК нельзя улучшить.");
             return;

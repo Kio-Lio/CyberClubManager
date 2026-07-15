@@ -8,7 +8,7 @@ public class SaveManager : MonoBehaviour
 {
     public static SaveManager Instance { get; private set; }
 
-    private const int CurrentSaveVersion = 4;
+    private const int CurrentSaveVersion = 5;
     private const string SaveFileName = "cyber_club_save.json";
 
     private bool suppressSaving;
@@ -218,6 +218,18 @@ public class SaveManager : MonoBehaviour
             purchasedPCCount = expansion.PurchasedPCCount
         };
 
+        RoomDoor[] roomDoors = FindObjectsByType<RoomDoor>();
+        data.roomDoors = new RoomDoorSaveData[roomDoors.Length];
+
+        for (int index = 0; index < roomDoors.Length; index++)
+        {
+            data.roomDoors[index] = new RoomDoorSaveData
+            {
+                doorId = roomDoors[index].DoorId,
+                isUnlocked = roomDoors[index].IsUnlocked
+            };
+        }
+
         PC[] pcs = FindObjectsByType<PC>();
         foreach (PC pc in pcs)
         {
@@ -323,8 +335,37 @@ public class SaveManager : MonoBehaviour
             data.clubExperience
         );
 
+        RestoreRoomDoors(data);
         PCExpansionManager.Instance.RestorePurchasedPCs(data.purchasedPCCount);
         RestorePCTiers(data);
+    }
+
+    private static void RestoreRoomDoors(GameSaveData data)
+    {
+        if (data.roomDoors == null)
+        {
+            return;
+        }
+
+        RoomUnlockManager manager = RoomUnlockManager.Instance;
+
+        foreach (RoomDoorSaveData savedDoor in data.roomDoors)
+        {
+            if (savedDoor == null ||
+                string.IsNullOrWhiteSpace(savedDoor.doorId))
+            {
+                continue;
+            }
+
+            RoomDoor door = manager != null
+                ? manager.FindDoor(savedDoor.doorId)
+                : null;
+
+            if (door != null)
+            {
+                door.RestoreState(savedDoor.isUnlocked);
+            }
+        }
     }
 
     private void RestorePCTiers(GameSaveData data)
