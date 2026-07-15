@@ -19,6 +19,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private Text balanceText;
     private Text clubLevelText;
     private Text pcStateText;
+    private Text equipmentStatusText;
     private Text clientQueueText;
     private Text reputationText;
     private Text satisfactionText;
@@ -148,6 +149,10 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             panelTransform
         );
         pcStateText = CreateInformationLine("PCStateText", panelTransform);
+        equipmentStatusText = CreateInformationLine(
+            "EquipmentStatusText",
+            panelTransform
+        );
         clientQueueText = CreateInformationLine(
             "ClientQueueText",
             panelTransform
@@ -364,7 +369,9 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         pcs.Add(pc);
         pc.StateChanged += OnPCStateChanged;
         pc.TierChanged += OnPCTierChanged;
+        pc.EquipmentChanged += OnPCEquipmentChanged;
         RefreshPCInformation();
+        RefreshEquipmentStatus();
     }
 
     private void UnregisterPC(PC pc)
@@ -376,8 +383,10 @@ public sealed class ClubHUDCanvas : MonoBehaviour
 
         pc.StateChanged -= OnPCStateChanged;
         pc.TierChanged -= OnPCTierChanged;
+        pc.EquipmentChanged -= OnPCEquipmentChanged;
         pcs.Remove(pc);
         RefreshPCInformation();
+        RefreshEquipmentStatus();
     }
 
     private void UnsubscribeFromPCs()
@@ -388,6 +397,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             {
                 pc.StateChanged -= OnPCStateChanged;
                 pc.TierChanged -= OnPCTierChanged;
+                pc.EquipmentChanged -= OnPCEquipmentChanged;
             }
         }
 
@@ -441,6 +451,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         RefreshBalance();
         RefreshClubProgression();
         RefreshPCInformation();
+        RefreshEquipmentStatus();
         RefreshClientQueue();
         RefreshReputation();
         RefreshDayTimer();
@@ -503,6 +514,12 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         RefreshPCInformation();
     }
 
+    private void OnPCEquipmentChanged()
+    {
+        RefreshPCInformation();
+        RefreshEquipmentStatus();
+    }
+
     private void RefreshPCInformation()
     {
         pcs.RemoveAll(pc => pc == null);
@@ -524,7 +541,14 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             switch (pc.State)
             {
                 case PCState.Free:
-                    freeCount++;
+                    if (pc.IsAvailable)
+                    {
+                        freeCount++;
+                    }
+                    else
+                    {
+                        brokenCount++;
+                    }
                     break;
                 case PCState.Occupied:
                     occupiedCount++;
@@ -559,6 +583,45 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             $"Premium {premiumCount}\n" +
             $"Улучшения: {PC.BasicToGamingUpgradeCost} ₽ / " +
             $"{PC.GamingToPremiumUpgradeCost} ₽";
+    }
+
+    private void RefreshEquipmentStatus()
+    {
+        if (equipmentStatusText == null)
+        {
+            return;
+        }
+
+        int healthyCount = 0;
+        int wornCount = 0;
+        int criticalCount = 0;
+
+        foreach (PC pc in pcs)
+        {
+            if (pc == null)
+            {
+                continue;
+            }
+
+            float condition = pc.LowestEquipmentCondition;
+            if (condition <= 20f)
+            {
+                criticalCount++;
+            }
+            else if (condition <= 50f)
+            {
+                wornCount++;
+            }
+            else
+            {
+                healthyCount++;
+            }
+        }
+
+        equipmentStatusText.text =
+            $"Оборудование: исправно {healthyCount} | " +
+            $"изношено {wornCount} | " +
+            $"критично {criticalCount}";
     }
 
     private void RefreshClientQueue()

@@ -8,7 +8,7 @@ public class SaveManager : MonoBehaviour
 {
     public static SaveManager Instance { get; private set; }
 
-    private const int CurrentSaveVersion = 5;
+    private const int CurrentSaveVersion = 6;
     private const string SaveFileName = "cyber_club_save.json";
 
     private bool suppressSaving;
@@ -231,12 +231,23 @@ public class SaveManager : MonoBehaviour
         }
 
         PC[] pcs = FindObjectsByType<PC>();
-        foreach (PC pc in pcs)
+        data.pcEquipment = new PCEquipmentSaveData[pcs.Length];
+
+        for (int index = 0; index < pcs.Length; index++)
         {
+            PC pc = pcs[index];
             if (pc == null)
             {
                 continue;
             }
+
+            data.pcEquipment[index] = new PCEquipmentSaveData
+            {
+                pcName = pc.name,
+                keyboardCondition = pc.Keyboard.Condition,
+                mouseCondition = pc.Mouse.Condition,
+                chairCondition = pc.Chair.Condition
+            };
 
             data.pcs.Add(
                 new PCSaveData
@@ -338,6 +349,7 @@ public class SaveManager : MonoBehaviour
         RestoreRoomDoors(data);
         PCExpansionManager.Instance.RestorePurchasedPCs(data.purchasedPCCount);
         RestorePCTiers(data);
+        RestorePCEquipment(data);
     }
 
     private static void RestoreRoomDoors(GameSaveData data)
@@ -418,6 +430,37 @@ public class SaveManager : MonoBehaviour
             );
 
             targetPC.RestoreTier((PCTier)tierValue);
+        }
+    }
+
+    private static void RestorePCEquipment(GameSaveData data)
+    {
+        if (data.pcEquipment == null)
+        {
+            return;
+        }
+
+        foreach (PCEquipmentSaveData savedEquipment in data.pcEquipment)
+        {
+            if (savedEquipment == null ||
+                string.IsNullOrWhiteSpace(savedEquipment.pcName))
+            {
+                continue;
+            }
+
+            GameObject pcObject = GameObject.Find(savedEquipment.pcName);
+            PC pc = pcObject != null ? pcObject.GetComponent<PC>() : null;
+
+            if (pc == null)
+            {
+                continue;
+            }
+
+            pc.RestoreEquipmentCondition(
+                savedEquipment.keyboardCondition,
+                savedEquipment.mouseCondition,
+                savedEquipment.chairCondition
+            );
         }
     }
 

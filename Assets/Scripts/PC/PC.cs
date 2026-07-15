@@ -41,6 +41,16 @@ public class PC : MonoBehaviour, IInteractable
 
     private bool isReserved;
 
+    [Header("Equipment")]
+    [SerializeField] private PCEquipmentCondition keyboard =
+        new PCEquipmentCondition(PCEquipmentType.Keyboard, 120);
+    [SerializeField] private PCEquipmentCondition mouse =
+        new PCEquipmentCondition(PCEquipmentType.Mouse, 100);
+    [SerializeField] private PCEquipmentCondition chair =
+        new PCEquipmentCondition(PCEquipmentType.Chair, 180);
+    [SerializeField, Min(0f)] private float minimumWearPerSession = 2f;
+    [SerializeField, Min(0f)] private float maximumWearPerSession = 6f;
+
     [Header("Room Access")]
     [SerializeField] private RoomDoor requiredRoomDoor;
 
@@ -59,7 +69,8 @@ public class PC : MonoBehaviour, IInteractable
     public bool IsFree => state == PCState.Free;
     public bool IsOccupied => state == PCState.Occupied;
     public bool IsBroken => state == PCState.Broken;
-    public bool IsAvailable => IsFree && !isReserved && HasRoomAccess;
+    public bool IsAvailable =>
+        IsFree && !isReserved && HasRoomAccess && !HasBrokenEquipment;
     public PCTier Tier => tier;
     public ClientNavigationNode ApproachNode => approachNode;
     public RoomDoor RequiredRoomDoor => requiredRoomDoor;
@@ -67,6 +78,16 @@ public class PC : MonoBehaviour, IInteractable
         requiredRoomDoor == null || requiredRoomDoor.IsUnlocked;
     public int DailyElectricityCost => dailyElectricityCost;
     public int LastSessionIncome { get; private set; }
+    public PCEquipmentCondition Keyboard => keyboard;
+    public PCEquipmentCondition Mouse => mouse;
+    public PCEquipmentCondition Chair => chair;
+    public bool HasBrokenEquipment =>
+        keyboard.IsBroken || mouse.IsBroken || chair.IsBroken;
+    public float LowestEquipmentCondition => Mathf.Min(
+        keyboard.Condition,
+        mouse.Condition,
+        chair.Condition
+    );
     public bool CanUpgrade => tier != PCTier.Premium;
     public int NextUpgradeCost
     {
@@ -83,6 +104,7 @@ public class PC : MonoBehaviour, IInteractable
 
     public event Action<PCState> StateChanged;
     public event Action<PCTier> TierChanged;
+    public event Action EquipmentChanged;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStaticEvents()
@@ -93,6 +115,7 @@ public class PC : MonoBehaviour, IInteractable
 
     private void Awake()
     {
+        EnsureEquipmentConditions();
         spriteRenderer = GetComponent<SpriteRenderer>();
         ConfigureInteractionCollider();
         ConfigureYSorting();
@@ -111,7 +134,10 @@ public class PC : MonoBehaviour, IInteractable
 
     private void OnValidate()
     {
+        EnsureEquipmentConditions();
         dailyElectricityCost = Mathf.Max(0, dailyElectricityCost);
+        minimumWearPerSession = Mathf.Max(0f, minimumWearPerSession);
+        maximumWearPerSession = Mathf.Max(0f, maximumWearPerSession);
         spriteRenderer = GetComponent<SpriteRenderer>();
         ConfigureInteractionCollider();
         UpdateVisual();
@@ -121,6 +147,19 @@ public class PC : MonoBehaviour, IInteractable
     {
         if (!HasRoomAccess)
         {
+            return;
+        }
+
+        if (IsBroken)
+        {
+            TryRepair();
+            return;
+        }
+
+        PCEquipmentCondition damagedEquipment = GetMostDamagedEquipment();
+        if (damagedEquipment.Condition < 100f)
+        {
+            TryRepairEquipment(damagedEquipment);
             return;
         }
 
@@ -143,9 +182,6 @@ public class PC : MonoBehaviour, IInteractable
             case PCState.Occupied:
                 Debug.Log($"{name}: нельзя улучшить занятый ПК.");
                 break;
-            case PCState.Broken:
-                TryRepair();
-                break;
         }
     }
 
@@ -162,6 +198,26 @@ public class PC : MonoBehaviour, IInteractable
 
     public string GetInteractionPrompt()
     {
+        if (!HasRoomAccess)
+        {
+            return $"{name}: находится в закрытой комнате";
+        }
+
+        if (IsBroken)
+        {
+            return $"E - Отремонтировать за {repairCost} ₽";
+        }
+
+        PCEquipmentCondition damagedEquipment = GetMostDamagedEquipment();
+        if (damagedEquipment.Condition < 100f)
+        {
+            return
+                $"{name}: починить " +
+                $"{GetEquipmentDisplayName(damagedEquipment.EquipmentType)} - " +
+                $"{damagedEquipment.RepairCost} ₽ " +
+                $"({damagedEquipment.Condition:F0}%)";
+        }
+
         if (!HasRoomAccess)
         {
             return $"{name}: находится в закрытой комнате";
@@ -263,6 +319,11 @@ public class PC : MonoBehaviour, IInteractable
 
     public bool TryReserve()
     {
+        if (HasBrokenEquipment)
+        {
+            return false;
+        }
+
         if (!IsAvailable)
         {
             return false;
@@ -282,6 +343,12 @@ public class PC : MonoBehaviour, IInteractable
 
     public bool TryOccupyReserved(ClientType clientType)
     {
+        if (HasBrokenEquipment)
+        {
+            isReserved = false;
+            return false;
+        }
+
         if (!IsFree || !isReserved || !HasRoomAccess)
         {
             return false;
@@ -358,6 +425,7 @@ public class PC : MonoBehaviour, IInteractable
         }
 
         sessionCoroutine = null;
+        ApplyEquipmentWear();
 
         if (UnityEngine.Random.value < breakdownChance)
         {
@@ -477,6 +545,104 @@ public class PC : MonoBehaviour, IInteractable
 
         SetState(PCState.Free);
         Debug.Log($"{name}: ПК отремонтирован и снова доступен.");
+    }
+
+    public void RestoreEquipmentCondition(
+        float keyboardCondition,
+        float mouseCondition,
+        float chairCondition)
+    {
+        EnsureEquipmentConditions();
+        keyboard.RestoreCondition(keyboardCondition);
+        mouse.RestoreCondition(mouseCondition);
+        chair.RestoreCondition(chairCondition);
+        EquipmentChanged?.Invoke();
+        StateChanged?.Invoke(State);
+    }
+
+    private void ApplyEquipmentWear()
+    {
+        float minimumWear = Mathf.Min(
+            minimumWearPerSession,
+            maximumWearPerSession
+        );
+        float maximumWear = Mathf.Max(
+            minimumWearPerSession,
+            maximumWearPerSession
+        );
+
+        keyboard.ApplyWear(UnityEngine.Random.Range(minimumWear, maximumWear));
+        mouse.ApplyWear(UnityEngine.Random.Range(minimumWear, maximumWear));
+        chair.ApplyWear(UnityEngine.Random.Range(minimumWear, maximumWear));
+
+        Debug.Log(
+            $"{name}: состояние оборудования - " +
+            $"клавиатура {keyboard.Condition:F0}%, " +
+            $"мышь {mouse.Condition:F0}%, " +
+            $"кресло {chair.Condition:F0}%."
+        );
+
+        EquipmentChanged?.Invoke();
+    }
+
+    private bool TryRepairEquipment(PCEquipmentCondition equipment)
+    {
+        if (equipment == null || equipment.Condition >= 100f ||
+            IsOccupied || isReserved || !HasRoomAccess)
+        {
+            return false;
+        }
+
+        EconomyManager economy = EconomyManager.Instance;
+        if (economy == null || !economy.SpendMoney(equipment.RepairCost))
+        {
+            Debug.Log($"{name}: недостаточно денег на ремонт оборудования.");
+            return false;
+        }
+
+        equipment.Repair();
+        Debug.Log(
+            $"{name}: отремонтирована " +
+            GetEquipmentDisplayName(equipment.EquipmentType) + "."
+        );
+        EquipmentChanged?.Invoke();
+        StateChanged?.Invoke(State);
+        return true;
+    }
+
+    private PCEquipmentCondition GetMostDamagedEquipment()
+    {
+        PCEquipmentCondition mostDamaged = keyboard;
+
+        if (mouse.Condition < mostDamaged.Condition)
+        {
+            mostDamaged = mouse;
+        }
+
+        if (chair.Condition < mostDamaged.Condition)
+        {
+            mostDamaged = chair;
+        }
+
+        return mostDamaged;
+    }
+
+    private static string GetEquipmentDisplayName(PCEquipmentType equipmentType)
+    {
+        return equipmentType switch
+        {
+            PCEquipmentType.Keyboard => "клавиатура",
+            PCEquipmentType.Mouse => "мышь",
+            PCEquipmentType.Chair => "кресло",
+            _ => "оборудование"
+        };
+    }
+
+    private void EnsureEquipmentConditions()
+    {
+        keyboard ??= new PCEquipmentCondition(PCEquipmentType.Keyboard, 120);
+        mouse ??= new PCEquipmentCondition(PCEquipmentType.Mouse, 100);
+        chair ??= new PCEquipmentCondition(PCEquipmentType.Chair, 180);
     }
 
     private void UpdateVisual()

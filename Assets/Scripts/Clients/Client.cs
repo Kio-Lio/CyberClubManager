@@ -33,6 +33,7 @@ public sealed class Client : MonoBehaviour
     private float patienceRemaining;
     private float initialPatience;
     private float waitingTime;
+    private float assignedPCEquipmentCondition = 100f;
 
     private readonly List<Vector3> navigationPath = new();
     private int navigationPathIndex;
@@ -147,9 +148,14 @@ public sealed class Client : MonoBehaviour
         }
 
         targetPc = pc;
+        assignedPCEquipmentCondition = targetPc.LowestEquipmentCondition;
         seatPosition = targetPc.transform.position + new Vector3(0f, -0.8f, 0f);
         BeginNavigation(seatPosition, targetPc.ApproachNode);
         satisfaction = CalculateSatisfaction();
+        satisfaction = ApplyEquipmentSatisfactionPenalty(
+            satisfaction,
+            assignedPCEquipmentCondition
+        );
         state = ClientState.MovingToPC;
         Debug.Log(
             $"{name}: клиент типа {GetTypeDisplayName()} " +
@@ -333,6 +339,25 @@ public sealed class Client : MonoBehaviour
         return ClientSatisfaction.Poor;
     }
 
+    private static ClientSatisfaction ApplyEquipmentSatisfactionPenalty(
+        ClientSatisfaction currentSatisfaction,
+        float equipmentCondition)
+    {
+        int penaltySteps = equipmentCondition <= 20f
+            ? 2
+            : equipmentCondition <= 50f
+                ? 1
+                : 0;
+
+        int satisfactionValue = Mathf.Clamp(
+            (int)currentSatisfaction - penaltySteps,
+            (int)ClientSatisfaction.Poor,
+            (int)ClientSatisfaction.Excellent
+        );
+
+        return (ClientSatisfaction)satisfactionValue;
+    }
+
     private void RegisterServedOutcome()
     {
         if (outcomeRegistered)
@@ -347,7 +372,8 @@ public sealed class Client : MonoBehaviour
             ClubReputationManager.Instance.RegisterServedClient(
                 clientType,
                 satisfaction,
-                waitingTime
+                waitingTime,
+                assignedPCEquipmentCondition
             );
         }
         else

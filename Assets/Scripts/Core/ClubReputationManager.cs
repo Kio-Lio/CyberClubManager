@@ -98,6 +98,20 @@ public sealed class ClubReputationManager : MonoBehaviour
         ClientSatisfaction satisfaction,
         float waitingTime)
     {
+        RegisterServedClient(
+            clientType,
+            satisfaction,
+            waitingTime,
+            100f
+        );
+    }
+
+    public void RegisterServedClient(
+        ClientType clientType,
+        ClientSatisfaction satisfaction,
+        float waitingTime,
+        float equipmentCondition)
+    {
         int typeReward = GetServedReputationReward(clientType);
         int satisfactionModifier = GetSatisfactionReputationModifier(
             satisfaction
@@ -142,7 +156,8 @@ public sealed class ClubReputationManager : MonoBehaviour
                 true,
                 totalReputationChange,
                 Mathf.Max(0f, waitingTime),
-                GetServedFeedbackMessage(satisfaction)
+                Mathf.Clamp(equipmentCondition, 0f, 100f),
+                GetServedFeedbackMessage(satisfaction, equipmentCondition)
             )
         );
     }
@@ -175,6 +190,7 @@ public sealed class ClubReputationManager : MonoBehaviour
                 false,
                 -reputationPenalty,
                 Mathf.Max(0f, waitingTime),
+                100f,
                 "Не дождался подходящего компьютера и ушел."
             )
         );
@@ -215,8 +231,19 @@ public sealed class ClubReputationManager : MonoBehaviour
     }
 
     private static string GetServedFeedbackMessage(
-        ClientSatisfaction satisfaction)
+        ClientSatisfaction satisfaction,
+        float equipmentCondition)
     {
+        if (equipmentCondition <= 20f)
+        {
+            return "Оборудование почти сломано, играть неудобно.";
+        }
+
+        if (equipmentCondition <= 50f)
+        {
+            return "Периферия уже заметно изношена.";
+        }
+
         return satisfaction switch
         {
             ClientSatisfaction.Excellent =>
