@@ -63,7 +63,7 @@ public static class CyberClubSceneSetup
         }
 
         renderer.color = new Color(0.2f, 0.8f, 0.3f);
-        YSortRenderer.Ensure(terminalObject, 0, -0.45f);
+        YSortRenderer.Ensure(terminalObject, 12, -0.45f);
 
         BoxCollider2D collider = terminalObject.GetComponent<BoxCollider2D>();
         if (collider == null)

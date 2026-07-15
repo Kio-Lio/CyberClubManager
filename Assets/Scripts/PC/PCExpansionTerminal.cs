@@ -1,7 +1,18 @@
 using UnityEngine;
 
+[RequireComponent(typeof(SpriteRenderer))]
 public sealed class PCExpansionTerminal : MonoBehaviour, IInteractable
 {
+    private void Awake()
+    {
+        ConfigureYSorting();
+    }
+
+    public void ConfigureYSorting()
+    {
+        YSortRenderer.Ensure(gameObject, 12, -0.45f);
+    }
+
     public string GetInteractionPrompt()
     {
         PCExpansionManager manager = PCExpansionManager.Instance;
