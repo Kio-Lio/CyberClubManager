@@ -16,6 +16,7 @@ public sealed class PCMaintenancePanel : MonoBehaviour
     private Text stateText;
     private Text balanceText;
     private Text technicianText;
+    private Text cleanerText;
     private Text statusText;
     private Button previousButton;
     private Button nextButton;
@@ -24,6 +25,7 @@ public sealed class PCMaintenancePanel : MonoBehaviour
     private Button chairButton;
     private Button repairAllButton;
     private Button hireTechnicianButton;
+    private Button hireCleanerButton;
     private Button closeButton;
     private int selectedIndex;
     private bool isOpen;
@@ -68,6 +70,11 @@ public sealed class PCMaintenancePanel : MonoBehaviour
             TechnicianManager.Instance.StatusChanged += RefreshView;
         }
 
+        if (CleanerManager.Instance != null)
+        {
+            CleanerManager.Instance.StatusChanged += RefreshView;
+        }
+
         foreach (PC pc in FindObjectsByType<PC>())
         {
             RegisterPC(pc);
@@ -94,6 +101,11 @@ public sealed class PCMaintenancePanel : MonoBehaviour
         if (TechnicianManager.Instance != null)
         {
             TechnicianManager.Instance.StatusChanged -= RefreshView;
+        }
+
+        if (CleanerManager.Instance != null)
+        {
+            CleanerManager.Instance.StatusChanged -= RefreshView;
         }
 
         foreach (PC pc in pcs)
@@ -292,6 +304,22 @@ public sealed class PCMaintenancePanel : MonoBehaviour
         RefreshView();
     }
 
+    private void HireCleaner()
+    {
+        CleanerManager cleanerManager = CleanerManager.Instance;
+        if (cleanerManager == null)
+        {
+            statusText.text = "Менеджер уборщика не найден.";
+            return;
+        }
+
+        bool hired = cleanerManager.TryHireCleaner();
+        statusText.text = hired
+            ? "Уборщик успешно нанят."
+            : cleanerManager.LastWorkMessage;
+        RefreshView();
+    }
+
     private static string GetFailureMessage(PC pc)
     {
         if (pc == null)
@@ -335,6 +363,7 @@ public sealed class PCMaintenancePanel : MonoBehaviour
             : 0;
         balanceText.text = $"Баланс: {balance} ₽";
         RefreshTechnicianSection(balance);
+        RefreshCleanerSection(balance);
 
         if (pc == null)
         {
@@ -390,6 +419,36 @@ public sealed class PCMaintenancePanel : MonoBehaviour
             $"Нанять техника - {technicianManager.HireCost} ₽"
         );
         hireTechnicianButton.interactable = balance >= technicianManager.HireCost;
+    }
+
+    private void RefreshCleanerSection(int balance)
+    {
+        CleanerManager cleanerManager = CleanerManager.Instance;
+        if (cleanerManager == null)
+        {
+            cleanerText.text = "Уборщик: менеджер не найден";
+            SetButtonText(hireCleanerButton, "Уборщик недоступен");
+            hireCleanerButton.interactable = false;
+            return;
+        }
+
+        if (cleanerManager.CleanerHired)
+        {
+            cleanerText.text =
+                $"Уборщик: работает | Зарплата: {cleanerManager.DailySalary} ₽/день\n" +
+                cleanerManager.LastWorkMessage;
+            SetButtonText(hireCleanerButton, "Уборщик уже нанят");
+            hireCleanerButton.interactable = false;
+            return;
+        }
+
+        cleanerText.text =
+            "Уборщик: не нанят | Автоматически убирает мусор";
+        SetButtonText(
+            hireCleanerButton,
+            $"Нанять уборщика - {cleanerManager.HireCost} ₽"
+        );
+        hireCleanerButton.interactable = balance >= cleanerManager.HireCost;
     }
 
     private static string GetStateName(PC pc)
@@ -494,7 +553,7 @@ public sealed class PCMaintenancePanel : MonoBehaviour
         panelRect.anchorMin = new Vector2(0.5f, 0.5f);
         panelRect.anchorMax = new Vector2(0.5f, 0.5f);
         panelRect.pivot = new Vector2(0.5f, 0.5f);
-        panelRect.sizeDelta = new Vector2(720f, 720f);
+        panelRect.sizeDelta = new Vector2(720f, 960f);
         panel.GetComponent<Image>().color = new Color(0.035f, 0.045f, 0.065f, 0.99f);
 
         VerticalLayoutGroup layout = panel.GetComponent<VerticalLayoutGroup>();
@@ -515,6 +574,8 @@ public sealed class PCMaintenancePanel : MonoBehaviour
         balanceText = CreateLabel(panel.transform, string.Empty, 21, 34f, FontStyle.Normal);
         technicianText = CreateLabel(panel.transform, string.Empty, 18, 54f, FontStyle.Normal);
         hireTechnicianButton = CreateButton(panel.transform, "Нанять техника", HireTechnician);
+        cleanerText = CreateLabel(panel.transform, string.Empty, 18, 54f, FontStyle.Normal);
+        hireCleanerButton = CreateButton(panel.transform, "Нанять уборщика", HireCleaner);
         keyboardButton = CreateButton(panel.transform, "Клавиатура", RepairKeyboard);
         mouseButton = CreateButton(panel.transform, "Мышь", RepairMouse);
         chairButton = CreateButton(panel.transform, "Кресло", RepairChair);

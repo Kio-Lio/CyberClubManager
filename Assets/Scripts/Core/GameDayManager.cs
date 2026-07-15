@@ -120,9 +120,13 @@ public sealed class GameDayManager : MonoBehaviour
             }
         }
 
-        int staffCost = TechnicianManager.Instance != null
+        int technicianCost = TechnicianManager.Instance != null
             ? TechnicianManager.Instance.GetDailyOperatingCost()
             : 0;
+        int cleanerCost = CleanerManager.Instance != null
+            ? CleanerManager.Instance.GetDailyOperatingCost()
+            : 0;
+        int staffCost = technicianCost + cleanerCost;
 
         return fixedDailyCost + electricityExpenses + staffCost;
     }

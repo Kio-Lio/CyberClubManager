@@ -22,6 +22,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private Text equipmentStatusText;
     private Text cleanlinessText;
     private Text technicianStatusText;
+    private Text cleanerStatusText;
     private Text clientQueueText;
     private Text reputationText;
     private Text satisfactionText;
@@ -161,6 +162,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         );
         technicianStatusText = CreateInformationLine(
             "TechnicianStatusText",
+            panelTransform,
+            54f
+        );
+        cleanerStatusText = CreateInformationLine(
+            "CleanerStatusText",
             panelTransform,
             54f
         );
@@ -321,6 +327,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             ClubCleanlinessManager.Instance.StatusChanged += RefreshCleanliness;
         }
 
+        if (CleanerManager.Instance != null)
+        {
+            CleanerManager.Instance.StatusChanged += RefreshCleanerStatus;
+        }
+
         PC.PCRegistered += RegisterPC;
         PC.PCUnregistered += UnregisterPC;
     }
@@ -376,6 +387,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         if (ClubCleanlinessManager.Instance != null)
         {
             ClubCleanlinessManager.Instance.StatusChanged -= RefreshCleanliness;
+        }
+
+        if (CleanerManager.Instance != null)
+        {
+            CleanerManager.Instance.StatusChanged -= RefreshCleanerStatus;
         }
 
         PC.PCRegistered -= RegisterPC;
@@ -485,6 +501,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         RefreshEquipmentStatus();
         RefreshCleanliness();
         RefreshTechnicianStatus();
+        RefreshCleanerStatus();
         RefreshClientQueue();
         RefreshReputation();
         RefreshDayTimer();
@@ -694,6 +711,26 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             ? $"Техник: работает | {manager.DailySalary} ₽/день\n" +
               manager.LastServiceMessage
             : $"Техник: не нанят | найм {manager.HireCost} ₽";
+    }
+
+    private void RefreshCleanerStatus()
+    {
+        if (cleanerStatusText == null)
+        {
+            return;
+        }
+
+        CleanerManager manager = CleanerManager.Instance;
+        if (manager == null)
+        {
+            cleanerStatusText.text = "Уборщик: недоступен";
+            return;
+        }
+
+        cleanerStatusText.text = manager.CleanerHired
+            ? $"Уборщик: работает | {manager.DailySalary} ₽/день\n" +
+              manager.LastWorkMessage
+            : $"Уборщик: не нанят | найм {manager.HireCost} ₽";
     }
 
     private void RefreshClientQueue()

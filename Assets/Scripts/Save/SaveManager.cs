@@ -8,7 +8,7 @@ public class SaveManager : MonoBehaviour
 {
     public static SaveManager Instance { get; private set; }
 
-    private const int CurrentSaveVersion = 8;
+    private const int CurrentSaveVersion = 9;
     private const string SaveFileName = "cyber_club_save.json";
 
     private bool suppressSaving;
@@ -178,7 +178,8 @@ public class SaveManager : MonoBehaviour
                DailyGoalManager.Instance != null &&
                ClubProgressionManager.Instance != null &&
                TechnicianManager.Instance != null &&
-               ClubCleanlinessManager.Instance != null;
+               ClubCleanlinessManager.Instance != null &&
+               CleanerManager.Instance != null;
     }
 
     private GameSaveData CreateSaveData()
@@ -219,6 +220,7 @@ public class SaveManager : MonoBehaviour
             consecutiveDebtDays = bankruptcy.ConsecutiveDebtDays,
             purchasedPCCount = expansion.PurchasedPCCount,
             technicianHired = TechnicianManager.Instance.TechnicianHired,
+            cleanerHired = CleanerManager.Instance.CleanerHired,
             trashItems = ClubCleanlinessManager.Instance.CreateSaveData()
         };
 
@@ -357,6 +359,7 @@ public class SaveManager : MonoBehaviour
         RestorePCTiers(data);
         RestorePCEquipment(data);
         ClubCleanlinessManager.Instance.RestoreState(data.trashItems);
+        CleanerManager.Instance.RestoreState(data.cleanerHired);
     }
 
     private static void RestoreRoomDoors(GameSaveData data)

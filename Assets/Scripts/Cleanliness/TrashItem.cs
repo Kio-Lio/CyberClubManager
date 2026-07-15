@@ -5,9 +5,11 @@ using UnityEngine;
 public sealed class TrashItem : MonoBehaviour, IInteractable
 {
     private ClubCleanlinessManager owner;
+    private bool reservedByCleaner;
 
     public string TrashId { get; private set; }
     public string SourcePCName { get; private set; }
+    public bool IsReservedByCleaner => reservedByCleaner;
 
     public void Initialize(
         ClubCleanlinessManager manager,
@@ -17,6 +19,23 @@ public sealed class TrashItem : MonoBehaviour, IInteractable
         owner = manager;
         TrashId = trashId;
         SourcePCName = sourcePCName;
+        reservedByCleaner = false;
+    }
+
+    public bool TryReserveForCleaner()
+    {
+        if (reservedByCleaner)
+        {
+            return false;
+        }
+
+        reservedByCleaner = true;
+        return true;
+    }
+
+    public void ReleaseCleanerReservation()
+    {
+        reservedByCleaner = false;
     }
 
     public void Interact()
@@ -32,6 +51,8 @@ public sealed class TrashItem : MonoBehaviour, IInteractable
 
     public string GetInteractionPrompt()
     {
-        return "E - Убрать мусор";
+        return reservedByCleaner
+            ? "E - Убрать мусор (уборщик уже идёт)"
+            : "E - Убрать мусор";
     }
 }

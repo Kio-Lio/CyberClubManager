@@ -26,6 +26,7 @@ public static class CyberClubSceneSetup
         EnsureObjectWithComponent<ClubProgressionManager>("ClubProgressionManager", Vector3.zero);
         EnsureObjectWithComponent<TechnicianManager>("TechnicianManager", Vector3.zero);
         EnsureObjectWithComponent<ClubCleanlinessManager>("ClubCleanlinessManager", Vector3.zero);
+        EnsureObjectWithComponent<CleanerManager>("CleanerManager", Vector3.zero);
         EnsureObjectWithComponent<RoomUnlockManager>("RoomUnlockManager", Vector3.zero);
         EnsureObjectWithComponent<SaveManager>("SaveManager", Vector3.zero);
         EnsureObjectWithComponent<ClubLayoutBuilder>("ClubLayoutBuilder", Vector3.zero);

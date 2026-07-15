@@ -192,16 +192,47 @@ public sealed class ClubCleanlinessManager : MonoBehaviour
         return trash;
     }
 
-    public void CleanTrash(TrashItem trash)
+    public TrashItem FindClosestUnreservedTrash(Vector3 position)
+    {
+        activeTrashItems.RemoveAll(trash => trash == null);
+
+        TrashItem closestTrash = null;
+        float closestDistanceSquared = float.MaxValue;
+
+        foreach (TrashItem trash in activeTrashItems)
+        {
+            if (trash == null || trash.IsReservedByCleaner)
+            {
+                continue;
+            }
+
+            float distanceSquared =
+                (trash.transform.position - position).sqrMagnitude;
+
+            if (distanceSquared >= closestDistanceSquared)
+            {
+                continue;
+            }
+
+            closestDistanceSquared = distanceSquared;
+            closestTrash = trash;
+        }
+
+        return closestTrash;
+    }
+
+    public bool CleanTrash(TrashItem trash)
     {
         if (trash == null || !activeTrashItems.Remove(trash))
         {
-            return;
+            return false;
         }
 
+        trash.ReleaseCleanerReservation();
         Destroy(trash.gameObject);
         StatusChanged?.Invoke();
         Debug.Log($"Мусор убран. Чистота клуба: {Cleanliness:F0}%.");
+        return true;
     }
 
     public TrashSaveData[] CreateSaveData()
