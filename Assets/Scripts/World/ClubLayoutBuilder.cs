@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public sealed class ClubLayoutBuilder : MonoBehaviour
@@ -25,17 +26,14 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
     public static ClubLayoutBuilder Instance { get; private set; }
 
     [Header("Room")]
-    [SerializeField] private Vector2 roomSize = new Vector2(23.5f, 10f);
+    [SerializeField] private Vector2 roomSize = new Vector2(25f, 10f);
     [SerializeField] private float wallThickness = 0.35f;
 
     [Header("Camera Bounds")]
     [SerializeField, Min(0f)] private float cameraBoundsPadding = 0.25f;
 
-    [Header("Private Room")]
-    [SerializeField] private Vector2 privateRoomCenter =
-        new Vector2(9.5f, 3.4f);
-    [SerializeField] private Vector2 privateRoomSize =
-        new Vector2(4.5f, 2.6f);
+    [Header("Unlockable Rooms")]
+    [SerializeField] private UnlockableRoomDefinition[] unlockableRooms;
 
     [Header("Colors")]
     [SerializeField] private Color floorColor = new Color(0.12f, 0.13f, 0.16f);
@@ -44,6 +42,9 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
     [SerializeField] private Color tableColor = new Color(0.16f, 0.17f, 0.20f);
 
     private Sprite squareSprite;
+
+    public IReadOnlyList<UnlockableRoomDefinition> UnlockableRooms =>
+        unlockableRooms;
 
     private void Awake()
     {
@@ -54,6 +55,7 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         }
 
         Instance = this;
+        EnsureUnlockableRoomDefinitions();
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -95,16 +97,17 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
 
     public void BuildLayout()
     {
+        EnsureUnlockableRoomDefinitions();
         ConfigureStartingPCPositions();
 
         Transform existingRoot = transform.Find(LayoutRootName);
         if (existingRoot != null)
         {
-            CreatePrivateRoom(existingRoot);
-            CreatePrivateRoomContent();
+            CreateUnlockableRooms(existingRoot);
+            ClientNavigationManager.EnsureRuntimeGraph();
+            BuildUnlockableRoomContent();
             CreateCameraBounds();
             ConfigureScenePresentation();
-            ClientNavigationManager.EnsureRuntimeGraph();
             return;
         }
 
@@ -115,11 +118,11 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         CreateOuterWalls(root.transform);
         CreateAdminDesk(root.transform);
         CreatePCTables(root.transform);
-        CreatePrivateRoom(root.transform);
-        CreatePrivateRoomContent();
+        CreateUnlockableRooms(root.transform);
+        ClientNavigationManager.EnsureRuntimeGraph();
+        BuildUnlockableRoomContent();
         CreateCameraBounds();
         ConfigureScenePresentation();
-        ClientNavigationManager.EnsureRuntimeGraph();
     }
 
     private void CreateFloor(Transform parent)
@@ -235,62 +238,162 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         );
     }
 
-    private void CreatePrivateRoom(Transform parent)
+    private void CreateUnlockableRooms(Transform parent)
     {
-        float halfWidth = privateRoomSize.x * 0.5f;
-        float halfHeight = privateRoomSize.y * 0.5f;
-        Vector3 center = new Vector3(
-            privateRoomCenter.x,
-            privateRoomCenter.y,
-            0f
-        );
+        if (unlockableRooms == null)
+        {
+            return;
+        }
 
-        EnsurePrivateRoomObstacle(
-            "PrivateRoom_Wall_Top",
-            parent,
-            center + new Vector3(0f, halfHeight, 0f),
-            new Vector2(privateRoomSize.x, wallThickness)
-        );
-        EnsurePrivateRoomObstacle(
-            "PrivateRoom_Wall_Left",
-            parent,
-            center + new Vector3(-halfWidth, 0f, 0f),
-            new Vector2(wallThickness, privateRoomSize.y)
-        );
-        EnsurePrivateRoomObstacle(
-            "PrivateRoom_Wall_Right",
-            parent,
-            center + new Vector3(halfWidth, 0f, 0f),
-            new Vector2(wallThickness, privateRoomSize.y)
-        );
+        foreach (UnlockableRoomDefinition room in unlockableRooms)
+        {
+            if (room == null)
+            {
+                continue;
+            }
 
+            if (!room.IsValid(out string error))
+            {
+                Debug.LogWarning(error);
+                continue;
+            }
+
+            CreateRoomWalls(room, parent);
+        }
+    }
+
+    private void CreateRoomWalls(
+        UnlockableRoomDefinition room,
+        Transform parent)
+    {
+        float halfWidth = room.size.x * 0.5f;
+        float halfHeight = room.size.y * 0.5f;
         const float doorwayWidth = 1.2f;
-        float bottomSegmentWidth =
-            (privateRoomSize.x - doorwayWidth) * 0.5f;
+        Vector3 center = new Vector3(room.center.x, room.center.y, 0f);
+        Vector2 doorOffset = room.doorPosition - room.center;
 
-        EnsurePrivateRoomObstacle(
-            "PrivateRoom_Wall_Bottom_Left",
+        if (Mathf.Abs(doorOffset.x) > Mathf.Abs(doorOffset.y))
+        {
+            CreateRoomWithLeftDoor(
+                room,
+                parent,
+                center,
+                halfWidth,
+                halfHeight,
+                doorwayWidth
+            );
+            return;
+        }
+
+        CreateRoomWithBottomDoor(
+            room,
             parent,
-            center + new Vector3(
-                -doorwayWidth * 0.5f - bottomSegmentWidth * 0.5f,
-                -halfHeight,
-                0f
-            ),
-            new Vector2(bottomSegmentWidth, wallThickness)
-        );
-        EnsurePrivateRoomObstacle(
-            "PrivateRoom_Wall_Bottom_Right",
-            parent,
-            center + new Vector3(
-                doorwayWidth * 0.5f + bottomSegmentWidth * 0.5f,
-                -halfHeight,
-                0f
-            ),
-            new Vector2(bottomSegmentWidth, wallThickness)
+            center,
+            halfWidth,
+            halfHeight,
+            doorwayWidth
         );
     }
 
-    private void EnsurePrivateRoomObstacle(
+    private void CreateRoomWithBottomDoor(
+        UnlockableRoomDefinition room,
+        Transform parent,
+        Vector3 center,
+        float halfWidth,
+        float halfHeight,
+        float doorwayWidth)
+    {
+        EnsureRoomObstacle(
+            $"{room.roomId}_Wall_Top",
+            parent,
+            center + Vector3.up * halfHeight,
+            new Vector2(room.size.x, wallThickness)
+        );
+        EnsureRoomObstacle(
+            $"{room.roomId}_Wall_Left",
+            parent,
+            center + Vector3.left * halfWidth,
+            new Vector2(wallThickness, room.size.y)
+        );
+        EnsureRoomObstacle(
+            $"{room.roomId}_Wall_Right",
+            parent,
+            center + Vector3.right * halfWidth,
+            new Vector2(wallThickness, room.size.y)
+        );
+
+        float segmentWidth = Mathf.Max(
+            0.1f,
+            (room.size.x - doorwayWidth) * 0.5f
+        );
+        Vector3 bottomCenter = center + Vector3.down * halfHeight;
+
+        EnsureRoomObstacle(
+            $"{room.roomId}_Wall_Bottom_Left",
+            parent,
+            bottomCenter + Vector3.left *
+            (doorwayWidth * 0.5f + segmentWidth * 0.5f),
+            new Vector2(segmentWidth, wallThickness)
+        );
+        EnsureRoomObstacle(
+            $"{room.roomId}_Wall_Bottom_Right",
+            parent,
+            bottomCenter + Vector3.right *
+            (doorwayWidth * 0.5f + segmentWidth * 0.5f),
+            new Vector2(segmentWidth, wallThickness)
+        );
+    }
+
+    private void CreateRoomWithLeftDoor(
+        UnlockableRoomDefinition room,
+        Transform parent,
+        Vector3 center,
+        float halfWidth,
+        float halfHeight,
+        float doorwayWidth)
+    {
+        EnsureRoomObstacle(
+            $"{room.roomId}_Wall_Top",
+            parent,
+            center + Vector3.up * halfHeight,
+            new Vector2(room.size.x, wallThickness)
+        );
+        EnsureRoomObstacle(
+            $"{room.roomId}_Wall_Bottom",
+            parent,
+            center + Vector3.down * halfHeight,
+            new Vector2(room.size.x, wallThickness)
+        );
+        EnsureRoomObstacle(
+            $"{room.roomId}_Wall_Right",
+            parent,
+            center + Vector3.right * halfWidth,
+            new Vector2(wallThickness, room.size.y)
+        );
+
+        float segmentHeight = Mathf.Max(
+            0.1f,
+            (room.size.y - doorwayWidth) * 0.5f
+        );
+        Vector3 leftCenter = center + Vector3.left * halfWidth;
+
+        EnsureRoomObstacle(
+            $"{room.roomId}_Wall_Left_Bottom",
+            parent,
+            leftCenter + Vector3.down *
+            (doorwayWidth * 0.5f + segmentHeight * 0.5f),
+            new Vector2(wallThickness, segmentHeight)
+        );
+        EnsureRoomObstacle(
+            $"{room.roomId}_Wall_Left_Top",
+            parent,
+            leftCenter + Vector3.up *
+            (doorwayWidth * 0.5f + segmentHeight * 0.5f),
+            new Vector2(wallThickness, segmentHeight)
+        );
+    }
+
+    private void EnsureRoomObstacle(
         string objectName,
         Transform parent,
         Vector3 position,
@@ -311,7 +414,7 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         );
     }
 
-    private void CreatePrivateRoomContent()
+    private void BuildUnlockableRoomContent()
     {
         ClientNavigationManager navigation =
             ClientNavigationManager.EnsureRuntimeGraph();
@@ -325,80 +428,16 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         RoomUnlockManager roomManager =
             managerObject.GetComponent<RoomUnlockManager>() ??
             managerObject.AddComponent<RoomUnlockManager>();
+        UnlockableRoomRuntimeBuilder runtimeBuilder =
+            GetComponent<UnlockableRoomRuntimeBuilder>() ??
+            gameObject.AddComponent<UnlockableRoomRuntimeBuilder>();
 
-        ClientNavigationNode doorNode = GameObject.Find(
-            "PrivateRoomDoorNode"
-        )?.GetComponent<ClientNavigationNode>();
-
-        GameObject doorObject = GameObject.Find("PrivateRoomDoor");
-        if (doorObject == null)
-        {
-            doorObject = new GameObject("PrivateRoomDoor");
-            doorObject.transform.position =
-                new Vector3(privateRoomCenter.x, 2.1f, 0f);
-            doorObject.transform.localScale =
-                new Vector3(1.2f, wallThickness, 1f);
-
-            SpriteRenderer doorRenderer =
-                doorObject.AddComponent<SpriteRenderer>();
-            doorRenderer.sprite = GetSquareSprite();
-            YSortRenderer.SetSortingLayer(doorRenderer, "World");
-            doorObject.AddComponent<BoxCollider2D>();
-            doorObject.AddComponent<RoomDoor>();
-        }
-
-        RoomDoor roomDoor = doorObject.GetComponent<RoomDoor>();
-        roomDoor.Configure(
-            "PrivateRoom01",
-            "Приватная комната",
-            3,
-            1500,
-            doorNode
+        runtimeBuilder.BuildRooms(
+            unlockableRooms,
+            navigation,
+            roomManager,
+            GetSquareSprite()
         );
-        roomManager.RegisterDoor(roomDoor);
-
-        EnsurePrivateRoomPC(
-            "PC_10",
-            new Vector3(8.55f, 3.55f, 0f),
-            roomDoor
-        );
-        EnsurePrivateRoomPC(
-            "PC_11",
-            new Vector3(10.45f, 3.55f, 0f),
-            roomDoor
-        );
-
-        navigation.EnsureDefaultGraph();
-    }
-
-    private void EnsurePrivateRoomPC(
-        string pcName,
-        Vector3 position,
-        RoomDoor roomDoor)
-    {
-        GameObject pcObject = GameObject.Find(pcName);
-        bool created = pcObject == null;
-
-        if (created)
-        {
-            pcObject = new GameObject(pcName);
-            pcObject.transform.position = position;
-            pcObject.transform.localScale = Vector3.one;
-
-            SpriteRenderer renderer = pcObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = GetSquareSprite();
-            pcObject.AddComponent<BoxCollider2D>();
-            pcObject.AddComponent<PC>();
-        }
-
-        PC pc = pcObject.GetComponent<PC>();
-        pc.SetRequiredRoomDoor(roomDoor);
-        pc.ConfigureYSorting();
-
-        if (created)
-        {
-            pc.RestoreTier(PCTier.Gaming);
-        }
     }
 
     private void CreateObstacle(
@@ -586,6 +625,65 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         }
 
         ClientNavigationManager.EnsureRuntimeGraph();
+        BuildUnlockableRoomContent();
+    }
+
+    private void EnsureUnlockableRoomDefinitions()
+    {
+        roomSize.x = Mathf.Max(roomSize.x, 25f);
+
+        if (unlockableRooms != null && unlockableRooms.Length > 0)
+        {
+            return;
+        }
+
+        unlockableRooms = new[]
+        {
+            new UnlockableRoomDefinition
+            {
+                roomId = "PrivateRoom01",
+                displayName = "Приватная комната",
+                requiredClubLevel = 3,
+                unlockCost = 1500,
+                center = new Vector2(9.5f, 3.4f),
+                size = new Vector2(4.5f, 2.6f),
+                doorPosition = new Vector2(9.5f, 2.1f),
+                pcNames = new[] { "PC_10", "PC_11" },
+                pcPositions = new[]
+                {
+                    new Vector2(8.55f, 3.55f),
+                    new Vector2(10.45f, 3.55f)
+                },
+                approachPositions = new[]
+                {
+                    new Vector2(8.55f, 3.4f),
+                    new Vector2(10.45f, 3.4f)
+                },
+                startingTier = PCTier.Gaming
+            },
+            new UnlockableRoomDefinition
+            {
+                roomId = "VIPRoom01",
+                displayName = "VIP-комната",
+                requiredClubLevel = 5,
+                unlockCost = 4000,
+                center = new Vector2(10f, -2f),
+                size = new Vector2(4.5f, 2.6f),
+                doorPosition = new Vector2(7.75f, -2f),
+                pcNames = new[] { "PC_12", "PC_13" },
+                pcPositions = new[]
+                {
+                    new Vector2(9.2f, -2f),
+                    new Vector2(10.8f, -2f)
+                },
+                approachPositions = new[]
+                {
+                    new Vector2(9.2f, -2.65f),
+                    new Vector2(10.8f, -2.65f)
+                },
+                startingTier = PCTier.Premium
+            }
+        };
     }
 
     private Sprite GetSquareSprite()
@@ -622,7 +720,19 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         roomSize.y = Mathf.Max(6f, roomSize.y);
         wallThickness = Mathf.Clamp(wallThickness, 0.1f, 1f);
         cameraBoundsPadding = Mathf.Max(0f, cameraBoundsPadding);
-        privateRoomSize.x = Mathf.Max(2f, privateRoomSize.x);
-        privateRoomSize.y = Mathf.Max(2f, privateRoomSize.y);
+        EnsureUnlockableRoomDefinitions();
+
+        foreach (UnlockableRoomDefinition room in unlockableRooms)
+        {
+            if (room == null)
+            {
+                continue;
+            }
+
+            room.size.x = Mathf.Max(2f, room.size.x);
+            room.size.y = Mathf.Max(2f, room.size.y);
+            room.requiredClubLevel = Mathf.Max(1, room.requiredClubLevel);
+            room.unlockCost = Mathf.Max(0, room.unlockCost);
+        }
     }
 }

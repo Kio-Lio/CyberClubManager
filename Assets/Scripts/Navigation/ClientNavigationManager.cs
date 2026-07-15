@@ -15,14 +15,12 @@ public sealed class ClientNavigationManager : MonoBehaviour
     [SerializeField] private ClientNavigationNode lowerAisleLeft;
     [SerializeField] private ClientNavigationNode lowerAisleCenter;
     [SerializeField] private ClientNavigationNode lowerAisleRight;
-    [SerializeField] private ClientNavigationNode privateRoomDoorNode;
-    [SerializeField] private ClientNavigationNode privateRoomCenterNode;
-    [SerializeField] private ClientNavigationNode privateRoomPC10Node;
-    [SerializeField] private ClientNavigationNode privateRoomPC11Node;
 
     public ClientNavigationNode EntranceNode => entranceNode;
     public ClientNavigationNode QueueNode => queueNode;
     public ClientNavigationNode ExitNode => exitNode;
+    public ClientNavigationNode MainAisleRight => mainAisleRight;
+    public ClientNavigationNode LowerAisleRight => lowerAisleRight;
 
     private void Awake()
     {
@@ -72,6 +70,10 @@ public sealed class ClientNavigationManager : MonoBehaviour
         RemoveLegacyNode("MainAisle_01");
         RemoveLegacyNode("MainAisle_02");
         RemoveLegacyNode("MainAisle_03");
+        RemoveLegacyNode("PrivateRoomDoorNode");
+        RemoveLegacyNode("PrivateRoomCenterNode");
+        RemoveLegacyNode("PrivateRoomPC10Node");
+        RemoveLegacyNode("PrivateRoomPC11Node");
 
         entranceNode = EnsureNode(
             "EntranceNode",
@@ -109,22 +111,6 @@ public sealed class ClientNavigationManager : MonoBehaviour
             "ExitNode",
             new Vector3(-1.5f, -4.2f, 0f)
         );
-        privateRoomDoorNode = EnsureNode(
-            "PrivateRoomDoorNode",
-            new Vector3(9.5f, 2.1f, 0f)
-        );
-        privateRoomCenterNode = EnsureNode(
-            "PrivateRoomCenterNode",
-            new Vector3(9.5f, 3.25f, 0f)
-        );
-        privateRoomPC10Node = EnsureNode(
-            "PrivateRoomPC10Node",
-            new Vector3(8.55f, 3.4f, 0f)
-        );
-        privateRoomPC11Node = EnsureNode(
-            "PrivateRoomPC11Node",
-            new Vector3(10.45f, 3.4f, 0f)
-        );
 
         foreach (ClientNavigationNode node in
                  FindObjectsByType<ClientNavigationNode>())
@@ -140,27 +126,21 @@ public sealed class ClientNavigationManager : MonoBehaviour
         lowerAisleLeft.AddNeighbour(lowerAisleCenter);
         lowerAisleCenter.AddNeighbour(lowerAisleRight);
         lowerAisleLeft.AddNeighbour(exitNode);
-        mainAisleRight.AddNeighbour(privateRoomDoorNode);
-        privateRoomDoorNode.AddNeighbour(privateRoomCenterNode);
-        privateRoomCenterNode.AddNeighbour(privateRoomPC10Node);
-        privateRoomCenterNode.AddNeighbour(privateRoomPC11Node);
 
         foreach (PC pc in FindObjectsByType<PC>())
         {
-            int pcNumber = GetPcNumber(pc);
-            if (pcNumber == 10)
+            if (pc.RequiredRoomDoor != null)
             {
-                pc.SetApproachNode(privateRoomPC10Node);
-                continue;
-            }
-
-            if (pcNumber == 11)
-            {
-                pc.SetApproachNode(privateRoomPC11Node);
                 continue;
             }
 
             EnsureApproachNode(pc);
+        }
+
+        foreach (UnlockableRoomRuntimeBuilder roomBuilder in
+                 FindObjectsByType<UnlockableRoomRuntimeBuilder>())
+        {
+            roomBuilder.ReconnectNavigation(this);
         }
     }
 
@@ -295,6 +275,13 @@ public sealed class ClientNavigationManager : MonoBehaviour
         }
 
         return approachNode;
+    }
+
+    public ClientNavigationNode EnsureRoomNode(
+        string objectName,
+        Vector3 position)
+    {
+        return EnsureNode(objectName, position);
     }
 
     private Vector3 GetApproachPosition(PC pc)

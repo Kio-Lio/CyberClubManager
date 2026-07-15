@@ -167,7 +167,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         financialRiskText =
             CreateInformationLine("FinancialRiskText", panelTransform);
         expansionText = CreateInformationLine("ExpansionText", panelTransform);
-        roomStatusText = CreateInformationLine("RoomStatusText", panelTransform);
+        roomStatusText = CreateInformationLine(
+            "RoomStatusText",
+            panelTransform,
+            54f
+        );
         pcTierText = CreateInformationLine("PCTierText", panelTransform, 54f);
     }
 
@@ -748,17 +752,41 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             return;
         }
 
-        RoomDoor door = manager.RoomDoors[0];
-        if (door == null)
+        System.Text.StringBuilder builder = new();
+        builder.Append("Комнаты: ");
+
+        bool first = true;
+
+        foreach (RoomDoor door in manager.RoomDoors)
         {
-            roomStatusText.text = "Комнаты: недоступны";
-            return;
+            if (door == null)
+            {
+                continue;
+            }
+
+            if (!first)
+            {
+                builder.Append(" | ");
+            }
+
+            first = false;
+
+            if (door.IsUnlocked)
+            {
+                builder.Append($"{door.RoomDisplayName}: открыта");
+            }
+            else
+            {
+                builder.Append(
+                    $"{door.RoomDisplayName}: ур. {door.RequiredClubLevel}, " +
+                    $"{door.UnlockCost} ₽"
+                );
+            }
         }
 
-        roomStatusText.text = door.IsUnlocked
-            ? $"{door.RoomDisplayName}: открыта"
-            : $"{door.RoomDisplayName}: закрыта | " +
-              $"уровень {door.RequiredClubLevel} | {door.UnlockCost} ₽";
+        roomStatusText.text = first
+            ? "Комнаты: недоступны"
+            : builder.ToString();
     }
 
     private void OnRoomStatusChanged()
