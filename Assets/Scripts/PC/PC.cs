@@ -194,7 +194,7 @@ public class PC : MonoBehaviour, IInteractable
 
     public void ConfigureYSorting()
     {
-        YSortRenderer.Ensure(gameObject, 0, -0.45f);
+        YSortRenderer.Ensure(gameObject, 12, -0.45f);
     }
 
     public void SetState(PCState newState)
