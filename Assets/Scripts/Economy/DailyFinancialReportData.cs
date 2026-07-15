@@ -14,6 +14,7 @@ public sealed class DailyFinancialReportData
     public int pcRepairExpenses;
     public int equipmentRepairExpenses;
     public int consumableRestockExpenses;
+    public int marketingExpenses;
     public int pcUpgradeExpenses;
     public int expansionExpenses;
     public int roomUnlockExpenses;
@@ -25,7 +26,7 @@ public sealed class DailyFinancialReportData
     public int OperatingExpenses =>
         fixedOperatingExpenses + electricityExpenses + staffSalaryExpenses +
         pcRepairExpenses + equipmentRepairExpenses + consumableRestockExpenses +
-        otherExpenses;
+        marketingExpenses + otherExpenses;
     public int InvestmentExpenses =>
         pcUpgradeExpenses + expansionExpenses + roomUnlockExpenses + staffHireExpenses;
     public int TotalExpenses => OperatingExpenses + InvestmentExpenses;
@@ -49,6 +50,7 @@ public sealed class DailyFinancialReportData
         pcRepairExpenses = 0;
         equipmentRepairExpenses = 0;
         consumableRestockExpenses = 0;
+        marketingExpenses = 0;
         pcUpgradeExpenses = 0;
         expansionExpenses = 0;
         roomUnlockExpenses = 0;

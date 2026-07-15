@@ -13,6 +13,7 @@ public enum EconomyTransactionCategory
     PCRepair,
     EquipmentRepair,
     ConsumableRestock,
+    MarketingExpense,
 
     PCUpgrade,
     ExpansionPurchase,

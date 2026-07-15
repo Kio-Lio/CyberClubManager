@@ -99,6 +99,7 @@ public sealed class DailyFinancialReportManager : MonoBehaviour
             case EconomyTransactionCategory.PCRepair: currentReport.pcRepairExpenses += amount; break;
             case EconomyTransactionCategory.EquipmentRepair: currentReport.equipmentRepairExpenses += amount; break;
             case EconomyTransactionCategory.ConsumableRestock: currentReport.consumableRestockExpenses += amount; break;
+            case EconomyTransactionCategory.MarketingExpense: currentReport.marketingExpenses += amount; break;
             case EconomyTransactionCategory.PCUpgrade: currentReport.pcUpgradeExpenses += amount; break;
             case EconomyTransactionCategory.ExpansionPurchase: currentReport.expansionExpenses += amount; break;
             case EconomyTransactionCategory.RoomUnlock: currentReport.roomUnlockExpenses += amount; break;

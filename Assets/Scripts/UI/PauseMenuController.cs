@@ -151,6 +151,12 @@ public sealed class PauseMenuController : MonoBehaviour
             return;
         }
 
+        if (MarketingPanel.Instance != null && MarketingPanel.Instance.IsOpen)
+        {
+            MarketingPanel.Instance.Close();
+            return;
+        }
+
         if (confirmNewGame)
         {
             HideNewGameConfirmation();

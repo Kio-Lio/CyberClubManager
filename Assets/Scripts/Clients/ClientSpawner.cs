@@ -68,6 +68,11 @@ public sealed class ClientSpawner : MonoBehaviour
             ClubReputationManager.Instance.StatusChanged += RefreshSpawnInterval;
         }
 
+        if (MarketingManager.Instance != null)
+        {
+            MarketingManager.Instance.StatusChanged += RefreshSpawnInterval;
+        }
+
         RefreshSpawnInterval();
     }
 
@@ -82,6 +87,11 @@ public sealed class ClientSpawner : MonoBehaviour
         if (ClubReputationManager.Instance != null)
         {
             ClubReputationManager.Instance.StatusChanged -= RefreshSpawnInterval;
+        }
+
+        if (MarketingManager.Instance != null)
+        {
+            MarketingManager.Instance.StatusChanged -= RefreshSpawnInterval;
         }
     }
 
@@ -109,19 +119,27 @@ public sealed class ClientSpawner : MonoBehaviour
                 "ClubReputationManager is missing. " +
                 $"Using the default spawn interval: {currentSpawnInterval:F1} sec."
             );
-            return;
         }
 
-        float reputation = ClubReputationManager.Instance.NormalizedReputation;
-        currentSpawnInterval = Mathf.Lerp(
-            maxSpawnInterval,
-            minSpawnInterval,
-            reputation
-        );
+        else
+        {
+            float reputation = ClubReputationManager.Instance.NormalizedReputation;
+            currentSpawnInterval = Mathf.Lerp(
+                maxSpawnInterval,
+                minSpawnInterval,
+                reputation
+            );
+        }
+
+        float marketingMultiplier = MarketingManager.Instance != null
+            ? MarketingManager.Instance.GetDemandMultiplier()
+            : 1f;
+        currentSpawnInterval /= Mathf.Max(0.1f, marketingMultiplier);
+        currentSpawnInterval = Mathf.Max(0.5f, currentSpawnInterval);
 
         Debug.Log(
             "Client demand updated. " +
-            $"Reputation: {ClubReputationManager.Instance.Reputation}/100. " +
+            $"Marketing x{marketingMultiplier:F2}. " +
             $"Spawn interval: {currentSpawnInterval:F1} sec."
         );
     }
@@ -353,28 +371,64 @@ public sealed class ClientSpawner : MonoBehaviour
             ? ClubProgressionManager.Instance.Level
             : 1;
 
-        float roll = UnityEngine.Random.value;
+        float baseRegularWeight = 1f;
+        float baseGamerWeight = 0f;
+        float baseVIPWeight = 0f;
 
         if (clubLevel >= 4)
         {
-            if (roll < 0.15f)
-            {
-                return ClientType.VIP;
-            }
-
-            return roll < 0.45f
-                ? ClientType.Gamer
-                : ClientType.Regular;
+            baseRegularWeight = 0.55f;
+            baseGamerWeight = 0.30f;
+            baseVIPWeight = 0.15f;
         }
-
-        if (clubLevel >= 2)
+        else if (clubLevel >= 2)
         {
-            return roll < 0.25f
-                ? ClientType.Gamer
-                : ClientType.Regular;
+            baseRegularWeight = 0.75f;
+            baseGamerWeight = 0.25f;
         }
 
-        return ClientType.Regular;
+        float regularWeight;
+        float gamerWeight;
+        float vipWeight;
+        if (MarketingManager.Instance != null)
+        {
+            MarketingManager.Instance.GetClientWeights(
+                baseRegularWeight,
+                baseGamerWeight,
+                baseVIPWeight,
+                out regularWeight,
+                out gamerWeight,
+                out vipWeight
+            );
+        }
+        else
+        {
+            regularWeight = baseRegularWeight;
+            gamerWeight = baseGamerWeight;
+            vipWeight = baseVIPWeight;
+        }
+
+        float totalWeight = regularWeight + gamerWeight + vipWeight;
+        if (totalWeight <= 0f)
+        {
+            regularWeight = 1f;
+            gamerWeight = 0f;
+            vipWeight = 0f;
+            totalWeight = 1f;
+        }
+
+        float roll = UnityEngine.Random.value * totalWeight;
+        if (roll < regularWeight)
+        {
+            return ClientType.Regular;
+        }
+
+        if (roll < regularWeight + gamerWeight)
+        {
+            return ClientType.Gamer;
+        }
+
+        return ClientType.VIP;
     }
 
     private static string GetClientTypeDisplayName(ClientType clientType)

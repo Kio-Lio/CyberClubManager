@@ -52,6 +52,8 @@ public class GameSaveData
     public int missedConsumableSales;
     public DailyFinancialReportData currentFinancialReport;
     public DailyFinancialReportData lastFinancialReport;
+    public MarketingCampaignType activeMarketingCampaign;
+    public int marketingRemainingDays;
 }
 
 [Serializable]

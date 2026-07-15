@@ -29,6 +29,7 @@ public static class CyberClubSceneSetup
         EnsureObjectWithComponent<CleanerManager>("CleanerManager", Vector3.zero);
         EnsureObjectWithComponent<PricingManager>("PricingManager", Vector3.zero);
         EnsureObjectWithComponent<ConsumableInventoryManager>("ConsumableInventoryManager", Vector3.zero);
+        EnsureObjectWithComponent<MarketingManager>("MarketingManager", Vector3.zero);
         EnsureObjectWithComponent<DailyFinancialReportManager>("DailyFinancialReportManager", Vector3.zero);
         EnsureObjectWithComponent<RoomUnlockManager>("RoomUnlockManager", Vector3.zero);
         EnsureObjectWithComponent<SaveManager>("SaveManager", Vector3.zero);
@@ -41,6 +42,7 @@ public static class CyberClubSceneSetup
         EnsureMaintenanceTerminal();
         EnsurePricingTerminal();
         EnsureConsumableStockTerminal();
+        EnsureMarketingTerminal();
         EnsureClientSpawner();
         EnsureClubHUDCanvas();
         EnsurePauseMenuController();
@@ -208,6 +210,41 @@ public static class CyberClubSceneSetup
         }
     }
 
+    private static void EnsureMarketingTerminal()
+    {
+        GameObject terminalObject = GameObject.Find("MarketingTerminal");
+        if (terminalObject == null)
+        {
+            terminalObject = new GameObject("MarketingTerminal");
+        }
+
+        terminalObject.transform.position = new Vector3(-5.9f, 3.7f, 0f);
+        terminalObject.transform.localScale = new Vector3(0.7f, 0.9f, 1f);
+
+        SpriteRenderer renderer = terminalObject.GetComponent<SpriteRenderer>();
+        if (renderer == null)
+        {
+            renderer = terminalObject.AddComponent<SpriteRenderer>();
+        }
+
+        renderer.sprite = CreateRuntimeSquareSprite();
+        renderer.color = new Color(0.95f, 0.85f, 0.1f);
+        YSortRenderer.Ensure(terminalObject, 12, -0.45f);
+
+        BoxCollider2D collider = terminalObject.GetComponent<BoxCollider2D>();
+        if (collider == null)
+        {
+            collider = terminalObject.AddComponent<BoxCollider2D>();
+        }
+
+        collider.isTrigger = true;
+
+        if (terminalObject.GetComponent<MarketingTerminal>() == null)
+        {
+            terminalObject.AddComponent<MarketingTerminal>();
+        }
+    }
+
     private static void EnsureClubHUDCanvas()
     {
         GameObject hudCanvasObject = GameObject.Find("ClubHUDCanvas");
@@ -244,6 +281,11 @@ public static class CyberClubSceneSetup
         if (hudCanvasObject.GetComponent<DailyFinancialReportPanel>() == null)
         {
             hudCanvasObject.AddComponent<DailyFinancialReportPanel>();
+        }
+
+        if (hudCanvasObject.GetComponent<MarketingPanel>() == null)
+        {
+            hudCanvasObject.AddComponent<MarketingPanel>();
         }
     }
 

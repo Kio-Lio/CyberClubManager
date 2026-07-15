@@ -19,6 +19,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private Text balanceText;
     private Text pricingText;
     private Text consumableStockText;
+    private Text marketingText;
     private Text clubLevelText;
     private Text pcStateText;
     private Text equipmentStatusText;
@@ -151,6 +152,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         balanceText = CreateInformationLine("BalanceText", panelTransform);
         pricingText = CreateInformationLine("PricingText", panelTransform);
         consumableStockText = CreateInformationLine("ConsumableStockText", panelTransform);
+        marketingText = CreateInformationLine("MarketingText", panelTransform);
         clubLevelText = CreateInformationLine(
             "ClubLevelText",
             panelTransform
@@ -351,6 +353,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             ConsumableInventoryManager.Instance.StatusChanged += RefreshConsumableStock;
         }
 
+        if (MarketingManager.Instance != null)
+        {
+            MarketingManager.Instance.StatusChanged += RefreshMarketing;
+        }
+
         PC.PCRegistered += RegisterPC;
         PC.PCUnregistered += UnregisterPC;
     }
@@ -426,6 +433,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         if (ConsumableInventoryManager.Instance != null)
         {
             ConsumableInventoryManager.Instance.StatusChanged -= RefreshConsumableStock;
+        }
+
+        if (MarketingManager.Instance != null)
+        {
+            MarketingManager.Instance.StatusChanged -= RefreshMarketing;
         }
 
         PC.PCRegistered -= RegisterPC;
@@ -533,6 +545,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         RefreshPricing();
         RefreshLastFinancialReport();
         RefreshConsumableStock();
+        RefreshMarketing();
         RefreshClubProgression();
         RefreshPCInformation();
         RefreshEquipmentStatus();
@@ -614,6 +627,21 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             : $"Stock: energy drinks {manager.EnergyDrinkStock}/{manager.MaximumEnergyDrinkStock} | " +
               $"snacks {manager.SnackStock}/{manager.MaximumSnackStock} | " +
               $"missed {manager.MissedSales}";
+    }
+
+    private void RefreshMarketing()
+    {
+        if (marketingText == null)
+        {
+            return;
+        }
+
+        MarketingManager manager = MarketingManager.Instance;
+        marketingText.text = manager == null
+            ? "Marketing: unavailable"
+            : manager.HasActiveCampaign
+                ? $"Marketing: {manager.GetDefinition(manager.ActiveCampaign)?.DisplayName} | {manager.RemainingDays} day(s) left"
+                : "Marketing: none active";
     }
 
     private void RefreshClubProgression()
