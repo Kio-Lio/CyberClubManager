@@ -73,6 +73,11 @@ public sealed class ClientSpawner : MonoBehaviour
             MarketingManager.Instance.StatusChanged += RefreshSpawnInterval;
         }
 
+        if (ClubRandomEventManager.Instance != null)
+        {
+            ClubRandomEventManager.Instance.StatusChanged += RefreshSpawnInterval;
+        }
+
         RefreshSpawnInterval();
     }
 
@@ -92,6 +97,11 @@ public sealed class ClientSpawner : MonoBehaviour
         if (MarketingManager.Instance != null)
         {
             MarketingManager.Instance.StatusChanged -= RefreshSpawnInterval;
+        }
+
+        if (ClubRandomEventManager.Instance != null)
+        {
+            ClubRandomEventManager.Instance.StatusChanged -= RefreshSpawnInterval;
         }
     }
 
@@ -135,11 +145,17 @@ public sealed class ClientSpawner : MonoBehaviour
             ? MarketingManager.Instance.GetDemandMultiplier()
             : 1f;
         currentSpawnInterval /= Mathf.Max(0.1f, marketingMultiplier);
+
+        float randomEventMultiplier = ClubRandomEventManager.Instance != null
+            ? ClubRandomEventManager.Instance.GetDemandMultiplier()
+            : 1f;
+        currentSpawnInterval /= Mathf.Max(0.1f, randomEventMultiplier);
         currentSpawnInterval = Mathf.Max(0.5f, currentSpawnInterval);
 
         Debug.Log(
             "Client demand updated. " +
             $"Marketing x{marketingMultiplier:F2}. " +
+            $"Random event x{randomEventMultiplier:F2}. " +
             $"Spawn interval: {currentSpawnInterval:F1} sec."
         );
     }

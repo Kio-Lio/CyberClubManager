@@ -56,6 +56,8 @@ public class GameSaveData
     public int marketingRemainingDays;
     public DemandAnalyticsReportData currentDemandAnalytics;
     public DemandAnalyticsReportData lastDemandAnalytics;
+    public ClubRandomEventState activeRandomEvent;
+    public bool randomEventRolledForCurrentDay;
 }
 
 [Serializable]

@@ -25,10 +25,14 @@ public static class GameplayInputState
             bool analyticsBlocksInput =
                 DemandAnalyticsPanel.Instance != null &&
                 DemandAnalyticsPanel.Instance.IsOpen;
+            bool randomEventPanelBlocksInput =
+                ClubRandomEventPanel.Instance != null &&
+                ClubRandomEventPanel.Instance.IsOpen;
 
             return pauseBlocksInput || maintenanceBlocksInput ||
                 pricingBlocksInput || stockPanelBlocksInput || reportBlocksInput ||
-                marketingBlocksInput || analyticsBlocksInput;
+                marketingBlocksInput || analyticsBlocksInput ||
+                randomEventPanelBlocksInput;
         }
     }
 }

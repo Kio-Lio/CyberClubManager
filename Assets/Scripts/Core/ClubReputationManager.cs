@@ -188,6 +188,17 @@ public sealed class ClubReputationManager : MonoBehaviour
         RegisterLostClient(ClientType.Regular, 0f);
     }
 
+    public void AddReputation(int amount)
+    {
+        if (amount == 0)
+        {
+            return;
+        }
+
+        reputation = Mathf.Clamp(reputation + amount, 0, 100);
+        StatusChanged?.Invoke();
+    }
+
     public void RegisterLostClient(
         ClientType clientType,
         float waitingTime = 0f)

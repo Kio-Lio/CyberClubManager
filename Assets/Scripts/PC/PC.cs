@@ -71,8 +71,12 @@ public class PC : MonoBehaviour, IInteractable
     public bool IsOccupied => state == PCState.Occupied;
     public bool IsBroken => state == PCState.Broken;
     public bool IsReserved => isReserved;
+    public bool HasInternetAccess =>
+        ClubRandomEventManager.Instance == null ||
+        !ClubRandomEventManager.Instance.IsInternetUnavailable;
     public bool IsAvailable =>
-        IsFree && !isReserved && HasRoomAccess && !HasBrokenEquipment;
+        IsFree && !isReserved && HasRoomAccess && !HasBrokenEquipment &&
+        HasInternetAccess;
     public PCTier Tier => tier;
     public ClientNavigationNode ApproachNode => approachNode;
     public RoomDoor RequiredRoomDoor => requiredRoomDoor;
@@ -355,9 +359,21 @@ public class PC : MonoBehaviour, IInteractable
         }
     }
 
+    public bool ForceBreakdown()
+    {
+        if (IsOccupied || IsBroken)
+        {
+            return false;
+        }
+
+        isReserved = false;
+        SetState(PCState.Broken);
+        return true;
+    }
+
     public bool TryOccupyReserved(ClientType clientType)
     {
-        if (HasBrokenEquipment)
+        if (HasBrokenEquipment || !HasInternetAccess)
         {
             isReserved = false;
             return false;

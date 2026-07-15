@@ -20,6 +20,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private Text pricingText;
     private Text consumableStockText;
     private Text marketingText;
+    private Text randomEventText;
     private Text demandAnalyticsText;
     private Text clubLevelText;
     private Text pcStateText;
@@ -45,6 +46,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private ClientSpawner clientSpawner;
     private string currentInteractionPrompt = string.Empty;
     private string lastDayReport = "Итоги прошлого дня: пока нет";
+    private float randomEventHudRefreshTimer;
     private Font runtimeFont;
 
     private void Awake()
@@ -64,6 +66,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private void Update()
     {
         RefreshDayTimer();
+        RefreshRandomEventCountdown();
         RefreshInteractionPromptVisibility();
     }
 
@@ -154,6 +157,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         pricingText = CreateInformationLine("PricingText", panelTransform);
         consumableStockText = CreateInformationLine("ConsumableStockText", panelTransform);
         marketingText = CreateInformationLine("MarketingText", panelTransform);
+        randomEventText = CreateInformationLine("RandomEventText", panelTransform);
         demandAnalyticsText = CreateInformationLine(
             "DemandAnalyticsText",
             panelTransform
@@ -368,6 +372,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             DemandAnalyticsManager.Instance.StatusChanged += RefreshDemandAnalytics;
         }
 
+        if (ClubRandomEventManager.Instance != null)
+        {
+            ClubRandomEventManager.Instance.StatusChanged += RefreshRandomEvent;
+        }
+
         PC.PCRegistered += RegisterPC;
         PC.PCUnregistered += UnregisterPC;
     }
@@ -453,6 +462,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         if (DemandAnalyticsManager.Instance != null)
         {
             DemandAnalyticsManager.Instance.StatusChanged -= RefreshDemandAnalytics;
+        }
+
+        if (ClubRandomEventManager.Instance != null)
+        {
+            ClubRandomEventManager.Instance.StatusChanged -= RefreshRandomEvent;
         }
 
         PC.PCRegistered -= RegisterPC;
@@ -561,6 +575,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         RefreshLastFinancialReport();
         RefreshConsumableStock();
         RefreshMarketing();
+        RefreshRandomEvent();
         RefreshDemandAnalytics();
         RefreshClubProgression();
         RefreshPCInformation();
@@ -680,6 +695,50 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             $"G {report.gaming.UtilizationPercent:F0}% | " +
             $"P {report.premium.UtilizationPercent:F0}% | " +
             $"цена-отказы {report.TotalPriceLostClients}";
+    }
+
+    private void RefreshRandomEventCountdown()
+    {
+        ClubRandomEventManager manager = ClubRandomEventManager.Instance;
+        if (manager == null || !manager.IsInternetUnavailable)
+        {
+            return;
+        }
+
+        randomEventHudRefreshTimer -= Time.deltaTime;
+        if (randomEventHudRefreshTimer <= 0f)
+        {
+            RefreshRandomEvent();
+        }
+    }
+
+    private void RefreshRandomEvent()
+    {
+        randomEventHudRefreshTimer = 1f;
+        if (randomEventText == null)
+        {
+            return;
+        }
+
+        ClubRandomEventManager manager = ClubRandomEventManager.Instance;
+        if (manager == null || !manager.HasActiveEvent)
+        {
+            randomEventText.text = "Событие: нет";
+            return;
+        }
+
+        if (manager.IsInternetUnavailable)
+        {
+            randomEventText.text =
+                $"Событие: сбой интернета | осталось " +
+                $"{Mathf.CeilToInt(manager.RemainingSeconds)} сек.";
+            return;
+        }
+
+        randomEventText.text =
+            $"Событие: " +
+            $"{ClubRandomEventManager.GetEventDisplayName(manager.ActiveEventType)} | " +
+            "до конца дня";
     }
 
     private void RefreshClubProgression()

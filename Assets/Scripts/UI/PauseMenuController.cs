@@ -124,6 +124,13 @@ public sealed class PauseMenuController : MonoBehaviour
             return;
         }
 
+        if (ClubRandomEventPanel.Instance != null &&
+            ClubRandomEventPanel.Instance.IsOpen)
+        {
+            ClubRandomEventPanel.Instance.Close();
+            return;
+        }
+
         if (PCMaintenancePanel.Instance != null &&
             PCMaintenancePanel.Instance.IsOpen)
         {

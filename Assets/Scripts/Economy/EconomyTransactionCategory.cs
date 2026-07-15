@@ -14,6 +14,7 @@ public enum EconomyTransactionCategory
     EquipmentRepair,
     ConsumableRestock,
     MarketingExpense,
+    RandomEventExpense,
 
     PCUpgrade,
     ExpansionPurchase,
