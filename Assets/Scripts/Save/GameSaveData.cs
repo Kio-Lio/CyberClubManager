@@ -39,6 +39,7 @@ public class GameSaveData
     public List<PCSaveData> pcs = new();
     public RoomDoorSaveData[] roomDoors;
     public PCEquipmentSaveData[] pcEquipment;
+    public bool technicianHired;
 }
 
 [Serializable]

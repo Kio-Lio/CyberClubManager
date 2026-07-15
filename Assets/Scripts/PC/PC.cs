@@ -91,6 +91,10 @@ public class PC : MonoBehaviour, IInteractable
         mouse.Condition,
         chair.Condition
     );
+    public PCEquipmentType MostDamagedEquipmentType =>
+        GetMostDamagedEquipment().EquipmentType;
+    public float MostDamagedEquipmentCondition =>
+        GetMostDamagedEquipment().Condition;
     public bool CanUpgrade => tier != PCTier.Premium;
     public int NextUpgradeCost
     {

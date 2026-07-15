@@ -20,6 +20,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private Text clubLevelText;
     private Text pcStateText;
     private Text equipmentStatusText;
+    private Text technicianStatusText;
     private Text clientQueueText;
     private Text reputationText;
     private Text satisfactionText;
@@ -152,6 +153,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         equipmentStatusText = CreateInformationLine(
             "EquipmentStatusText",
             panelTransform
+        );
+        technicianStatusText = CreateInformationLine(
+            "TechnicianStatusText",
+            panelTransform,
+            54f
         );
         clientQueueText = CreateInformationLine(
             "ClientQueueText",
@@ -300,6 +306,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             RoomUnlockManager.Instance.StatusChanged += OnRoomStatusChanged;
         }
 
+        if (TechnicianManager.Instance != null)
+        {
+            TechnicianManager.Instance.StatusChanged += RefreshTechnicianStatus;
+        }
+
         PC.PCRegistered += RegisterPC;
         PC.PCUnregistered += UnregisterPC;
     }
@@ -345,6 +356,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         if (RoomUnlockManager.Instance != null)
         {
             RoomUnlockManager.Instance.StatusChanged -= OnRoomStatusChanged;
+        }
+
+        if (TechnicianManager.Instance != null)
+        {
+            TechnicianManager.Instance.StatusChanged -= RefreshTechnicianStatus;
         }
 
         PC.PCRegistered -= RegisterPC;
@@ -452,6 +468,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         RefreshClubProgression();
         RefreshPCInformation();
         RefreshEquipmentStatus();
+        RefreshTechnicianStatus();
         RefreshClientQueue();
         RefreshReputation();
         RefreshDayTimer();
@@ -622,6 +639,26 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             $"Оборудование: исправно {healthyCount} | " +
             $"изношено {wornCount} | " +
             $"критично {criticalCount}";
+    }
+
+    private void RefreshTechnicianStatus()
+    {
+        if (technicianStatusText == null)
+        {
+            return;
+        }
+
+        TechnicianManager manager = TechnicianManager.Instance;
+        if (manager == null)
+        {
+            technicianStatusText.text = "Техник: недоступен";
+            return;
+        }
+
+        technicianStatusText.text = manager.TechnicianHired
+            ? $"Техник: работает | {manager.DailySalary} ₽/день\n" +
+              manager.LastServiceMessage
+            : $"Техник: не нанят | найм {manager.HireCost} ₽";
     }
 
     private void RefreshClientQueue()

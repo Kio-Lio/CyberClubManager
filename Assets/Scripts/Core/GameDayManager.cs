@@ -120,7 +120,11 @@ public sealed class GameDayManager : MonoBehaviour
             }
         }
 
-        return fixedDailyCost + electricityExpenses;
+        int staffCost = TechnicianManager.Instance != null
+            ? TechnicianManager.Instance.GetDailyOperatingCost()
+            : 0;
+
+        return fixedDailyCost + electricityExpenses + staffCost;
     }
 
     private void SaveEconomySnapshot()
