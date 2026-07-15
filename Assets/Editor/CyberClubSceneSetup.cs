@@ -29,6 +29,7 @@ public static class CyberClubSceneSetup
         EnsureObjectWithComponent<ClubLayoutBuilder>("ClubLayoutBuilder", Vector3.zero);
         EnsurePlayerPhysicsAndVisuals();
         CreatePCs();
+        NormalizeExpansionPCs();
         EnsureNavigationNetwork();
         EnsureExpansionTerminal();
         EnsureClientSpawner();
@@ -139,11 +140,11 @@ public static class CyberClubSceneSetup
 
         Vector3[] pcPositions =
         {
-            new Vector3(1.4f, 2.6f, 0f),
-            new Vector3(3.8f, 2.6f, 0f),
-            new Vector3(6.2f, 2.6f, 0f),
-            new Vector3(1.4f, -1.4f, 0f),
-            new Vector3(3.8f, -1.4f, 0f),
+            new Vector3(1.2f, 2.8f, 0f),
+            new Vector3(3.8f, 2.8f, 0f),
+            new Vector3(6.4f, 2.8f, 0f),
+            new Vector3(1.2f, -0.7f, 0f),
+            new Vector3(3.8f, -0.7f, 0f),
         };
 
         for (int i = 0; i < pcPositions.Length; i++)
@@ -166,7 +167,7 @@ public static class CyberClubSceneSetup
             renderer.color = Color.white;
 
             BoxCollider2D collider = pcObject.GetComponent<BoxCollider2D>() ?? pcObject.AddComponent<BoxCollider2D>();
-            collider.isTrigger = false;
+            collider.isTrigger = true;
 
             PC pc = pcObject.GetComponent<PC>();
             if (pc == null)
@@ -176,6 +177,20 @@ public static class CyberClubSceneSetup
 
             pc.ConfigureYSorting();
         }
+    }
+
+    private static void NormalizeExpansionPCs()
+    {
+        PCExpansionManager expansionManager =
+            Object.FindAnyObjectByType<PCExpansionManager>();
+
+        if (expansionManager == null)
+        {
+            return;
+        }
+
+        expansionManager.NormalizeExistingExpansionPCs();
+        EditorUtility.SetDirty(expansionManager);
     }
 
     private static void EnsureNavigationNetwork()
@@ -245,13 +260,21 @@ public static class CyberClubSceneSetup
         {
             if (!collider.isTrigger)
             {
+                if (collider is CircleCollider2D circleCollider)
+                {
+                    circleCollider.radius = Mathf.Min(
+                        circleCollider.radius,
+                        0.38f
+                    );
+                }
+
                 return;
             }
         }
 
         CircleCollider2D solidCollider =
             playerObject.AddComponent<CircleCollider2D>();
-        solidCollider.radius = 0.45f;
+        solidCollider.radius = 0.38f;
         solidCollider.isTrigger = false;
     }
 

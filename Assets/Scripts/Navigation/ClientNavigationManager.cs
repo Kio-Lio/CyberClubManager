@@ -85,27 +85,27 @@ public sealed class ClientNavigationManager : MonoBehaviour
         );
         mainAisleLeft = EnsureNode(
             "MainAisle_Left",
-            new Vector3(-0.5f, 1f, 0f)
+            new Vector3(-0.5f, 1.45f, 0f)
         );
         mainAisleCenter = EnsureNode(
             "MainAisle_Center",
-            new Vector3(3.8f, 1f, 0f)
+            new Vector3(3.8f, 1.45f, 0f)
         );
         mainAisleRight = EnsureNode(
             "MainAisle_Right",
-            new Vector3(6.8f, 1f, 0f)
+            new Vector3(7.4f, 1.45f, 0f)
         );
         lowerAisleLeft = EnsureNode(
             "LowerAisle_Left",
-            new Vector3(-0.5f, -2.5f, 0f)
+            new Vector3(-0.5f, -2.15f, 0f)
         );
         lowerAisleCenter = EnsureNode(
             "LowerAisle_Center",
-            new Vector3(3.8f, -2.5f, 0f)
+            new Vector3(3.8f, -2.15f, 0f)
         );
         lowerAisleRight = EnsureNode(
             "LowerAisle_Right",
-            new Vector3(6.8f, -2.5f, 0f)
+            new Vector3(7.4f, -2.15f, 0f)
         );
         exitNode = EnsureNode(
             "ExitNode",

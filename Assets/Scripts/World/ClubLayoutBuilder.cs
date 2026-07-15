@@ -8,25 +8,25 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
 
     private static readonly Vector3[] StartingPCPositions =
     {
-        new Vector3(1.4f, 2.6f, 0f),
-        new Vector3(3.8f, 2.6f, 0f),
-        new Vector3(6.2f, 2.6f, 0f),
-        new Vector3(1.4f, -1.4f, 0f),
-        new Vector3(3.8f, -1.4f, 0f)
+        new Vector3(1.2f, 2.8f, 0f),
+        new Vector3(3.8f, 2.8f, 0f),
+        new Vector3(6.4f, 2.8f, 0f),
+        new Vector3(1.2f, -0.7f, 0f),
+        new Vector3(3.8f, -0.7f, 0f)
     };
 
     private static readonly Vector3[] ExpansionPCPositions =
     {
-        new Vector3(6.2f, -1.4f, 0f),
-        new Vector3(1.4f, -3.4f, 0f),
-        new Vector3(3.8f, -3.4f, 0f),
-        new Vector3(6.2f, -3.4f, 0f)
+        new Vector3(6.4f, -0.7f, 0f),
+        new Vector3(1.2f, -3.3f, 0f),
+        new Vector3(3.8f, -3.3f, 0f),
+        new Vector3(6.4f, -3.3f, 0f)
     };
 
     public static ClubLayoutBuilder Instance { get; private set; }
 
     [Header("Room")]
-    [SerializeField] private Vector2 roomSize = new Vector2(25f, 10f);
+    [SerializeField] private Vector2 roomSize = new Vector2(30f, 10f);
     [SerializeField] private float wallThickness = 0.35f;
 
     [Header("Camera Bounds")]
@@ -103,6 +103,10 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         Transform existingRoot = transform.Find(LayoutRootName);
         if (existingRoot != null)
         {
+            CreateFloor(existingRoot);
+            CreateOuterWalls(existingRoot);
+            CreateAdminDesk(existingRoot);
+            CreatePCTables(existingRoot);
             CreateUnlockableRooms(existingRoot);
             ClientNavigationManager.EnsureRuntimeGraph();
             BuildUnlockableRoomContent();
@@ -218,22 +222,22 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         CreateObstacle(
             "PCTable_Top",
             parent,
-            new Vector3(3.8f, 2.6f, 0f),
-            new Vector2(7.4f, 1.1f),
+            new Vector3(3.8f, 2.8f, 0f),
+            new Vector2(8.2f, 0.85f),
             tableColor
         );
         CreateObstacle(
             "PCTable_Bottom",
             parent,
-            new Vector3(3.8f, -1.4f, 0f),
-            new Vector2(7.4f, 1.1f),
+            new Vector3(3.8f, -0.7f, 0f),
+            new Vector2(8.2f, 0.85f),
             tableColor
         );
         CreateObstacle(
             "PCTable_Expansion",
             parent,
-            new Vector3(3.8f, -3.4f, 0f),
-            new Vector2(7.4f, 1.1f),
+            new Vector3(3.8f, -3.3f, 0f),
+            new Vector2(8.2f, 0.85f),
             tableColor
         );
     }
@@ -399,11 +403,6 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         Vector3 position,
         Vector2 size)
     {
-        if (parent.Find(objectName) != null)
-        {
-            return;
-        }
-
         CreateObstacle(
             objectName,
             parent,
@@ -464,7 +463,10 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
             obstacle.layer = obstacleLayer;
         }
 
-        obstacle.AddComponent<BoxCollider2D>();
+        if (obstacle.GetComponent<BoxCollider2D>() == null)
+        {
+            obstacle.AddComponent<BoxCollider2D>();
+        }
     }
 
     private GameObject CreateVisualObject(
@@ -476,12 +478,21 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         int sortingOffset,
         bool useYSorting = true)
     {
-        GameObject visualObject = new GameObject(objectName);
+        Transform existingObject = parent.Find(objectName);
+        GameObject visualObject = existingObject != null
+            ? existingObject.gameObject
+            : new GameObject(objectName);
+
         visualObject.transform.SetParent(parent);
         visualObject.transform.position = position;
         visualObject.transform.localScale = new Vector3(size.x, size.y, 1f);
 
-        SpriteRenderer renderer = visualObject.AddComponent<SpriteRenderer>();
+        SpriteRenderer renderer = visualObject.GetComponent<SpriteRenderer>();
+
+        if (renderer == null)
+        {
+            renderer = visualObject.AddComponent<SpriteRenderer>();
+        }
         renderer.sprite = GetSquareSprite();
         renderer.color = color;
         YSortRenderer.SetSortingLayer(
@@ -491,7 +502,12 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
 
         if (useYSorting)
         {
-            YSortRenderer ySort = visualObject.AddComponent<YSortRenderer>();
+            YSortRenderer ySort = visualObject.GetComponent<YSortRenderer>();
+
+            if (ySort == null)
+            {
+                ySort = visualObject.AddComponent<YSortRenderer>();
+            }
             ySort.SetSortingPoint(CreateSortingPoint(
                 visualObject.transform,
                 size
@@ -510,7 +526,11 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         Transform parent,
         Vector2 objectSize)
     {
-        GameObject pointObject = new GameObject("SortingPoint");
+        Transform existingPoint = parent.Find("SortingPoint");
+        GameObject pointObject = existingPoint != null
+            ? existingPoint.gameObject
+            : new GameObject("SortingPoint");
+
         pointObject.transform.SetParent(parent, false);
 
         float parentScaleY = Mathf.Abs(parent.localScale.y);
@@ -604,12 +624,20 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         {
             if (!collider.isTrigger)
             {
+                if (collider is CircleCollider2D circleCollider)
+                {
+                    circleCollider.radius = Mathf.Min(
+                        circleCollider.radius,
+                        0.38f
+                    );
+                }
+
                 return;
             }
         }
 
         CircleCollider2D solidCollider = player.AddComponent<CircleCollider2D>();
-        solidCollider.radius = 0.45f;
+        solidCollider.radius = 0.38f;
         solidCollider.isTrigger = false;
     }
 
@@ -630,12 +658,7 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
 
     private void EnsureUnlockableRoomDefinitions()
     {
-        roomSize.x = Mathf.Max(roomSize.x, 25f);
-
-        if (unlockableRooms != null && unlockableRooms.Length > 0)
-        {
-            return;
-        }
+        roomSize.x = Mathf.Max(roomSize.x, 30f);
 
         unlockableRooms = new[]
         {
@@ -645,19 +668,19 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
                 displayName = "Приватная комната",
                 requiredClubLevel = 3,
                 unlockCost = 1500,
-                center = new Vector2(9.5f, 3.4f),
-                size = new Vector2(4.5f, 2.6f),
-                doorPosition = new Vector2(9.5f, 2.1f),
+                center = new Vector2(12f, 3.2f),
+                size = new Vector2(4.6f, 3f),
+                doorPosition = new Vector2(9.7f, 3.2f),
                 pcNames = new[] { "PC_10", "PC_11" },
                 pcPositions = new[]
                 {
-                    new Vector2(8.55f, 3.55f),
-                    new Vector2(10.45f, 3.55f)
+                    new Vector2(11.3f, 3.55f),
+                    new Vector2(12.7f, 3.55f)
                 },
                 approachPositions = new[]
                 {
-                    new Vector2(8.55f, 3.4f),
-                    new Vector2(10.45f, 3.4f)
+                    new Vector2(11.3f, 2.75f),
+                    new Vector2(12.7f, 2.75f)
                 },
                 startingTier = PCTier.Gaming
             },
@@ -667,19 +690,19 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
                 displayName = "VIP-комната",
                 requiredClubLevel = 5,
                 unlockCost = 4000,
-                center = new Vector2(10f, -2f),
-                size = new Vector2(4.5f, 2.6f),
-                doorPosition = new Vector2(7.75f, -2f),
+                center = new Vector2(12f, -2.2f),
+                size = new Vector2(4.6f, 3f),
+                doorPosition = new Vector2(9.7f, -2.2f),
                 pcNames = new[] { "PC_12", "PC_13" },
                 pcPositions = new[]
                 {
-                    new Vector2(9.2f, -2f),
-                    new Vector2(10.8f, -2f)
+                    new Vector2(11.3f, -1.85f),
+                    new Vector2(12.7f, -1.85f)
                 },
                 approachPositions = new[]
                 {
-                    new Vector2(9.2f, -2.65f),
-                    new Vector2(10.8f, -2.65f)
+                    new Vector2(11.3f, -2.75f),
+                    new Vector2(12.7f, -2.75f)
                 },
                 startingTier = PCTier.Premium
             }

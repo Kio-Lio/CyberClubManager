@@ -1,16 +1,9 @@
 using System;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public sealed class PCExpansionManager : MonoBehaviour
 {
-    private static readonly Vector3[] DefaultExpansionPositions =
-    {
-        new Vector3(6.2f, -1.4f, 0f),
-        new Vector3(1.4f, -3.4f, 0f),
-        new Vector3(3.8f, -3.4f, 0f),
-        new Vector3(6.2f, -3.4f, 0f)
-    };
-
     public static PCExpansionManager Instance { get; private set; }
 
     [Header("Purchase Settings")]
@@ -18,7 +11,7 @@ public sealed class PCExpansionManager : MonoBehaviour
 
     [Header("Expansion Positions")]
     [SerializeField] private Vector3[] expansionPositions =
-        DefaultExpansionPositions;
+        CreateDefaultExpansionPositions();
 
     private int nextSlotIndex;
     private Sprite generatedPCSprite;
@@ -156,7 +149,55 @@ public sealed class PCExpansionManager : MonoBehaviour
             nextSlotIndex++;
         }
 
+        NormalizeExistingExpansionPCs();
         StatusChanged?.Invoke();
+    }
+
+    public void NormalizeExistingExpansionPCs()
+    {
+        ResetExpansionPositionsToDefault();
+
+        int highestExistingSlot = -1;
+
+        for (int index = 0; index < expansionPositions.Length; index++)
+        {
+            string pcName = $"PC_{index + 6:00}";
+            GameObject pcObject = FindExistingUniquePCObject(pcName);
+
+            if (pcObject == null)
+            {
+                continue;
+            }
+
+            highestExistingSlot = index;
+            ConfigureExistingPC(pcObject, expansionPositions[index]);
+        }
+
+        if (highestExistingSlot >= 0)
+        {
+            nextSlotIndex = Mathf.Max(
+                nextSlotIndex,
+                highestExistingSlot + 1
+            );
+        }
+
+        StatusChanged?.Invoke();
+    }
+
+    public void ResetExpansionPositionsToDefault()
+    {
+        expansionPositions = CreateDefaultExpansionPositions();
+    }
+
+    private static Vector3[] CreateDefaultExpansionPositions()
+    {
+        return new[]
+        {
+            new Vector3(6.4f, -0.7f, 0f),
+            new Vector3(1.2f, -3.3f, 0f),
+            new Vector3(3.8f, -3.3f, 0f),
+            new Vector3(6.4f, -3.3f, 0f)
+        };
     }
 
     private void OnProgressionChanged()
@@ -167,16 +208,121 @@ public sealed class PCExpansionManager : MonoBehaviour
     private void CreatePC(Vector3 position)
     {
         int pcNumber = nextSlotIndex + 6;
-        GameObject pcObject = new GameObject($"PC_{pcNumber:00}");
-        pcObject.transform.position = position;
+        string pcName = $"PC_{pcNumber:00}";
+        GameObject pcObject = FindOrCreateUniquePCObject(pcName);
 
-        SpriteRenderer spriteRenderer = pcObject.AddComponent<SpriteRenderer>();
-        spriteRenderer.sprite = GetGeneratedPCSprite();
+        ConfigureExistingPC(pcObject, position);
+    }
+
+    private static GameObject FindOrCreateUniquePCObject(string pcName)
+    {
+        GameObject keptObject = FindExistingUniquePCObject(pcName);
+
+        return keptObject != null
+            ? keptObject
+            : new GameObject(pcName);
+    }
+
+    private static GameObject FindExistingUniquePCObject(string pcName)
+    {
+        GameObject keptObject = null;
+
+        foreach (GameObject rootObject in
+                 SceneManager.GetActiveScene().GetRootGameObjects())
+        {
+            keptObject = FindAndRemoveDuplicatePCObjects(
+                rootObject.transform,
+                pcName,
+                keptObject
+            );
+        }
+
+        return keptObject;
+    }
+
+    private static GameObject FindAndRemoveDuplicatePCObjects(
+        Transform current,
+        string pcName,
+        GameObject keptObject)
+    {
+        if (current.name == pcName)
+        {
+            if (keptObject == null)
+            {
+                keptObject = current.gameObject;
+            }
+            else
+            {
+                DestroyDuplicate(current.gameObject);
+                return keptObject;
+            }
+        }
+
+        for (int index = current.childCount - 1; index >= 0; index--)
+        {
+            keptObject = FindAndRemoveDuplicatePCObjects(
+                current.GetChild(index),
+                pcName,
+                keptObject
+            );
+        }
+
+        return keptObject;
+    }
+
+    private static void DestroyDuplicate(GameObject duplicate)
+    {
+        if (duplicate == null)
+        {
+            return;
+        }
+
+        if (Application.isPlaying)
+        {
+            Destroy(duplicate);
+            return;
+        }
+
+        DestroyImmediate(duplicate);
+    }
+
+    private void ConfigureExistingPC(GameObject pcObject, Vector3 position)
+    {
+        pcObject.transform.position = position;
+        pcObject.transform.localScale = Vector3.one;
+
+        SpriteRenderer spriteRenderer =
+            pcObject.GetComponent<SpriteRenderer>();
+
+        if (spriteRenderer == null)
+        {
+            spriteRenderer = pcObject.AddComponent<SpriteRenderer>();
+        }
+
+        if (spriteRenderer.sprite == null)
+        {
+            spriteRenderer.sprite = GetGeneratedPCSprite();
+        }
+
         spriteRenderer.color = Color.white;
 
-        BoxCollider2D collider = pcObject.AddComponent<BoxCollider2D>();
-        collider.isTrigger = false;
-        PC pc = pcObject.AddComponent<PC>();
+        BoxCollider2D collider =
+            pcObject.GetComponent<BoxCollider2D>();
+
+        if (collider == null)
+        {
+            collider = pcObject.AddComponent<BoxCollider2D>();
+        }
+
+        collider.isTrigger = true;
+
+        PC pc = pcObject.GetComponent<PC>();
+
+        if (pc == null)
+        {
+            pc = pcObject.AddComponent<PC>();
+        }
+
         pc.ConfigureYSorting();
 
         ClientNavigationManager navigation =
@@ -225,28 +371,6 @@ public sealed class PCExpansionManager : MonoBehaviour
 
     private void EnsureExpansionPositions()
     {
-        if (expansionPositions != null &&
-            expansionPositions.Length == DefaultExpansionPositions.Length)
-        {
-            bool matchesDefault = true;
-
-            for (int i = 0; i < DefaultExpansionPositions.Length; i++)
-            {
-                if (expansionPositions[i] == DefaultExpansionPositions[i])
-                {
-                    continue;
-                }
-
-                matchesDefault = false;
-                break;
-            }
-
-            if (matchesDefault)
-            {
-                return;
-            }
-        }
-
-        expansionPositions = (Vector3[])DefaultExpansionPositions.Clone();
+        ResetExpansionPositionsToDefault();
     }
 }

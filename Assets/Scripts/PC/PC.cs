@@ -94,6 +94,7 @@ public class PC : MonoBehaviour, IInteractable
     private void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
+        ConfigureInteractionCollider();
         ConfigureYSorting();
         UpdateVisual();
     }
@@ -112,6 +113,7 @@ public class PC : MonoBehaviour, IInteractable
     {
         dailyElectricityCost = Mathf.Max(0, dailyElectricityCost);
         spriteRenderer = GetComponent<SpriteRenderer>();
+        ConfigureInteractionCollider();
         UpdateVisual();
     }
 
@@ -216,6 +218,18 @@ public class PC : MonoBehaviour, IInteractable
     public void ConfigureYSorting()
     {
         YSortRenderer.Ensure(gameObject, 12, -0.45f);
+    }
+
+    private void ConfigureInteractionCollider()
+    {
+        BoxCollider2D boxCollider = GetComponent<BoxCollider2D>();
+
+        if (boxCollider == null)
+        {
+            return;
+        }
+
+        boxCollider.isTrigger = true;
     }
 
     public void SetState(PCState newState)

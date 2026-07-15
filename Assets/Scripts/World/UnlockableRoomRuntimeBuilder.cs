@@ -95,6 +95,8 @@ public sealed class UnlockableRoomRuntimeBuilder : MonoBehaviour
             door = CreateDoor(room, doorNode, squareSprite);
         }
 
+        ConfigureDoorTransform(door.gameObject, room);
+
         door.Configure(
             room.roomId,
             room.displayName,
@@ -172,6 +174,19 @@ public sealed class UnlockableRoomRuntimeBuilder : MonoBehaviour
         );
 
         return door;
+    }
+
+    private static void ConfigureDoorTransform(
+        GameObject doorObject,
+        UnlockableRoomDefinition room)
+    {
+        if (doorObject == null)
+        {
+            return;
+        }
+
+        doorObject.transform.position = room.doorPosition;
+        doorObject.transform.localScale = GetDoorScale(room);
     }
 
     private static Vector3 GetDoorScale(UnlockableRoomDefinition room)
@@ -265,6 +280,6 @@ public sealed class UnlockableRoomRuntimeBuilder : MonoBehaviour
             collider = pcObject.AddComponent<BoxCollider2D>();
         }
 
-        collider.isTrigger = false;
+        collider.isTrigger = true;
     }
 }
