@@ -26,8 +26,7 @@ public class PlayerInteraction : MonoBehaviour
             return;
         }
 
-        if (PauseMenuController.Instance != null &&
-            PauseMenuController.Instance.BlocksGameplayInput)
+        if (GameplayInputState.IsBlocked)
         {
             return;
         }

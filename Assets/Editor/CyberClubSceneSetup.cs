@@ -32,6 +32,7 @@ public static class CyberClubSceneSetup
         NormalizeExpansionPCs();
         EnsureNavigationNetwork();
         EnsureExpansionTerminal();
+        EnsureMaintenanceTerminal();
         EnsureClientSpawner();
         EnsureClubHUDCanvas();
         EnsurePauseMenuController();
@@ -81,6 +82,41 @@ public static class CyberClubSceneSetup
         }
     }
 
+    private static void EnsureMaintenanceTerminal()
+    {
+        GameObject terminalObject = GameObject.Find("MaintenanceTerminal");
+        if (terminalObject == null)
+        {
+            terminalObject = new GameObject("MaintenanceTerminal");
+        }
+
+        terminalObject.transform.position = new Vector3(-2.6f, 3.7f, 0f);
+        terminalObject.transform.localScale = new Vector3(0.7f, 0.9f, 1f);
+
+        SpriteRenderer renderer = terminalObject.GetComponent<SpriteRenderer>();
+        if (renderer == null)
+        {
+            renderer = terminalObject.AddComponent<SpriteRenderer>();
+        }
+
+        renderer.sprite = CreateRuntimeSquareSprite();
+        renderer.color = new Color(0.15f, 0.45f, 0.85f);
+        YSortRenderer.Ensure(terminalObject, 12, -0.45f);
+
+        BoxCollider2D collider = terminalObject.GetComponent<BoxCollider2D>();
+        if (collider == null)
+        {
+            collider = terminalObject.AddComponent<BoxCollider2D>();
+        }
+
+        collider.isTrigger = true;
+
+        if (terminalObject.GetComponent<PCMaintenanceTerminal>() == null)
+        {
+            terminalObject.AddComponent<PCMaintenanceTerminal>();
+        }
+    }
+
     private static void EnsurePauseMenuController()
     {
         GameObject playerObject = GameObject.Find("Player");
@@ -112,6 +148,11 @@ public static class CyberClubSceneSetup
         if (hudCanvasObject.GetComponent<ClientFeedbackUI>() == null)
         {
             hudCanvasObject.AddComponent<ClientFeedbackUI>();
+        }
+
+        if (hudCanvasObject.GetComponent<PCMaintenancePanel>() == null)
+        {
+            hudCanvasObject.AddComponent<PCMaintenancePanel>();
         }
     }
 

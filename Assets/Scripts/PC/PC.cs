@@ -69,6 +69,7 @@ public class PC : MonoBehaviour, IInteractable
     public bool IsFree => state == PCState.Free;
     public bool IsOccupied => state == PCState.Occupied;
     public bool IsBroken => state == PCState.Broken;
+    public bool IsReserved => isReserved;
     public bool IsAvailable =>
         IsFree && !isReserved && HasRoomAccess && !HasBrokenEquipment;
     public PCTier Tier => tier;
@@ -76,6 +77,8 @@ public class PC : MonoBehaviour, IInteractable
     public RoomDoor RequiredRoomDoor => requiredRoomDoor;
     public bool HasRoomAccess =>
         requiredRoomDoor == null || requiredRoomDoor.IsUnlocked;
+    public bool CanServiceEquipment =>
+        !IsOccupied && !isReserved && HasRoomAccess;
     public int DailyElectricityCost => dailyElectricityCost;
     public int LastSessionIncome { get; private set; }
     public PCEquipmentCondition Keyboard => keyboard;
@@ -560,6 +563,81 @@ public class PC : MonoBehaviour, IInteractable
         StateChanged?.Invoke(State);
     }
 
+    public PCEquipmentCondition GetEquipment(PCEquipmentType equipmentType)
+    {
+        return equipmentType switch
+        {
+            PCEquipmentType.Keyboard => keyboard,
+            PCEquipmentType.Mouse => mouse,
+            PCEquipmentType.Chair => chair,
+            _ => null
+        };
+    }
+
+    public bool TryRepairEquipment(PCEquipmentType equipmentType)
+    {
+        return TryRepairEquipment(GetEquipment(equipmentType));
+    }
+
+    public int GetTotalEquipmentRepairCost()
+    {
+        int totalCost = 0;
+
+        if (keyboard.Condition < 100f)
+        {
+            totalCost += keyboard.RepairCost;
+        }
+
+        if (mouse.Condition < 100f)
+        {
+            totalCost += mouse.RepairCost;
+        }
+
+        if (chair.Condition < 100f)
+        {
+            totalCost += chair.RepairCost;
+        }
+
+        return totalCost;
+    }
+
+    public bool TryRepairAllEquipment()
+    {
+        if (!CanServiceEquipment)
+        {
+            return false;
+        }
+
+        int totalCost = GetTotalEquipmentRepairCost();
+        EconomyManager economy = EconomyManager.Instance;
+
+        if (totalCost <= 0 || economy == null ||
+            !economy.SpendMoney(totalCost))
+        {
+            return false;
+        }
+
+        if (keyboard.Condition < 100f)
+        {
+            keyboard.Repair();
+        }
+
+        if (mouse.Condition < 100f)
+        {
+            mouse.Repair();
+        }
+
+        if (chair.Condition < 100f)
+        {
+            chair.Repair();
+        }
+
+        Debug.Log($"{name}: всё оборудование отремонтировано за {totalCost} ₽.");
+        EquipmentChanged?.Invoke();
+        StateChanged?.Invoke(State);
+        return true;
+    }
+
     private void ApplyEquipmentWear()
     {
         float minimumWear = Mathf.Min(
@@ -588,7 +666,7 @@ public class PC : MonoBehaviour, IInteractable
     private bool TryRepairEquipment(PCEquipmentCondition equipment)
     {
         if (equipment == null || equipment.Condition >= 100f ||
-            IsOccupied || isReserved || !HasRoomAccess)
+            !CanServiceEquipment)
         {
             return false;
         }

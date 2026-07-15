@@ -41,6 +41,11 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (GameplayInputState.IsBlocked)
+        {
+            return;
+        }
+
         Vector2 nextPosition = rb.position +
             movement * moveSpeed * Time.fixedDeltaTime;
 

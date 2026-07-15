@@ -75,10 +75,9 @@ public sealed class CameraFollow : MonoBehaviour
 
     private void Update()
     {
-        bool menuOpen = PauseMenuController.Instance != null &&
-            PauseMenuController.Instance.IsMenuOpen;
+        bool inputBlocked = GameplayInputState.IsBlocked;
 
-        if (!menuOpen)
+        if (!inputBlocked)
         {
             ReadMouseZoom();
             UpdateGamepadZoom();

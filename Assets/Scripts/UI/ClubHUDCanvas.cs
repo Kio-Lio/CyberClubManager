@@ -871,10 +871,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             return;
         }
 
-        bool pauseMenuOpen = PauseMenuController.Instance != null &&
-            PauseMenuController.Instance.IsMenuOpen;
-
-        bool shouldShow = !pauseMenuOpen &&
+        bool shouldShow = !GameplayInputState.IsBlocked &&
             !string.IsNullOrWhiteSpace(currentInteractionPrompt);
 
         if (interactionPromptPanel.activeSelf != shouldShow)
