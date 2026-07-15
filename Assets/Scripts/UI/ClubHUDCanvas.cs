@@ -17,6 +17,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private readonly List<PC> pcs = new();
 
     private Text balanceText;
+    private Text pricingText;
     private Text clubLevelText;
     private Text pcStateText;
     private Text equipmentStatusText;
@@ -147,6 +148,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
 
         Transform panelTransform = panelObject.transform;
         balanceText = CreateInformationLine("BalanceText", panelTransform);
+        pricingText = CreateInformationLine("PricingText", panelTransform);
         clubLevelText = CreateInformationLine(
             "ClubLevelText",
             panelTransform
@@ -332,6 +334,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             CleanerManager.Instance.StatusChanged += RefreshCleanerStatus;
         }
 
+        if (PricingManager.Instance != null)
+        {
+            PricingManager.Instance.StatusChanged += RefreshPricing;
+        }
+
         PC.PCRegistered += RegisterPC;
         PC.PCUnregistered += UnregisterPC;
     }
@@ -392,6 +399,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         if (CleanerManager.Instance != null)
         {
             CleanerManager.Instance.StatusChanged -= RefreshCleanerStatus;
+        }
+
+        if (PricingManager.Instance != null)
+        {
+            PricingManager.Instance.StatusChanged -= RefreshPricing;
         }
 
         PC.PCRegistered -= RegisterPC;
@@ -496,6 +508,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private void RefreshAll()
     {
         RefreshBalance();
+        RefreshPricing();
         RefreshClubProgression();
         RefreshPCInformation();
         RefreshEquipmentStatus();
@@ -524,6 +537,21 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             : 0;
 
         balanceText.text = $"Баланс: {balance} ₽";
+    }
+
+    private void RefreshPricing()
+    {
+        if (pricingText == null)
+        {
+            return;
+        }
+
+        PricingManager manager = PricingManager.Instance;
+        pricingText.text = manager == null
+            ? "Tariffs: unavailable"
+            : $"Tariffs: Basic {manager.GetPricePercent(PCTier.Basic)}% | " +
+              $"Gaming {manager.GetPricePercent(PCTier.Gaming)}% | " +
+              $"Premium {manager.GetPricePercent(PCTier.Premium)}%";
     }
 
     private void RefreshClubProgression()

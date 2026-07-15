@@ -42,6 +42,9 @@ public class GameSaveData
     public bool technicianHired;
     public bool cleanerHired;
     public TrashSaveData[] trashItems;
+    public int basicPricePercent;
+    public int gamingPricePercent;
+    public int premiumPricePercent;
 }
 
 [Serializable]

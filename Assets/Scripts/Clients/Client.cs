@@ -28,6 +28,7 @@ public sealed class Client : MonoBehaviour
     private ClientSpawner spawner;
     private PC targetPc;
     private ClientType clientType;
+    private int priceTolerancePercent = 100;
 
     private float moveSpeed;
     private float patienceRemaining;
@@ -51,6 +52,7 @@ public sealed class Client : MonoBehaviour
     public ClientType Type => clientType;
     public float WaitingTime => waitingTime;
     public ClientSatisfaction Satisfaction => satisfaction;
+    public int PriceTolerancePercent => priceTolerancePercent;
 
     public void Initialize(
         ClientSpawner ownerSpawner,
@@ -58,7 +60,8 @@ public sealed class Client : MonoBehaviour
         float speed,
         float patience,
         Vector3 exit,
-        Vector3 initialWaitingPosition)
+        Vector3 initialWaitingPosition,
+        int clientPriceTolerancePercent)
     {
         spawner = ownerSpawner;
         clientType = type;
@@ -68,12 +71,13 @@ public sealed class Client : MonoBehaviour
         waitingTime = 0f;
         exitPosition = exit;
         waitingPosition = initialWaitingPosition;
+        priceTolerancePercent = Mathf.Max(1, clientPriceTolerancePercent);
         state = ClientState.Waiting;
     }
 
-    public bool CanUsePC(PC pc)
+    public bool IsTierCompatible(PC pc)
     {
-        if (pc == null || !pc.IsAvailable)
+        if (pc == null)
         {
             return false;
         }
@@ -87,6 +91,17 @@ public sealed class Client : MonoBehaviour
             ClientType.VIP => pc.Tier == PCTier.Premium,
             _ => false
         };
+    }
+
+    public bool CanAffordPC(PC pc)
+    {
+        return pc == null || PricingManager.Instance == null ||
+            PricingManager.Instance.CanClientAcceptPrice(pc.Tier, priceTolerancePercent);
+    }
+
+    public bool CanUsePC(PC pc)
+    {
+        return pc != null && pc.IsAvailable && IsTierCompatible(pc) && CanAffordPC(pc);
     }
 
     public string GetTypeDisplayName()

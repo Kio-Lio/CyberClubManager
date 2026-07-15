@@ -80,6 +80,10 @@ public class PC : MonoBehaviour, IInteractable
     public bool CanServiceEquipment =>
         !IsOccupied && !isReserved && HasRoomAccess;
     public int DailyElectricityCost => dailyElectricityCost;
+    public int BaseSessionPrice => sessionPrice;
+    public int CurrentSessionPrice => PricingManager.Instance == null
+        ? sessionPrice
+        : PricingManager.Instance.GetSessionPrice(Tier, sessionPrice);
     public int LastSessionIncome { get; private set; }
     public PCEquipmentCondition Keyboard => keyboard;
     public PCEquipmentCondition Mouse => mouse;
@@ -371,12 +375,19 @@ public class PC : MonoBehaviour, IInteractable
     {
         SetState(PCState.Occupied);
 
+        int pricedSessionIncome = CurrentSessionPrice;
         int clientBonus = GetClientSessionBonus(clientType);
-        LastSessionIncome = sessionPrice + clientBonus;
+        LastSessionIncome = pricedSessionIncome + clientBonus;
 
         Debug.Log(
             $"{name}: клиент типа {GetClientTypeDisplayName(clientType)} " +
             $"начал сессию. Доход: {LastSessionIncome} ₽."
+        );
+
+        Debug.Log(
+            $"{name}: tariff {PricingManager.Instance?.GetPricePercent(Tier) ?? 100}%, " +
+            $"session {pricedSessionIncome} RUB, bonus {clientBonus} RUB, " +
+            $"total {LastSessionIncome} RUB."
         );
 
         if (EconomyManager.Instance != null)

@@ -127,7 +127,8 @@ public sealed class PCMaintenancePanel : MonoBehaviour
     public void Open()
     {
         if (isOpen || (PauseMenuController.Instance != null &&
-            PauseMenuController.Instance.IsMenuOpen))
+            PauseMenuController.Instance.IsMenuOpen) ||
+            (PricingPanel.Instance != null && PricingPanel.Instance.IsOpen))
         {
             return;
         }

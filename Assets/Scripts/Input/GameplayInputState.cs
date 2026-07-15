@@ -10,8 +10,11 @@ public static class GameplayInputState
             bool maintenanceBlocksInput =
                 PCMaintenancePanel.Instance != null &&
                 PCMaintenancePanel.Instance.IsOpen;
+            bool pricingBlocksInput =
+                PricingPanel.Instance != null &&
+                PricingPanel.Instance.IsOpen;
 
-            return pauseBlocksInput || maintenanceBlocksInput;
+            return pauseBlocksInput || maintenanceBlocksInput || pricingBlocksInput;
         }
     }
 }

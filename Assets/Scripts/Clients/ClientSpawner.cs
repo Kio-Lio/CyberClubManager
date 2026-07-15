@@ -13,6 +13,15 @@ public sealed class ClientSpawner : MonoBehaviour
     [SerializeField] private float maxSpawnInterval = 8f;
     [SerializeField] private int maxQueueSize = 5;
 
+    [Header("Client Price Tolerance")]
+    [SerializeField] private Vector2Int regularPriceTolerance = new(100, 120);
+    [SerializeField] private Vector2Int gamerPriceTolerance = new(110, 140);
+    [SerializeField] private Vector2Int vipPriceTolerance = new(120, 160);
+
+    [Header("Pricing Testing")]
+    [SerializeField] private bool forcePriceTolerance;
+    [SerializeField, Range(80, 200)] private int forcedPriceTolerancePercent = 100;
+
     [Header("Client Settings")]
     [SerializeField] private float clientMoveSpeed = 2f;
 
@@ -169,6 +178,7 @@ public sealed class ClientSpawner : MonoBehaviour
 
         ClientType clientType = GenerateClientType();
         float patience = GetPatience(clientType);
+        int priceTolerance = GeneratePriceTolerance(clientType);
 
         if (forceClientType)
         {
@@ -211,7 +221,8 @@ public sealed class ClientSpawner : MonoBehaviour
             clientMoveSpeed,
             patience,
             exitPosition,
-            GetQueuePosition(waitingClients.Count)
+            GetQueuePosition(waitingClients.Count),
+            priceTolerance
         );
 
         waitingClients.Add(client);
@@ -386,6 +397,26 @@ public sealed class ClientSpawner : MonoBehaviour
             ClientType.VIP => vipPatience,
             _ => regularPatience
         };
+    }
+
+    private int GeneratePriceTolerance(ClientType clientType)
+    {
+        if (forcePriceTolerance)
+        {
+            return Mathf.Max(1, forcedPriceTolerancePercent);
+        }
+
+        Vector2Int range = clientType switch
+        {
+            ClientType.Regular => regularPriceTolerance,
+            ClientType.Gamer => gamerPriceTolerance,
+            ClientType.VIP => vipPriceTolerance,
+            _ => new Vector2Int(100, 100)
+        };
+
+        int minimum = Mathf.Min(range.x, range.y);
+        int maximum = Mathf.Max(range.x, range.y);
+        return UnityEngine.Random.Range(minimum, maximum + 1);
     }
 
     private Color GetClientColor(ClientType type)
