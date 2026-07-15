@@ -64,6 +64,7 @@ public class PC : MonoBehaviour, IInteractable
 
     private SpriteRenderer spriteRenderer;
     private Coroutine sessionCoroutine;
+    private ClientType activeSessionClientType;
 
     public PCState State => state;
     public bool IsFree => state == PCState.Free;
@@ -116,6 +117,7 @@ public class PC : MonoBehaviour, IInteractable
     public event Action<PCState> StateChanged;
     public event Action<PCTier> TierChanged;
     public event Action EquipmentChanged;
+    public event Action<PCSessionAnalyticsData> SessionAnalyticsCompleted;
     public event Action<PC> SessionCompleted;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -374,6 +376,7 @@ public class PC : MonoBehaviour, IInteractable
     private void Occupy(ClientType clientType)
     {
         SetState(PCState.Occupied);
+        activeSessionClientType = clientType;
 
         int pricedSessionIncome = CurrentSessionPrice;
         int clientBonus = GetClientSessionBonus(clientType);
@@ -410,7 +413,7 @@ public class PC : MonoBehaviour, IInteractable
         sessionCoroutine = StartCoroutine(SessionTimer());
     }
 
-    private static int GetClientSessionBonus(ClientType clientType)
+    public static int GetClientSessionBonus(ClientType clientType)
     {
         return clientType switch
         {
@@ -448,6 +451,19 @@ public class PC : MonoBehaviour, IInteractable
 
         sessionCoroutine = null;
         ApplyEquipmentWear();
+
+        int pricePercent = PricingManager.Instance != null
+            ? PricingManager.Instance.GetPricePercent(Tier)
+            : 100;
+        SessionAnalyticsCompleted?.Invoke(
+            new PCSessionAnalyticsData(
+                name,
+                Tier,
+                activeSessionClientType,
+                LastSessionIncome,
+                pricePercent
+            )
+        );
         SessionCompleted?.Invoke(this);
 
         if (UnityEngine.Random.value < breakdownChance)

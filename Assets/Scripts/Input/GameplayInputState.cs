@@ -22,10 +22,13 @@ public static class GameplayInputState
             bool marketingBlocksInput =
                 MarketingPanel.Instance != null &&
                 MarketingPanel.Instance.IsOpen;
+            bool analyticsBlocksInput =
+                DemandAnalyticsPanel.Instance != null &&
+                DemandAnalyticsPanel.Instance.IsOpen;
 
             return pauseBlocksInput || maintenanceBlocksInput ||
                 pricingBlocksInput || stockPanelBlocksInput || reportBlocksInput ||
-                marketingBlocksInput;
+                marketingBlocksInput || analyticsBlocksInput;
         }
     }
 }

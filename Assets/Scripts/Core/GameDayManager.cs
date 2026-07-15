@@ -120,6 +120,7 @@ public sealed class GameDayManager : MonoBehaviour
         timeRemaining = dayDuration;
 
         DailyFinancialReportManager.Instance?.FinalizeDay(completedDay);
+        DemandAnalyticsManager.Instance?.FinalizeDay(completedDay);
 
         DayEnded?.Invoke(completedDay, income, expenses, profit);
         SaveEconomySnapshot();

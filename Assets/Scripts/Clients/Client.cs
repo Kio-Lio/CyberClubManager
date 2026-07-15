@@ -77,18 +77,19 @@ public sealed class Client : MonoBehaviour
 
     public bool IsTierCompatible(PC pc)
     {
-        if (pc == null)
-        {
-            return false;
-        }
+        return pc != null && IsTierCompatible(clientType, pc.Tier);
+    }
 
+    public static bool IsTierCompatible(
+        ClientType clientType,
+        PCTier tier)
+    {
         return clientType switch
         {
             ClientType.Regular => true,
             ClientType.Gamer =>
-                pc.Tier == PCTier.Gaming ||
-                pc.Tier == PCTier.Premium,
-            ClientType.VIP => pc.Tier == PCTier.Premium,
+                tier == PCTier.Gaming || tier == PCTier.Premium,
+            ClientType.VIP => tier == PCTier.Premium,
             _ => false
         };
     }
@@ -435,6 +436,11 @@ public sealed class Client : MonoBehaviour
         }
 
         outcomeRegistered = true;
+
+        DemandAnalyticsManager.Instance?.RecordClientDeparture(
+            clientType,
+            priceTolerancePercent
+        );
 
         if (ClubReputationManager.Instance != null)
         {

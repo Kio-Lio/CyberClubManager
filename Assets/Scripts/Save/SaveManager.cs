@@ -8,7 +8,7 @@ public class SaveManager : MonoBehaviour
 {
     public static SaveManager Instance { get; private set; }
 
-    private const int CurrentSaveVersion = 13;
+    private const int CurrentSaveVersion = 14;
     private const string SaveFileName = "cyber_club_save.json";
 
     private bool suppressSaving;
@@ -183,7 +183,8 @@ public class SaveManager : MonoBehaviour
                PricingManager.Instance != null &&
                ConsumableInventoryManager.Instance != null &&
                DailyFinancialReportManager.Instance != null &&
-               MarketingManager.Instance != null;
+               MarketingManager.Instance != null &&
+               DemandAnalyticsManager.Instance != null;
     }
 
     private GameSaveData CreateSaveData()
@@ -237,7 +238,9 @@ public class SaveManager : MonoBehaviour
             currentFinancialReport = DailyFinancialReportManager.Instance.CreateCurrentSaveData(),
             lastFinancialReport = DailyFinancialReportManager.Instance.CreateLastSaveData(),
             activeMarketingCampaign = MarketingManager.Instance.ActiveCampaign,
-            marketingRemainingDays = MarketingManager.Instance.RemainingDays
+            marketingRemainingDays = MarketingManager.Instance.RemainingDays,
+            currentDemandAnalytics = DemandAnalyticsManager.Instance.CreateCurrentSaveData(),
+            lastDemandAnalytics = DemandAnalyticsManager.Instance.CreateLastSaveData()
         };
 
         RoomDoor[] roomDoors = FindObjectsByType<RoomDoor>();
@@ -399,6 +402,12 @@ public class SaveManager : MonoBehaviour
         MarketingManager.Instance.RestoreState(
             data.activeMarketingCampaign,
             data.marketingRemainingDays
+        );
+
+        DemandAnalyticsManager.Instance.RestoreState(
+            data.currentDemandAnalytics,
+            data.lastDemandAnalytics,
+            GameDayManager.Instance.CurrentDay
         );
 
         RestoreRoomDoors(data);

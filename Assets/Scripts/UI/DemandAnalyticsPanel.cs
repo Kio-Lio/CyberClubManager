@@ -4,22 +4,17 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
-public sealed class PricingPanel : MonoBehaviour
+public sealed class DemandAnalyticsPanel : MonoBehaviour
 {
-    private const int BasicBasePrice = 100;
-    private const int GamingBasePrice = 160;
-    private const int PremiumBasePrice = 250;
-
-    public static PricingPanel Instance { get; private set; }
+    public static DemandAnalyticsPanel Instance { get; private set; }
 
     private GameObject rootObject;
-    private Text basicText;
-    private Text gamingText;
-    private Text premiumText;
-    private Text rangeText;
-    private Button analyticsButton;
+    private Text reportText;
+    private Button previousDayButton;
+    private Button returnButton;
     private Button closeButton;
     private bool isOpen;
+    private bool showingLastDay;
     private float previousTimeScale = 1f;
     private bool cursorStateCaptured;
     private bool previousCursorVisible;
@@ -43,17 +38,17 @@ public sealed class PricingPanel : MonoBehaviour
 
     private void Start()
     {
-        if (PricingManager.Instance != null)
+        if (DemandAnalyticsManager.Instance != null)
         {
-            PricingManager.Instance.StatusChanged += RefreshView;
+            DemandAnalyticsManager.Instance.StatusChanged += RefreshView;
         }
     }
 
     private void OnDestroy()
     {
-        if (PricingManager.Instance != null)
+        if (DemandAnalyticsManager.Instance != null)
         {
-            PricingManager.Instance.StatusChanged -= RefreshView;
+            DemandAnalyticsManager.Instance.StatusChanged -= RefreshView;
         }
 
         if (isOpen)
@@ -67,18 +62,20 @@ public sealed class PricingPanel : MonoBehaviour
         }
     }
 
-    public void Open()
+    public void Open(bool showLastDay)
     {
-        if (isOpen || PricingManager.Instance == null ||
+        if (isOpen || DemandAnalyticsManager.Instance == null ||
             (PauseMenuController.Instance != null && PauseMenuController.Instance.IsMenuOpen) ||
             (PCMaintenancePanel.Instance != null && PCMaintenancePanel.Instance.IsOpen) ||
             (ConsumableStockPanel.Instance != null && ConsumableStockPanel.Instance.IsOpen) ||
-            (DemandAnalyticsPanel.Instance != null && DemandAnalyticsPanel.Instance.IsOpen))
+            (MarketingPanel.Instance != null && MarketingPanel.Instance.IsOpen) ||
+            (DailyFinancialReportPanel.Instance != null && DailyFinancialReportPanel.Instance.IsOpen))
         {
             return;
         }
 
         isOpen = true;
+        showingLastDay = showLastDay && DemandAnalyticsManager.Instance.HasLastReport;
         previousTimeScale = Time.timeScale;
         Time.timeScale = 0f;
         CaptureCursorState();
@@ -108,65 +105,113 @@ public sealed class PricingPanel : MonoBehaviour
         RestoreGameplayState();
     }
 
-    private void ChangeBasicPrice(int direction)
+    private void ToggleReport()
     {
-        PricingManager.Instance?.TryChangePrice(PCTier.Basic, direction);
-        RefreshView();
-    }
-
-    private void ChangeGamingPrice(int direction)
-    {
-        PricingManager.Instance?.TryChangePrice(PCTier.Gaming, direction);
-        RefreshView();
-    }
-
-    private void ChangePremiumPrice(int direction)
-    {
-        PricingManager.Instance?.TryChangePrice(PCTier.Premium, direction);
-        RefreshView();
-    }
-
-    private void OpenDemandAnalytics()
-    {
-        Close();
-        DemandAnalyticsPanel.Instance?.Open(false);
-    }
-
-    private void RefreshView()
-    {
-        PricingManager manager = PricingManager.Instance;
-        if (manager == null || basicText == null)
+        DemandAnalyticsManager manager = DemandAnalyticsManager.Instance;
+        if (manager == null || !manager.HasLastReport)
         {
             return;
         }
 
-        basicText.text = FormatTier(manager, "Basic", PCTier.Basic, BasicBasePrice);
-        gamingText.text = FormatTier(manager, "Gaming", PCTier.Gaming, GamingBasePrice);
-        premiumText.text = FormatTier(manager, "Premium", PCTier.Premium, PremiumBasePrice);
-        rangeText.text = $"Range: {manager.MinimumPricePercent}-{manager.MaximumPricePercent}% | Step: {manager.PriceStepPercent}%";
+        showingLastDay = !showingLastDay;
+        RefreshView();
     }
 
-    private static string FormatTier(PricingManager manager, string title, PCTier tier, int basePrice)
+    private void ReturnToPricing()
     {
-        return $"{title}: {manager.GetPricePercent(tier)}% - {manager.GetSessionPrice(tier, basePrice)} RUB";
+        Close();
+        PricingPanel.Instance?.Open();
+    }
+
+    private void RefreshView()
+    {
+        if (!isOpen || reportText == null)
+        {
+            return;
+        }
+
+        DemandAnalyticsManager manager = DemandAnalyticsManager.Instance;
+        if (manager == null)
+        {
+            reportText.text = "АНАЛИТИКА СПРОСА\nНедоступна";
+            return;
+        }
+
+        DemandAnalyticsReportData report = showingLastDay
+            ? manager.LastReport
+            : manager.CurrentReport;
+        if (report == null)
+        {
+            reportText.text = "АНАЛИТИКА СПРОСА\nНет данных за прошлый день";
+            return;
+        }
+
+        string period = showingLastDay ? "ПРОШЛЫЙ ДЕНЬ" : "ТЕКУЩИЙ ДЕНЬ";
+        reportText.text =
+            $"АНАЛИТИКА СПРОСА - {period} {report.day}\n\n" +
+            BuildTierText("BASIC", report.basic) + "\n\n" +
+            BuildTierText("GAMING", report.gaming) + "\n\n" +
+            BuildTierText("PREMIUM", report.premium) + "\n\n" +
+            $"Переполнение очереди: {report.queueOverflowClients}";
+
+        previousDayButton.interactable = manager.HasLastReport;
+        Text buttonText = previousDayButton.GetComponentInChildren<Text>();
+        if (buttonText != null)
+        {
+            buttonText.text = showingLastDay ? "Текущий день" : "Прошлый день";
+        }
+    }
+
+    private static string BuildTierText(
+        string title,
+        DemandTierAnalyticsData data)
+    {
+        if (data == null)
+        {
+            return $"{title}\nНет данных";
+        }
+
+        return
+            $"{title} | ПК: {CountAccessiblePCs(data.tier)}\n" +
+            $"Загрузка: {data.UtilizationPercent:F0}%\n" +
+            $"Сессии: {data.completedSessions}\n" +
+            $"Выручка: {data.sessionRevenue} ₽\n" +
+            $"Средний чек: {data.AverageSessionRevenue} ₽\n" +
+            $"Ушли из-за цены: {data.priceLostClients}\n" +
+            $"Упущено: примерно {data.estimatedPriceLostRevenue} ₽\n" +
+            $"Не дождались места: {data.capacityLostClients}";
+    }
+
+    private static int CountAccessiblePCs(PCTier tier)
+    {
+        int count = 0;
+        foreach (PC pc in FindObjectsByType<PC>())
+        {
+            if (pc != null && pc.Tier == tier && pc.HasRoomAccess)
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     private void BuildInterface()
     {
         runtimeFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        rootObject = new GameObject("PricingPanelRoot", typeof(RectTransform), typeof(Image));
+        rootObject = new GameObject("DemandAnalyticsPanelRoot", typeof(RectTransform), typeof(Image));
         rootObject.transform.SetParent(transform, false);
         Stretch(rootObject.GetComponent<RectTransform>());
-        rootObject.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.76f);
+        rootObject.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.78f);
 
-        GameObject panel = new GameObject("PricingPanel", typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup));
+        GameObject panel = new GameObject("DemandAnalyticsPanel", typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup));
         panel.transform.SetParent(rootObject.transform, false);
         RectTransform panelRect = panel.GetComponent<RectTransform>();
         panelRect.anchorMin = new Vector2(0.5f, 0.5f);
         panelRect.anchorMax = new Vector2(0.5f, 0.5f);
         panelRect.pivot = new Vector2(0.5f, 0.5f);
-        panelRect.sizeDelta = new Vector2(680f, 570f);
-        panel.GetComponent<Image>().color = new Color(0.055f, 0.035f, 0.09f, 0.99f);
+        panelRect.sizeDelta = new Vector2(760f, 960f);
+        panel.GetComponent<Image>().color = new Color(0.07f, 0.035f, 0.12f, 0.99f);
 
         VerticalLayoutGroup layout = panel.GetComponent<VerticalLayoutGroup>();
         layout.padding = new RectOffset(28, 28, 24, 24);
@@ -177,35 +222,23 @@ public sealed class PricingPanel : MonoBehaviour
         layout.childForceExpandWidth = true;
         layout.childForceExpandHeight = false;
 
-        CreateLabel(panel.transform, "PRICING MANAGEMENT", 30, 54f, FontStyle.Bold);
-        basicText = CreatePriceRow(panel.transform, "Basic", ChangeBasicPrice);
-        gamingText = CreatePriceRow(panel.transform, "Gaming", ChangeGamingPrice);
-        premiumText = CreatePriceRow(panel.transform, "Premium", ChangePremiumPrice);
-        rangeText = CreateLabel(panel.transform, string.Empty, 18, 40f, FontStyle.Normal);
-        analyticsButton = CreateButton(panel.transform, "Аналитика спроса", OpenDemandAnalytics);
-        closeButton = CreateButton(panel.transform, "Close", Close);
+        reportText = CreateLabel(panel.transform, string.Empty, 18, 740f, TextAnchor.UpperLeft, FontStyle.Normal);
+        GameObject buttonRow = new GameObject("Buttons", typeof(RectTransform), typeof(HorizontalLayoutGroup), typeof(LayoutElement));
+        buttonRow.transform.SetParent(panel.transform, false);
+        buttonRow.GetComponent<LayoutElement>().preferredHeight = 58f;
+        HorizontalLayoutGroup rowLayout = buttonRow.GetComponent<HorizontalLayoutGroup>();
+        rowLayout.spacing = 10f;
+        rowLayout.childControlWidth = true;
+        rowLayout.childControlHeight = true;
+        rowLayout.childForceExpandWidth = true;
+        rowLayout.childForceExpandHeight = true;
+
+        previousDayButton = CreateButton(buttonRow.transform, "Прошлый день", ToggleReport);
+        returnButton = CreateButton(buttonRow.transform, "К тарифам", ReturnToPricing);
+        closeButton = CreateButton(buttonRow.transform, "Закрыть", Close);
     }
 
-    private Text CreatePriceRow(Transform parent, string label, System.Action<int> onChange)
-    {
-        GameObject row = new GameObject(label + "Row", typeof(RectTransform), typeof(HorizontalLayoutGroup), typeof(LayoutElement));
-        row.transform.SetParent(parent, false);
-        row.GetComponent<LayoutElement>().preferredHeight = 60f;
-        HorizontalLayoutGroup layout = row.GetComponent<HorizontalLayoutGroup>();
-        layout.spacing = 12f;
-        layout.childAlignment = TextAnchor.MiddleCenter;
-        layout.childControlWidth = true;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = true;
-        layout.childForceExpandHeight = true;
-        CreateButton(row.transform, "-", () => onChange(-1), 70f);
-        Text text = CreateLabel(row.transform, string.Empty, 22, 56f, FontStyle.Bold);
-        text.GetComponent<LayoutElement>().flexibleWidth = 1f;
-        CreateButton(row.transform, "+", () => onChange(1), 70f);
-        return text;
-    }
-
-    private Text CreateLabel(Transform parent, string content, int fontSize, float height, FontStyle fontStyle)
+    private Text CreateLabel(Transform parent, string content, int fontSize, float height, TextAnchor alignment, FontStyle fontStyle)
     {
         GameObject label = new GameObject("Text", typeof(RectTransform), typeof(Text), typeof(LayoutElement));
         label.transform.SetParent(parent, false);
@@ -215,7 +248,7 @@ public sealed class PricingPanel : MonoBehaviour
         text.fontSize = fontSize;
         text.fontStyle = fontStyle;
         text.color = Color.white;
-        text.alignment = TextAnchor.MiddleCenter;
+        text.alignment = alignment;
         text.horizontalOverflow = HorizontalWrapMode.Wrap;
         text.verticalOverflow = VerticalWrapMode.Overflow;
         text.raycastTarget = false;
@@ -223,31 +256,24 @@ public sealed class PricingPanel : MonoBehaviour
         return text;
     }
 
-    private Button CreateButton(Transform parent, string caption, UnityEngine.Events.UnityAction action, float preferredWidth = -1f)
+    private Button CreateButton(Transform parent, string caption, UnityEngine.Events.UnityAction action)
     {
-        GameObject buttonObject = new GameObject(caption, typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
+        GameObject buttonObject = new GameObject(caption, typeof(RectTransform), typeof(Image), typeof(Button));
         buttonObject.transform.SetParent(parent, false);
         Image image = buttonObject.GetComponent<Image>();
-        image.color = new Color(0.27f, 0.16f, 0.39f, 1f);
+        image.color = new Color(0.33f, 0.16f, 0.48f, 1f);
         Button button = buttonObject.GetComponent<Button>();
         button.targetGraphic = image;
         button.onClick.AddListener(action);
         ColorBlock colors = button.colors;
         colors.normalColor = image.color;
-        colors.highlightedColor = new Color(0.42f, 0.25f, 0.58f, 1f);
+        colors.highlightedColor = new Color(0.50f, 0.27f, 0.68f, 1f);
         colors.selectedColor = colors.highlightedColor;
-        colors.pressedColor = new Color(0.16f, 0.09f, 0.25f, 1f);
+        colors.pressedColor = new Color(0.18f, 0.08f, 0.28f, 1f);
         colors.colorMultiplier = 1f;
         button.colors = colors;
-        LayoutElement layout = buttonObject.GetComponent<LayoutElement>();
-        layout.preferredHeight = 54f;
-        if (preferredWidth > 0f)
-        {
-            layout.preferredWidth = preferredWidth;
-            layout.flexibleWidth = 0f;
-        }
 
-        Text text = CreateLabel(buttonObject.transform, caption, 21, 54f, FontStyle.Bold);
+        Text text = CreateLabel(buttonObject.transform, caption, 18, 58f, TextAnchor.MiddleCenter, FontStyle.Bold);
         RectTransform textRect = text.GetComponent<RectTransform>();
         Stretch(textRect);
         textRect.offsetMin = new Vector2(8f, 2f);

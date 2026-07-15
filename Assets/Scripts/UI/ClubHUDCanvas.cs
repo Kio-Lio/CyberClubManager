@@ -20,6 +20,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private Text pricingText;
     private Text consumableStockText;
     private Text marketingText;
+    private Text demandAnalyticsText;
     private Text clubLevelText;
     private Text pcStateText;
     private Text equipmentStatusText;
@@ -153,6 +154,10 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         pricingText = CreateInformationLine("PricingText", panelTransform);
         consumableStockText = CreateInformationLine("ConsumableStockText", panelTransform);
         marketingText = CreateInformationLine("MarketingText", panelTransform);
+        demandAnalyticsText = CreateInformationLine(
+            "DemandAnalyticsText",
+            panelTransform
+        );
         clubLevelText = CreateInformationLine(
             "ClubLevelText",
             panelTransform
@@ -358,6 +363,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             MarketingManager.Instance.StatusChanged += RefreshMarketing;
         }
 
+        if (DemandAnalyticsManager.Instance != null)
+        {
+            DemandAnalyticsManager.Instance.StatusChanged += RefreshDemandAnalytics;
+        }
+
         PC.PCRegistered += RegisterPC;
         PC.PCUnregistered += UnregisterPC;
     }
@@ -438,6 +448,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         if (MarketingManager.Instance != null)
         {
             MarketingManager.Instance.StatusChanged -= RefreshMarketing;
+        }
+
+        if (DemandAnalyticsManager.Instance != null)
+        {
+            DemandAnalyticsManager.Instance.StatusChanged -= RefreshDemandAnalytics;
         }
 
         PC.PCRegistered -= RegisterPC;
@@ -546,6 +561,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         RefreshLastFinancialReport();
         RefreshConsumableStock();
         RefreshMarketing();
+        RefreshDemandAnalytics();
         RefreshClubProgression();
         RefreshPCInformation();
         RefreshEquipmentStatus();
@@ -642,6 +658,28 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             : manager.HasActiveCampaign
                 ? $"Marketing: {manager.GetDefinition(manager.ActiveCampaign)?.DisplayName} | {manager.RemainingDays} day(s) left"
                 : "Marketing: none active";
+    }
+
+    private void RefreshDemandAnalytics()
+    {
+        if (demandAnalyticsText == null)
+        {
+            return;
+        }
+
+        DemandAnalyticsManager manager = DemandAnalyticsManager.Instance;
+        if (manager == null)
+        {
+            demandAnalyticsText.text = "Спрос: аналитика недоступна";
+            return;
+        }
+
+        DemandAnalyticsReportData report = manager.CurrentReport;
+        demandAnalyticsText.text =
+            $"Спрос: B {report.basic.UtilizationPercent:F0}% | " +
+            $"G {report.gaming.UtilizationPercent:F0}% | " +
+            $"P {report.premium.UtilizationPercent:F0}% | " +
+            $"цена-отказы {report.TotalPriceLostClients}";
     }
 
     private void RefreshClubProgression()

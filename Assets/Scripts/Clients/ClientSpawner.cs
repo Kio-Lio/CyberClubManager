@@ -215,6 +215,8 @@ public sealed class ClientSpawner : MonoBehaviour
                 ClubReputationManager.Instance.RegisterLostClient(clientType);
             }
 
+            DemandAnalyticsManager.Instance?.RecordQueueOverflow();
+
             return;
         }
 

@@ -31,6 +31,7 @@ public static class CyberClubSceneSetup
         EnsureObjectWithComponent<ConsumableInventoryManager>("ConsumableInventoryManager", Vector3.zero);
         EnsureObjectWithComponent<MarketingManager>("MarketingManager", Vector3.zero);
         EnsureObjectWithComponent<DailyFinancialReportManager>("DailyFinancialReportManager", Vector3.zero);
+        EnsureObjectWithComponent<DemandAnalyticsManager>("DemandAnalyticsManager", Vector3.zero);
         EnsureObjectWithComponent<RoomUnlockManager>("RoomUnlockManager", Vector3.zero);
         EnsureObjectWithComponent<SaveManager>("SaveManager", Vector3.zero);
         EnsureObjectWithComponent<ClubLayoutBuilder>("ClubLayoutBuilder", Vector3.zero);
@@ -286,6 +287,11 @@ public static class CyberClubSceneSetup
         if (hudCanvasObject.GetComponent<MarketingPanel>() == null)
         {
             hudCanvasObject.AddComponent<MarketingPanel>();
+        }
+
+        if (hudCanvasObject.GetComponent<DemandAnalyticsPanel>() == null)
+        {
+            hudCanvasObject.AddComponent<DemandAnalyticsPanel>();
         }
     }
 
