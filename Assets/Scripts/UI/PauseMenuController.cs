@@ -144,6 +144,13 @@ public sealed class PauseMenuController : MonoBehaviour
             return;
         }
 
+        if (DailyFinancialReportPanel.Instance != null &&
+            DailyFinancialReportPanel.Instance.IsOpen)
+        {
+            DailyFinancialReportPanel.Instance.Close();
+            return;
+        }
+
         if (confirmNewGame)
         {
             HideNewGameConfirmation();

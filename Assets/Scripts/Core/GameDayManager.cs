@@ -73,11 +73,27 @@ public sealed class GameDayManager : MonoBehaviour
     private void CompleteDay()
     {
         int completedDay = currentDay;
-        int operatingExpenses = CalculateOperatingExpenses();
+        CalculateOperatingExpenseBreakdown(
+            out int fixedOperatingCost,
+            out int electricityCost,
+            out int staffCost
+        );
+        int operatingExpenses = fixedOperatingCost + electricityCost + staffCost;
 
         if (EconomyManager.Instance != null)
         {
-            EconomyManager.Instance.ApplyMandatoryExpense(operatingExpenses);
+            EconomyManager.Instance.ApplyMandatoryExpense(
+                fixedOperatingCost,
+                EconomyTransactionCategory.FixedOperatingCost
+            );
+            EconomyManager.Instance.ApplyMandatoryExpense(
+                electricityCost,
+                EconomyTransactionCategory.Electricity
+            );
+            EconomyManager.Instance.ApplyMandatoryExpense(
+                staffCost,
+                EconomyTransactionCategory.StaffSalary
+            );
         }
         else
         {
@@ -103,14 +119,29 @@ public sealed class GameDayManager : MonoBehaviour
         currentDay++;
         timeRemaining = dayDuration;
 
+        DailyFinancialReportManager.Instance?.FinalizeDay(completedDay);
+
         DayEnded?.Invoke(completedDay, income, expenses, profit);
         SaveEconomySnapshot();
     }
 
     private int CalculateOperatingExpenses()
     {
+        CalculateOperatingExpenseBreakdown(
+            out int fixedOperatingCost,
+            out int electricityCost,
+            out int staffCost
+        );
+        return fixedOperatingCost + electricityCost + staffCost;
+    }
+
+    private void CalculateOperatingExpenseBreakdown(
+        out int fixedOperatingCost,
+        out int electricityExpenses,
+        out int staffCost)
+    {
         PC[] pcs = FindObjectsByType<PC>();
-        int electricityExpenses = 0;
+        electricityExpenses = 0;
 
         foreach (PC pc in pcs)
         {
@@ -126,9 +157,8 @@ public sealed class GameDayManager : MonoBehaviour
         int cleanerCost = CleanerManager.Instance != null
             ? CleanerManager.Instance.GetDailyOperatingCost()
             : 0;
-        int staffCost = technicianCost + cleanerCost;
-
-        return fixedDailyCost + electricityExpenses + staffCost;
+        staffCost = technicianCost + cleanerCost;
+        fixedOperatingCost = fixedDailyCost;
     }
 
     private void SaveEconomySnapshot()

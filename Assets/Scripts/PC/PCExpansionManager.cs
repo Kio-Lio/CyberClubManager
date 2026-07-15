@@ -114,7 +114,10 @@ public sealed class PCExpansionManager : MonoBehaviour
             return false;
         }
 
-        if (!EconomyManager.Instance.SpendMoney(pcPurchaseCost))
+        if (!EconomyManager.Instance.SpendMoney(
+            pcPurchaseCost,
+            EconomyTransactionCategory.ExpansionPurchase
+        ))
         {
             Debug.Log($"Для покупки нового ПК требуется {pcPurchaseCost} ₽.");
             return false;

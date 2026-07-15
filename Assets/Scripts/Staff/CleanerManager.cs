@@ -64,7 +64,10 @@ public sealed class CleanerManager : MonoBehaviour
         }
 
         EconomyManager economy = EconomyManager.Instance;
-        if (economy == null || !economy.SpendMoney(hireCost))
+        if (economy == null || !economy.SpendMoney(
+            hireCost,
+            EconomyTransactionCategory.StaffHire
+        ))
         {
             lastWorkMessage = $"Для найма уборщика нужно {hireCost} ₽.";
             StatusChanged?.Invoke();

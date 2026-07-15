@@ -84,7 +84,10 @@ public sealed class RoomDoor : MonoBehaviour, IInteractable
             return;
         }
 
-        if (!economy.SpendMoney(unlockCost))
+        if (!economy.SpendMoney(
+            unlockCost,
+            EconomyTransactionCategory.RoomUnlock
+        ))
         {
             Debug.Log($"Недостаточно денег для открытия {roomDisplayName}. Нужно: {unlockCost} ₽.");
             return;

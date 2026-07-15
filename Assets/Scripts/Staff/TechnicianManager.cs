@@ -88,7 +88,10 @@ public sealed class TechnicianManager : MonoBehaviour
         }
 
         EconomyManager economy = EconomyManager.Instance;
-        if (economy == null || !economy.SpendMoney(hireCost))
+        if (economy == null || !economy.SpendMoney(
+            hireCost,
+            EconomyTransactionCategory.StaffHire
+        ))
         {
             lastServiceMessage = $"Для найма техника нужно {hireCost} ₽.";
             StatusChanged?.Invoke();

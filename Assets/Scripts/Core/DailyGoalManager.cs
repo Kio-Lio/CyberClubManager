@@ -203,7 +203,10 @@ public sealed class DailyGoalManager : MonoBehaviour
 
         if (EconomyManager.Instance != null)
         {
-            EconomyManager.Instance.AddBonusMoney(rewardMoney);
+            EconomyManager.Instance.AddBonusMoney(
+                rewardMoney,
+                EconomyTransactionCategory.DailyGoalReward
+            );
         }
         else
         {

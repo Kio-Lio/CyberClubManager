@@ -11,6 +11,7 @@ public sealed class EconomyManager : MonoBehaviour
     public int TotalIncome { get; private set; }
     public int TotalExpenses { get; private set; }
     public event Action<int> MoneyChanged;
+    public event Action<EconomyTransactionRecord> TransactionRecorded;
 
     public void RestoreState(
         int savedMoney,
@@ -34,7 +35,9 @@ public sealed class EconomyManager : MonoBehaviour
         Instance = this;
     }
 
-    public void AddMoney(int amount)
+    public void AddMoney(
+        int amount,
+        EconomyTransactionCategory category = EconomyTransactionCategory.OtherIncome)
     {
         if (amount <= 0)
         {
@@ -46,9 +49,12 @@ public sealed class EconomyManager : MonoBehaviour
         TotalIncome += amount;
         Debug.Log($"Получено денег: {amount}. Баланс клуба: {money}");
         MoneyChanged?.Invoke(money);
+        TransactionRecorded?.Invoke(new EconomyTransactionRecord(amount, true, true, category));
     }
 
-    public void AddBonusMoney(int amount)
+    public void AddBonusMoney(
+        int amount,
+        EconomyTransactionCategory category = EconomyTransactionCategory.DailyGoalReward)
     {
         if (amount <= 0)
         {
@@ -59,9 +65,12 @@ public sealed class EconomyManager : MonoBehaviour
         money += amount;
         Debug.Log($"Получен бонус: {amount}. Баланс клуба: {money}");
         MoneyChanged?.Invoke(money);
+        TransactionRecorded?.Invoke(new EconomyTransactionRecord(amount, true, false, category));
     }
 
-    public bool SpendMoney(int amount)
+    public bool SpendMoney(
+        int amount,
+        EconomyTransactionCategory category = EconomyTransactionCategory.OtherExpense)
     {
         if (amount <= 0)
         {
@@ -79,10 +88,13 @@ public sealed class EconomyManager : MonoBehaviour
         TotalExpenses += amount;
         Debug.Log($"Потрачено денег: {amount}. Баланс клуба: {money}");
         MoneyChanged?.Invoke(money);
+        TransactionRecorded?.Invoke(new EconomyTransactionRecord(amount, false, false, category));
         return true;
     }
 
-    public void ApplyMandatoryExpense(int amount)
+    public void ApplyMandatoryExpense(
+        int amount,
+        EconomyTransactionCategory category = EconomyTransactionCategory.OtherExpense)
     {
         if (amount <= 0)
         {
@@ -95,5 +107,6 @@ public sealed class EconomyManager : MonoBehaviour
 
         Debug.Log($"Обязательные расходы: {amount}. Баланс клуба: {money}");
         MoneyChanged?.Invoke(money);
+        TransactionRecorded?.Invoke(new EconomyTransactionRecord(amount, false, false, category));
     }
 }

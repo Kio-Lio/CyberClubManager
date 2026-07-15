@@ -16,9 +16,12 @@ public static class GameplayInputState
             bool stockPanelBlocksInput =
                 ConsumableStockPanel.Instance != null &&
                 ConsumableStockPanel.Instance.IsOpen;
+            bool reportBlocksInput =
+                DailyFinancialReportPanel.Instance != null &&
+                DailyFinancialReportPanel.Instance.IsOpen;
 
             return pauseBlocksInput || maintenanceBlocksInput ||
-                pricingBlocksInput || stockPanelBlocksInput;
+                pricingBlocksInput || stockPanelBlocksInput || reportBlocksInput;
         }
     }
 }

@@ -50,6 +50,8 @@ public class GameSaveData
     public int consumableItemsSold;
     public int consumableRevenue;
     public int missedConsumableSales;
+    public DailyFinancialReportData currentFinancialReport;
+    public DailyFinancialReportData lastFinancialReport;
 }
 
 [Serializable]

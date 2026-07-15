@@ -392,7 +392,10 @@ public class PC : MonoBehaviour, IInteractable
 
         if (EconomyManager.Instance != null)
         {
-            EconomyManager.Instance.AddMoney(LastSessionIncome);
+            EconomyManager.Instance.AddMoney(
+                LastSessionIncome,
+                EconomyTransactionCategory.SessionRevenue
+            );
         }
         else
         {
@@ -480,7 +483,10 @@ public class PC : MonoBehaviour, IInteractable
         }
 
         int upgradeCost = NextUpgradeCost;
-        if (!EconomyManager.Instance.SpendMoney(upgradeCost))
+        if (!EconomyManager.Instance.SpendMoney(
+            upgradeCost,
+            EconomyTransactionCategory.PCUpgrade
+        ))
         {
             Debug.Log($"{name}: для улучшения требуется {upgradeCost} ₽.");
             return;
@@ -557,7 +563,10 @@ public class PC : MonoBehaviour, IInteractable
             return;
         }
 
-        if (!EconomyManager.Instance.SpendMoney(repairCost))
+        if (!EconomyManager.Instance.SpendMoney(
+            repairCost,
+            EconomyTransactionCategory.PCRepair
+        ))
         {
             Debug.Log($"{name}: недостаточно денег для ремонта. Нужно {repairCost}.");
             return;
@@ -629,7 +638,10 @@ public class PC : MonoBehaviour, IInteractable
         EconomyManager economy = EconomyManager.Instance;
 
         if (totalCost <= 0 || economy == null ||
-            !economy.SpendMoney(totalCost))
+            !economy.SpendMoney(
+                totalCost,
+                EconomyTransactionCategory.EquipmentRepair
+            ))
         {
             return false;
         }
@@ -689,7 +701,10 @@ public class PC : MonoBehaviour, IInteractable
         }
 
         EconomyManager economy = EconomyManager.Instance;
-        if (economy == null || !economy.SpendMoney(equipment.RepairCost))
+        if (economy == null || !economy.SpendMoney(
+            equipment.RepairCost,
+            EconomyTransactionCategory.EquipmentRepair
+        ))
         {
             Debug.Log($"{name}: недостаточно денег на ремонт оборудования.");
             return false;

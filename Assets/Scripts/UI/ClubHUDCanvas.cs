@@ -341,6 +341,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             PricingManager.Instance.StatusChanged += RefreshPricing;
         }
 
+        if (DailyFinancialReportManager.Instance != null)
+        {
+            DailyFinancialReportManager.Instance.StatusChanged += RefreshLastFinancialReport;
+        }
+
         if (ConsumableInventoryManager.Instance != null)
         {
             ConsumableInventoryManager.Instance.StatusChanged += RefreshConsumableStock;
@@ -411,6 +416,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         if (PricingManager.Instance != null)
         {
             PricingManager.Instance.StatusChanged -= RefreshPricing;
+        }
+
+        if (DailyFinancialReportManager.Instance != null)
+        {
+            DailyFinancialReportManager.Instance.StatusChanged -= RefreshLastFinancialReport;
         }
 
         if (ConsumableInventoryManager.Instance != null)
@@ -521,6 +531,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     {
         RefreshBalance();
         RefreshPricing();
+        RefreshLastFinancialReport();
         RefreshConsumableStock();
         RefreshClubProgression();
         RefreshPCInformation();
@@ -565,6 +576,29 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             : $"Tariffs: Basic {manager.GetPricePercent(PCTier.Basic)}% | " +
               $"Gaming {manager.GetPricePercent(PCTier.Gaming)}% | " +
               $"Premium {manager.GetPricePercent(PCTier.Premium)}%";
+    }
+
+    private void RefreshLastFinancialReport()
+    {
+        if (dayReportText == null)
+        {
+            return;
+        }
+
+        DailyFinancialReportManager manager = DailyFinancialReportManager.Instance;
+        if (manager == null || !manager.HasLastReport)
+        {
+            dayReportText.text = "Financial report: none yet";
+            return;
+        }
+
+        DailyFinancialReportData report = manager.LastReport;
+        string prefix = report.NetCashChange >= 0 ? "+" : string.Empty;
+        dayReportText.text =
+            $"Day {report.day}: revenue {report.Revenue} RUB | " +
+            $"expenses {report.TotalExpenses} RUB | " +
+            $"bonuses {report.Bonuses} RUB | " +
+            $"result {prefix}{report.NetCashChange} RUB";
     }
 
     private void RefreshConsumableStock()
@@ -870,7 +904,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             $"День: {manager.CurrentDay} | " +
             $"До конца дня: {minutes:00}:{seconds:00}";
 
-        dayReportText.text = lastDayReport;
+        RefreshLastFinancialReport();
     }
 
     private void RefreshDailyGoal()

@@ -122,7 +122,10 @@ public sealed class ConsumableInventoryManager : MonoBehaviour
 
         int cost = GetRestockCost(type);
         EconomyManager economy = EconomyManager.Instance;
-        if (economy == null || !economy.SpendMoney(cost))
+        if (economy == null || !economy.SpendMoney(
+            cost,
+            EconomyTransactionCategory.ConsumableRestock
+        ))
         {
             lastStatusMessage = $"Restocking requires {cost} RUB.";
             StatusChanged?.Invoke();
@@ -216,7 +219,10 @@ public sealed class ConsumableInventoryManager : MonoBehaviour
         }
 
         int salePrice = GetSalePrice(type);
-        EconomyManager.Instance?.AddMoney(salePrice);
+        EconomyManager.Instance?.AddMoney(
+            salePrice,
+            EconomyTransactionCategory.ConsumableRevenue
+        );
         totalItemsSold++;
         totalConsumableRevenue += salePrice;
         soldItems++;

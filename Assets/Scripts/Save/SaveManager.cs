@@ -8,7 +8,7 @@ public class SaveManager : MonoBehaviour
 {
     public static SaveManager Instance { get; private set; }
 
-    private const int CurrentSaveVersion = 11;
+    private const int CurrentSaveVersion = 12;
     private const string SaveFileName = "cyber_club_save.json";
 
     private bool suppressSaving;
@@ -181,7 +181,8 @@ public class SaveManager : MonoBehaviour
                ClubCleanlinessManager.Instance != null &&
                CleanerManager.Instance != null &&
                PricingManager.Instance != null &&
-               ConsumableInventoryManager.Instance != null;
+               ConsumableInventoryManager.Instance != null &&
+               DailyFinancialReportManager.Instance != null;
     }
 
     private GameSaveData CreateSaveData()
@@ -231,7 +232,9 @@ public class SaveManager : MonoBehaviour
             snackStock = ConsumableInventoryManager.Instance.SnackStock,
             consumableItemsSold = ConsumableInventoryManager.Instance.TotalItemsSold,
             consumableRevenue = ConsumableInventoryManager.Instance.TotalConsumableRevenue,
-            missedConsumableSales = ConsumableInventoryManager.Instance.MissedSales
+            missedConsumableSales = ConsumableInventoryManager.Instance.MissedSales,
+            currentFinancialReport = DailyFinancialReportManager.Instance.CreateCurrentSaveData(),
+            lastFinancialReport = DailyFinancialReportManager.Instance.CreateLastSaveData()
         };
 
         RoomDoor[] roomDoors = FindObjectsByType<RoomDoor>();
@@ -383,6 +386,12 @@ public class SaveManager : MonoBehaviour
         {
             ConsumableInventoryManager.Instance.InitializeDefaultState();
         }
+
+        DailyFinancialReportManager.Instance.RestoreState(
+            data.currentFinancialReport,
+            data.lastFinancialReport,
+            GameDayManager.Instance.CurrentDay
+        );
 
         RestoreRoomDoors(data);
         PCExpansionManager.Instance.RestorePurchasedPCs(data.purchasedPCCount);
