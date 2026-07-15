@@ -45,6 +45,11 @@ public class GameSaveData
     public int basicPricePercent;
     public int gamingPricePercent;
     public int premiumPricePercent;
+    public int energyDrinkStock;
+    public int snackStock;
+    public int consumableItemsSold;
+    public int consumableRevenue;
+    public int missedConsumableSales;
 }
 
 [Serializable]

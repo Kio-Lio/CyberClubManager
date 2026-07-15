@@ -18,6 +18,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
 
     private Text balanceText;
     private Text pricingText;
+    private Text consumableStockText;
     private Text clubLevelText;
     private Text pcStateText;
     private Text equipmentStatusText;
@@ -149,6 +150,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         Transform panelTransform = panelObject.transform;
         balanceText = CreateInformationLine("BalanceText", panelTransform);
         pricingText = CreateInformationLine("PricingText", panelTransform);
+        consumableStockText = CreateInformationLine("ConsumableStockText", panelTransform);
         clubLevelText = CreateInformationLine(
             "ClubLevelText",
             panelTransform
@@ -339,6 +341,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             PricingManager.Instance.StatusChanged += RefreshPricing;
         }
 
+        if (ConsumableInventoryManager.Instance != null)
+        {
+            ConsumableInventoryManager.Instance.StatusChanged += RefreshConsumableStock;
+        }
+
         PC.PCRegistered += RegisterPC;
         PC.PCUnregistered += UnregisterPC;
     }
@@ -404,6 +411,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         if (PricingManager.Instance != null)
         {
             PricingManager.Instance.StatusChanged -= RefreshPricing;
+        }
+
+        if (ConsumableInventoryManager.Instance != null)
+        {
+            ConsumableInventoryManager.Instance.StatusChanged -= RefreshConsumableStock;
         }
 
         PC.PCRegistered -= RegisterPC;
@@ -509,6 +521,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     {
         RefreshBalance();
         RefreshPricing();
+        RefreshConsumableStock();
         RefreshClubProgression();
         RefreshPCInformation();
         RefreshEquipmentStatus();
@@ -552,6 +565,21 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             : $"Tariffs: Basic {manager.GetPricePercent(PCTier.Basic)}% | " +
               $"Gaming {manager.GetPricePercent(PCTier.Gaming)}% | " +
               $"Premium {manager.GetPricePercent(PCTier.Premium)}%";
+    }
+
+    private void RefreshConsumableStock()
+    {
+        if (consumableStockText == null)
+        {
+            return;
+        }
+
+        ConsumableInventoryManager manager = ConsumableInventoryManager.Instance;
+        consumableStockText.text = manager == null
+            ? "Stock: unavailable"
+            : $"Stock: energy drinks {manager.EnergyDrinkStock}/{manager.MaximumEnergyDrinkStock} | " +
+              $"snacks {manager.SnackStock}/{manager.MaximumSnackStock} | " +
+              $"missed {manager.MissedSales}";
     }
 
     private void RefreshClubProgression()

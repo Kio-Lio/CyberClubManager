@@ -409,6 +409,8 @@ public sealed class Client : MonoBehaviour
 
         outcomeRegistered = true;
 
+        ConsumableInventoryManager.Instance?.TrySellToClient(clientType);
+
         if (ClubReputationManager.Instance != null)
         {
             ClubReputationManager.Instance.RegisterServedClient(

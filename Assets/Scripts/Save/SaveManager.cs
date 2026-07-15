@@ -8,7 +8,7 @@ public class SaveManager : MonoBehaviour
 {
     public static SaveManager Instance { get; private set; }
 
-    private const int CurrentSaveVersion = 10;
+    private const int CurrentSaveVersion = 11;
     private const string SaveFileName = "cyber_club_save.json";
 
     private bool suppressSaving;
@@ -180,7 +180,8 @@ public class SaveManager : MonoBehaviour
                TechnicianManager.Instance != null &&
                ClubCleanlinessManager.Instance != null &&
                CleanerManager.Instance != null &&
-               PricingManager.Instance != null;
+               PricingManager.Instance != null &&
+               ConsumableInventoryManager.Instance != null;
     }
 
     private GameSaveData CreateSaveData()
@@ -225,7 +226,12 @@ public class SaveManager : MonoBehaviour
             trashItems = ClubCleanlinessManager.Instance.CreateSaveData(),
             basicPricePercent = PricingManager.Instance.GetPricePercent(PCTier.Basic),
             gamingPricePercent = PricingManager.Instance.GetPricePercent(PCTier.Gaming),
-            premiumPricePercent = PricingManager.Instance.GetPricePercent(PCTier.Premium)
+            premiumPricePercent = PricingManager.Instance.GetPricePercent(PCTier.Premium),
+            energyDrinkStock = ConsumableInventoryManager.Instance.EnergyDrinkStock,
+            snackStock = ConsumableInventoryManager.Instance.SnackStock,
+            consumableItemsSold = ConsumableInventoryManager.Instance.TotalItemsSold,
+            consumableRevenue = ConsumableInventoryManager.Instance.TotalConsumableRevenue,
+            missedConsumableSales = ConsumableInventoryManager.Instance.MissedSales
         };
 
         RoomDoor[] roomDoors = FindObjectsByType<RoomDoor>();
@@ -362,6 +368,21 @@ public class SaveManager : MonoBehaviour
             data.gamingPricePercent,
             data.premiumPricePercent
         );
+
+        if (data.version >= 11)
+        {
+            ConsumableInventoryManager.Instance.RestoreState(
+                data.energyDrinkStock,
+                data.snackStock,
+                data.consumableItemsSold,
+                data.consumableRevenue,
+                data.missedConsumableSales
+            );
+        }
+        else
+        {
+            ConsumableInventoryManager.Instance.InitializeDefaultState();
+        }
 
         RestoreRoomDoors(data);
         PCExpansionManager.Instance.RestorePurchasedPCs(data.purchasedPCCount);
