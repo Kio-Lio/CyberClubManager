@@ -21,5 +21,6 @@ public enum EconomyTransactionCategory
     ExpansionPurchase,
     RoomUnlock,
     StaffHire,
-    InternetConnection
+    InternetConnection,
+    ResearchInvestment
 }

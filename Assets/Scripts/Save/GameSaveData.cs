@@ -59,6 +59,7 @@ public class GameSaveData
     public ClubRandomEventState activeRandomEvent;
     public bool randomEventRolledForCurrentDay;
     public InternetPlanType activeInternetPlan;
+    public ClubResearchSaveData[] clubResearch;
 }
 
 [Serializable]

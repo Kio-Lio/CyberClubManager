@@ -226,7 +226,11 @@ public sealed class CleanerAgent : MonoBehaviour
         }
 
         Vector3 targetPosition = navigationPath[pathIndex];
-        float movementSpeed = manager != null ? manager.MoveSpeed : 2.5f;
+        float baseMovementSpeed = manager != null ? manager.MoveSpeed : 2.5f;
+        float researchMultiplier = ClubResearchManager.Instance != null
+            ? ClubResearchManager.Instance.GetCleanerSpeedMultiplier()
+            : 1f;
+        float movementSpeed = baseMovementSpeed * researchMultiplier;
         transform.position = Vector3.MoveTowards(
             transform.position,
             targetPosition,

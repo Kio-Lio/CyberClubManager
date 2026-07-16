@@ -8,7 +8,7 @@ public class SaveManager : MonoBehaviour
 {
     public static SaveManager Instance { get; private set; }
 
-    private const int CurrentSaveVersion = 16;
+    private const int CurrentSaveVersion = 17;
     private const string SaveFileName = "cyber_club_save.json";
 
     private bool suppressSaving;
@@ -186,7 +186,8 @@ public class SaveManager : MonoBehaviour
                MarketingManager.Instance != null &&
                DemandAnalyticsManager.Instance != null &&
                ClubRandomEventManager.Instance != null &&
-               InternetProviderManager.Instance != null;
+               InternetProviderManager.Instance != null &&
+               ClubResearchManager.Instance != null;
     }
 
     private GameSaveData CreateSaveData()
@@ -246,7 +247,8 @@ public class SaveManager : MonoBehaviour
             activeRandomEvent = ClubRandomEventManager.Instance.CreateSaveData(),
             randomEventRolledForCurrentDay =
                 ClubRandomEventManager.Instance.EventRolledForCurrentDay,
-            activeInternetPlan = InternetProviderManager.Instance.ActivePlan
+            activeInternetPlan = InternetProviderManager.Instance.ActivePlan,
+            clubResearch = ClubResearchManager.Instance.CreateSaveData()
         };
 
         RoomDoor[] roomDoors = FindObjectsByType<RoomDoor>();
@@ -424,6 +426,8 @@ public class SaveManager : MonoBehaviour
         InternetProviderManager.Instance.RestoreState(
             data.activeInternetPlan
         );
+
+        ClubResearchManager.Instance.RestoreState(data.clubResearch);
 
         RestoreRoomDoors(data);
         PCExpansionManager.Instance.RestorePurchasedPCs(data.purchasedPCCount);

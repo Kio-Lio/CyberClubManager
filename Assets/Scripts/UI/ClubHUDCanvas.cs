@@ -21,6 +21,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private Text consumableStockText;
     private Text marketingText;
     private Text internetProviderText;
+    private Text researchText;
     private Text randomEventText;
     private Text demandAnalyticsText;
     private Text clubLevelText;
@@ -162,6 +163,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             "InternetProviderText",
             panelTransform
         );
+        researchText = CreateInformationLine("ResearchText", panelTransform);
         randomEventText = CreateInformationLine("RandomEventText", panelTransform);
         demandAnalyticsText = CreateInformationLine(
             "DemandAnalyticsText",
@@ -387,6 +389,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             InternetProviderManager.Instance.StatusChanged += RefreshInternetProvider;
         }
 
+        if (ClubResearchManager.Instance != null)
+        {
+            ClubResearchManager.Instance.StatusChanged += RefreshResearch;
+        }
+
         PC.PCRegistered += RegisterPC;
         PC.PCUnregistered += UnregisterPC;
     }
@@ -482,6 +489,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         if (InternetProviderManager.Instance != null)
         {
             InternetProviderManager.Instance.StatusChanged -= RefreshInternetProvider;
+        }
+
+        if (ClubResearchManager.Instance != null)
+        {
+            ClubResearchManager.Instance.StatusChanged -= RefreshResearch;
         }
 
         PC.PCRegistered -= RegisterPC;
@@ -591,6 +603,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         RefreshConsumableStock();
         RefreshMarketing();
         RefreshInternetProvider();
+        RefreshResearch();
         RefreshRandomEvent();
         RefreshDemandAnalytics();
         RefreshClubProgression();
@@ -748,6 +761,20 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             $"×{plan.SessionSpeedMultiplier:F2} | " +
             $"{plan.DailyCost} ₽/день | " +
             $"надежность {plan.Reliability * 100f:F1}%";
+    }
+
+    private void RefreshResearch()
+    {
+        if (researchText == null)
+        {
+            return;
+        }
+
+        ClubResearchManager manager = ClubResearchManager.Instance;
+        researchText.text = manager == null
+            ? "Исследования: недоступны"
+            : $"Исследования: {manager.ResearchedCategoryCount} улучшений | " +
+              $"суммарно {manager.TotalPurchasedLevels} уровней";
     }
 
     private void RefreshRandomEvent()

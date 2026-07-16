@@ -81,9 +81,13 @@ public sealed class InternetProviderManager : MonoBehaviour
     public float GetSessionSpeedMultiplier()
     {
         InternetPlanDefinition plan = GetActivePlan();
-        return plan != null
+        float planMultiplier = plan != null
             ? Mathf.Max(0.1f, plan.SessionSpeedMultiplier)
             : 1f;
+        float researchMultiplier = ClubResearchManager.Instance != null
+            ? ClubResearchManager.Instance.GetInternetSpeedMultiplier()
+            : 1f;
+        return planMultiplier * researchMultiplier;
     }
 
     public int GetDailyCost()

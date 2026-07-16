@@ -82,10 +82,11 @@ public sealed class MarketingManager : MonoBehaviour
             return false;
         }
 
+        int activationCost = GetEffectiveActivationCost(campaignType);
         EconomyManager economy = EconomyManager.Instance;
-        if (economy == null || !economy.SpendMoney(definition.ActivationCost, EconomyTransactionCategory.MarketingExpense))
+        if (economy == null || !economy.SpendMoney(activationCost, EconomyTransactionCategory.MarketingExpense))
         {
-            lastStatusMessage = $"Campaign needs {definition.ActivationCost} RUB.";
+            lastStatusMessage = $"Campaign needs {activationCost} RUB.";
             StatusChanged?.Invoke();
             return false;
         }
@@ -96,6 +97,20 @@ public sealed class MarketingManager : MonoBehaviour
         Debug.Log(lastStatusMessage);
         StatusChanged?.Invoke();
         return true;
+    }
+
+    public int GetEffectiveActivationCost(MarketingCampaignType campaignType)
+    {
+        MarketingCampaignDefinition definition = GetDefinition(campaignType);
+        if (definition == null)
+        {
+            return 0;
+        }
+
+        float multiplier = ClubResearchManager.Instance != null
+            ? ClubResearchManager.Instance.GetMarketingCostMultiplier()
+            : 1f;
+        return Mathf.RoundToInt(definition.ActivationCost * multiplier);
     }
 
     public float GetDemandMultiplier()

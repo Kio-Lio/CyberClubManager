@@ -22,6 +22,7 @@ public sealed class DailyFinancialReportData
     public int roomUnlockExpenses;
     public int staffHireExpenses;
     public int internetConnectionExpenses;
+    public int researchInvestmentExpenses;
     public int otherExpenses;
 
     public int Revenue => sessionRevenue + consumableRevenue + otherIncome;
@@ -33,7 +34,7 @@ public sealed class DailyFinancialReportData
         otherExpenses;
     public int InvestmentExpenses =>
         pcUpgradeExpenses + expansionExpenses + roomUnlockExpenses +
-        staffHireExpenses + internetConnectionExpenses;
+        staffHireExpenses + internetConnectionExpenses + researchInvestmentExpenses;
     public int TotalExpenses => OperatingExpenses + InvestmentExpenses;
     public int NetCashChange => Revenue + Bonuses - TotalExpenses;
 
@@ -63,6 +64,7 @@ public sealed class DailyFinancialReportData
         roomUnlockExpenses = 0;
         staffHireExpenses = 0;
         internetConnectionExpenses = 0;
+        researchInvestmentExpenses = 0;
         otherExpenses = 0;
     }
 }

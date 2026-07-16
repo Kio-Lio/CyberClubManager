@@ -163,11 +163,14 @@ public sealed class GameDayManager : MonoBehaviour
             }
         }
 
-        float electricityMultiplier = ClubRandomEventManager.Instance != null
+        float eventMultiplier = ClubRandomEventManager.Instance != null
             ? ClubRandomEventManager.Instance.GetElectricityCostMultiplier()
             : 1f;
+        float researchMultiplier = ClubResearchManager.Instance != null
+            ? ClubResearchManager.Instance.GetElectricityCostMultiplier()
+            : 1f;
         electricityExpenses = Mathf.RoundToInt(
-            electricityExpenses * electricityMultiplier
+            electricityExpenses * eventMultiplier * researchMultiplier
         );
 
         int technicianCost = TechnicianManager.Instance != null

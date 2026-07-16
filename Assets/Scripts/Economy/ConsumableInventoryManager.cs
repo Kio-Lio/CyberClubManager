@@ -107,7 +107,12 @@ public sealed class ConsumableInventoryManager : MonoBehaviour
         int unitPrice = type == ConsumableType.EnergyDrink
             ? energyDrinkPurchasePrice
             : snackPurchasePrice;
-        return GetRestockAmount(type) * unitPrice;
+        float purchaseMultiplier = ClubResearchManager.Instance != null
+            ? ClubResearchManager.Instance.GetPurchasePriceMultiplier()
+            : 1f;
+        return Mathf.RoundToInt(
+            GetRestockAmount(type) * unitPrice * purchaseMultiplier
+        );
     }
 
     public bool TryRestock(ConsumableType type)

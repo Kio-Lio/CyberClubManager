@@ -494,7 +494,12 @@ public class PC : MonoBehaviour, IInteractable
         );
         SessionCompleted?.Invoke(this);
 
-        if (UnityEngine.Random.value < breakdownChance)
+        float breakdownMultiplier = ClubResearchManager.Instance != null
+            ? ClubResearchManager.Instance.GetPCBreakdownMultiplier()
+            : 1f;
+        float effectiveBreakdownChance = breakdownChance * breakdownMultiplier;
+
+        if (UnityEngine.Random.value < effectiveBreakdownChance)
         {
             SetState(PCState.Broken);
             Debug.Log($"{name}: игровая сессия завершена, но ПК сломался.");
@@ -722,9 +727,16 @@ public class PC : MonoBehaviour, IInteractable
             maximumWearPerSession
         );
 
-        keyboard.ApplyWear(UnityEngine.Random.Range(minimumWear, maximumWear));
-        mouse.ApplyWear(UnityEngine.Random.Range(minimumWear, maximumWear));
-        chair.ApplyWear(UnityEngine.Random.Range(minimumWear, maximumWear));
+        float wearMultiplier = ClubResearchManager.Instance != null
+            ? ClubResearchManager.Instance.GetEquipmentWearMultiplier()
+            : 1f;
+        float keyboardWear = UnityEngine.Random.Range(minimumWear, maximumWear);
+        float mouseWear = UnityEngine.Random.Range(minimumWear, maximumWear);
+        float chairWear = UnityEngine.Random.Range(minimumWear, maximumWear);
+
+        keyboard.ApplyWear(keyboardWear * wearMultiplier);
+        mouse.ApplyWear(mouseWear * wearMultiplier);
+        chair.ApplyWear(chairWear * wearMultiplier);
 
         Debug.Log(
             $"{name}: состояние оборудования - " +

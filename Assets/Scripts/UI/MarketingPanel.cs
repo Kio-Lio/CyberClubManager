@@ -158,12 +158,13 @@ public sealed class MarketingPanel : MonoBehaviour
             }
 
             Text text = button.GetComponentInChildren<Text>();
+            int activationCost = manager.GetEffectiveActivationCost(CampaignTypes[i]);
             if (text != null)
             {
-                text.text = $"{definition.DisplayName}\n{definition.ActivationCost} RUB | {definition.DurationDays} day(s) | demand +{(definition.DemandMultiplier - 1f) * 100f:F0}%";
+                text.text = $"{definition.DisplayName}\n{activationCost} RUB | {definition.DurationDays} day(s) | demand +{(definition.DemandMultiplier - 1f) * 100f:F0}%";
             }
 
-            button.interactable = !manager.HasActiveCampaign && balance >= definition.ActivationCost;
+            button.interactable = !manager.HasActiveCampaign && balance >= activationCost;
         }
     }
 

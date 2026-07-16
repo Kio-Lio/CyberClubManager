@@ -137,7 +137,8 @@ public sealed class DailyFinancialReportPanel : MonoBehaviour
             $"Expansion: {report.expansionExpenses} RUB\n" +
             $"Rooms: {report.roomUnlockExpenses} RUB\n" +
             $"Staff hiring: {report.staffHireExpenses} RUB\n" +
-            $"Подключение тарифа: {report.internetConnectionExpenses} ₽\n\n" +
+            $"Подключение тарифа: {report.internetConnectionExpenses} ₽\n" +
+            $"Исследования: {report.researchInvestmentExpenses} ₽\n\n" +
             $"Balance change: {prefix}{report.NetCashChange} RUB";
     }
 

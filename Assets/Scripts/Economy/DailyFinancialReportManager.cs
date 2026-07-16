@@ -107,6 +107,7 @@ public sealed class DailyFinancialReportManager : MonoBehaviour
             case EconomyTransactionCategory.RoomUnlock: currentReport.roomUnlockExpenses += amount; break;
             case EconomyTransactionCategory.StaffHire: currentReport.staffHireExpenses += amount; break;
             case EconomyTransactionCategory.InternetConnection: currentReport.internetConnectionExpenses += amount; break;
+            case EconomyTransactionCategory.ResearchInvestment: currentReport.researchInvestmentExpenses += amount; break;
             default: currentReport.otherExpenses += amount; break;
         }
 
