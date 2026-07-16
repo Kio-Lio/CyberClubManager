@@ -118,6 +118,7 @@ public static class PrereleaseValidationSmokeTest
             ValidateQAAndEconomicInvariants();
             ValidateSaveCompatibility();
             RunBalanceScenarios();
+            PrereleaseExtendedBalanceValidation.Run();
             EditorApplication.isPlaying = false;
         }
         catch (Exception exception)
@@ -213,7 +214,8 @@ public static class PrereleaseValidationSmokeTest
 
         int expectedElectricity = 0;
         foreach (PC item in UnityEngine.Object.FindObjectsByType<PC>())
-            expectedElectricity += item.DailyElectricityCost;
+            if (item.HasRoomAccess)
+                expectedElectricity += item.DailyElectricityCost;
         expectedElectricity = Mathf.RoundToInt(
             expectedElectricity *
             ClubRandomEventManager.Instance.GetElectricityCostMultiplier() *
@@ -594,7 +596,8 @@ public static class PrereleaseValidationSmokeTest
         foreach (PC pc in UnityEngine.Object.FindObjectsByType<PC>())
         {
             if (pc != null && pc.name.StartsWith("PC_", StringComparison.Ordinal) &&
-                int.TryParse(pc.name.Substring(3), out int number) && number >= 6)
+                int.TryParse(pc.name.Substring(3), out int number) &&
+                number >= 6 && number <= 9)
             {
                 UnityEngine.Object.DestroyImmediate(pc.gameObject);
             }
@@ -602,6 +605,9 @@ public static class PrereleaseValidationSmokeTest
         SetField(PCExpansionManager.Instance, "nextSlotIndex", 0);
         PCExpansionManager.Instance.RestorePurchasedPCs(0);
         BankruptcyManager.Instance.RestoreState(0);
+        SetField(BankruptcyManager.Instance, "isGameOver", false);
+        SetField(BankruptcyManager.Instance, "gameOverDay", 0);
+        SetField(BankruptcyManager.Instance, "finalBalance", 0);
         FirstDayTutorialManager.Instance.RestoreState(true, true, 0, 0, false);
         DailyFinancialReportManager.Instance.RestoreState(null, null, 1);
         DemandAnalyticsManager.Instance.RestoreState(null, null, 1);

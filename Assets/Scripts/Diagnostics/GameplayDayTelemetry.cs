@@ -32,10 +32,15 @@ public sealed class GameplayDayTelemetry
     public int endingTrashCount;
     public int brokenPCCount;
     public int criticalEquipmentPCCount;
+    public int staffExpenses;
+    public int technicianServices;
+    public int cleanerTrashCleaned;
+    public int staffPreventedLossEstimate;
     public int clubLevel;
     public int clubXP;
     public int reputation;
     public int purchasedPCCount;
+    public int accessiblePCCount;
     public int unlockedRoomCount;
     public int researchLevels;
     public bool technicianHired;

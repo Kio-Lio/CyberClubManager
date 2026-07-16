@@ -26,6 +26,9 @@ public sealed class TechnicianManager : MonoBehaviour
     public string LastServiceMessage => lastServiceMessage;
 
     public event Action StatusChanged;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    public event Action<int> AutomaticServiceCompleted;
+#endif
 
     private void Awake()
     {
@@ -178,6 +181,9 @@ public sealed class TechnicianManager : MonoBehaviour
             $"{GetEquipmentDisplayName(equipmentType)} - {repairCost} ₽.";
         Debug.Log(lastServiceMessage);
         StatusChanged?.Invoke();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        AutomaticServiceCompleted?.Invoke(repairCost);
+#endif
     }
 
     private void RegisterPC(PC pc)

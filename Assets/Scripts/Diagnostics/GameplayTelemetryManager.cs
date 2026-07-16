@@ -19,6 +19,9 @@ public sealed class GameplayTelemetryManager : MonoBehaviour
     private int regularThisDay;
     private int gamerThisDay;
     private int vipThisDay;
+    private int technicianServicesThisDay;
+    private int cleanerTrashThisDay;
+    private int staffPreventedLossEstimateThisDay;
     private string randomEventThisDay = ClubRandomEventType.None.ToString();
 
     public IReadOnlyList<GameplayDayTelemetry> CompletedDays => completedDays;
@@ -53,6 +56,10 @@ public sealed class GameplayTelemetryManager : MonoBehaviour
             if (ClubRandomEventManager.Instance.HasActiveEvent)
                 randomEventThisDay = ClubRandomEventManager.Instance.ActiveEventType.ToString();
         }
+        if (TechnicianManager.Instance != null)
+            TechnicianManager.Instance.AutomaticServiceCompleted += OnAutomaticServiceCompleted;
+        if (CleanerManager.Instance != null)
+            CleanerManager.Instance.TrashCleanedByStaff += OnTrashCleanedByStaff;
 #endif
     }
 
@@ -65,6 +72,10 @@ public sealed class GameplayTelemetryManager : MonoBehaviour
             ClubReputationManager.Instance.ClientFeedbackCreated -= OnClientFeedback;
         if (ClubRandomEventManager.Instance != null)
             ClubRandomEventManager.Instance.EventTriggered -= OnEventTriggered;
+        if (TechnicianManager.Instance != null)
+            TechnicianManager.Instance.AutomaticServiceCompleted -= OnAutomaticServiceCompleted;
+        if (CleanerManager.Instance != null)
+            CleanerManager.Instance.TrashCleanedByStaff -= OnTrashCleanedByStaff;
         if (Instance == this) Instance = null;
 #endif
     }
@@ -97,6 +108,18 @@ public sealed class GameplayTelemetryManager : MonoBehaviour
         randomEventThisDay = eventType.ToString();
     }
 
+    private void OnAutomaticServiceCompleted(int repairCost)
+    {
+        technicianServicesThisDay++;
+        staffPreventedLossEstimateThisDay += Mathf.Max(0, repairCost);
+    }
+
+    private void OnTrashCleanedByStaff()
+    {
+        cleanerTrashThisDay++;
+        staffPreventedLossEstimateThisDay += 25;
+    }
+
     private void OnDayEnded(int completedDay, int income, int expenses, int result)
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -113,6 +136,9 @@ public sealed class GameplayTelemetryManager : MonoBehaviour
         regularThisDay = 0;
         gamerThisDay = 0;
         vipThisDay = 0;
+        technicianServicesThisDay = 0;
+        cleanerTrashThisDay = 0;
+        staffPreventedLossEstimateThisDay = 0;
         randomEventThisDay = ClubRandomEventType.None.ToString();
         CaptureDayStart();
 #endif
@@ -128,10 +154,12 @@ public sealed class GameplayTelemetryManager : MonoBehaviour
 
         int brokenPCs = 0;
         int criticalEquipmentPCs = 0;
+        int accessiblePCs = 0;
         foreach (PC pc in FindObjectsByType<PC>())
         {
             if (pc.IsBroken) brokenPCs++;
             if (pc.LowestEquipmentCondition <= 20f) criticalEquipmentPCs++;
+            if (pc.HasRoomAccess) accessiblePCs++;
         }
 
         int unlockedRooms = 0;
@@ -174,10 +202,15 @@ public sealed class GameplayTelemetryManager : MonoBehaviour
             endingTrashCount = cleanliness?.TrashCount ?? 0,
             brokenPCCount = brokenPCs,
             criticalEquipmentPCCount = criticalEquipmentPCs,
+            staffExpenses = financial?.staffSalaryExpenses ?? 0,
+            technicianServices = technicianServicesThisDay,
+            cleanerTrashCleaned = cleanerTrashThisDay,
+            staffPreventedLossEstimate = staffPreventedLossEstimateThisDay,
             clubLevel = progression?.Level ?? 1,
             clubXP = progression?.Experience ?? 0,
             reputation = reputation?.Reputation ?? 50,
             purchasedPCCount = PCExpansionManager.Instance?.PurchasedPCCount ?? 0,
+            accessiblePCCount = accessiblePCs,
             unlockedRoomCount = unlockedRooms,
             researchLevels = ClubResearchManager.Instance?.TotalPurchasedLevels ?? 0,
             technicianHired = TechnicianManager.Instance?.TechnicianHired ?? false,
@@ -194,18 +227,45 @@ public sealed class GameplayTelemetryManager : MonoBehaviour
     public void ExportTelemetry()
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        GameplayTelemetryExport export = new GameplayTelemetryExport
-        {
-            generatedAtUtc = DateTime.UtcNow.ToString("O"),
-            applicationVersion = Application.version,
-            days = new List<GameplayDayTelemetry>(completedDays)
-        };
+        GameplayTelemetryExport export = CreateExportData();
         string directory = Path.Combine(Application.persistentDataPath, "Diagnostics");
         Directory.CreateDirectory(directory);
         string filePath = Path.Combine(directory, $"balance_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
         File.WriteAllText(filePath, JsonUtility.ToJson(export, true));
         Debug.Log($"Телеметрия сохранена: {filePath}");
 #endif
+    }
+
+    public GameplayTelemetryExport CreateExportData()
+    {
+        List<GameplayDayTelemetry> days = new(completedDays);
+        List<GameplayTelemetryWarning> warnings =
+            GameplayTelemetryAnalyzer.BuildWarnings(days);
+        GameplayTelemetrySummary summary =
+            GameplayTelemetryAnalyzer.BuildSummary(days);
+        summary.warningCount = warnings.Count;
+
+        return new GameplayTelemetryExport
+        {
+            generatedAtUtc = DateTime.UtcNow.ToString("O"),
+            applicationVersion = Application.version,
+            days = days,
+            summary = summary,
+            warnings = warnings
+        };
+    }
+
+    public void ResetForValidation()
+    {
+        completedDays.Clear();
+        regularThisDay = 0;
+        gamerThisDay = 0;
+        vipThisDay = 0;
+        technicianServicesThisDay = 0;
+        cleanerTrashThisDay = 0;
+        staffPreventedLossEstimateThisDay = 0;
+        randomEventThisDay = ClubRandomEventType.None.ToString();
+        CaptureDayStart();
     }
 }
 #endif

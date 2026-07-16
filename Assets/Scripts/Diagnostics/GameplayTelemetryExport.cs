@@ -8,5 +8,7 @@ public sealed class GameplayTelemetryExport
     public string generatedAtUtc;
     public string applicationVersion;
     public List<GameplayDayTelemetry> days = new();
+    public GameplayTelemetrySummary summary = new();
+    public List<GameplayTelemetryWarning> warnings = new();
 }
 #endif

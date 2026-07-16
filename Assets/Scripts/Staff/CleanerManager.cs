@@ -31,6 +31,9 @@ public sealed class CleanerManager : MonoBehaviour
     public CleanerAgent CleanerAgent => cleanerAgent;
 
     public event Action StatusChanged;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    public event Action TrashCleanedByStaff;
+#endif
 
     private void Awake()
     {
@@ -169,6 +172,9 @@ public sealed class CleanerManager : MonoBehaviour
         lastWorkMessage = $"Уборщик убрал мусор возле {sourcePCName}.";
         Debug.Log(lastWorkMessage);
         StatusChanged?.Invoke();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        TrashCleanedByStaff?.Invoke();
+#endif
     }
 
     public void ReportNavigationFailure()

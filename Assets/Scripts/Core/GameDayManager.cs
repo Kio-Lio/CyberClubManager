@@ -177,7 +177,7 @@ public sealed class GameDayManager : MonoBehaviour
 
         foreach (PC pc in pcs)
         {
-            if (pc != null)
+            if (pc != null && pc.HasRoomAccess)
             {
                 electricityExpenses += pc.DailyElectricityCost;
             }
