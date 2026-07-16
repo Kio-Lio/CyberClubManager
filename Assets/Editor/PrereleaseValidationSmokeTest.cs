@@ -6,6 +6,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 [InitializeOnLoad]
 public static class PrereleaseValidationSmokeTest
@@ -131,6 +132,7 @@ public static class PrereleaseValidationSmokeTest
     {
         Require(SceneManager.GetActiveScene().name == "SampleScene",
             "Validation did not start in SampleScene.");
+        ValidateHUDInvariants();
         Require(GameplayTelemetryManager.Instance != null,
             "GameplayTelemetryManager is missing.");
         Require(PrereleaseQAPanel.Instance != null,
@@ -261,6 +263,153 @@ public static class PrereleaseValidationSmokeTest
         ).Length;
         Require(exportCountAfter == exportCountBefore + 1,
             "Telemetry export did not create a JSON file.");
+    }
+
+    private static void ValidateHUDInvariants()
+    {
+        ResetScenarioState();
+        ClubHUDCanvas hud = ClubHUDCanvas.Instance;
+        Require(hud != null, "ClubHUDCanvas singleton is missing.");
+        Require(UnityEngine.Object.FindObjectsByType<ClubHUDCanvas>().Length == 1,
+            "Runtime setup created duplicate HUD canvases.");
+
+        Transform root = hud.transform.Find("GameplayHUDRoot");
+        Transform compact = root?.Find("CompactSection");
+        Transform warning = root?.Find("WarningSection");
+        Transform expanded = root?.Find("ExpandedSection");
+        Transform prompt = hud.transform.Find("InteractionPrompt");
+        Transform feedback = hud.transform.Find("ClientFeedbackPanel");
+        Require(root != null && compact != null && warning != null &&
+                expanded != null && prompt != null && feedback != null,
+            "HUD runtime hierarchy is incomplete.");
+        Require(!prompt.IsChildOf(root) && !feedback.IsChildOf(root),
+            "Interaction prompt or feedback was placed inside GameplayHUDRoot.");
+
+        hud.SetMode(ClubHUDMode.Compact);
+        Require(compact.gameObject.activeSelf && !expanded.gameObject.activeSelf,
+            "Compact mode visibility is incorrect.");
+        hud.ToggleHUDMode();
+        Require(hud.CurrentMode == ClubHUDMode.Expanded &&
+                compact.gameObject.activeSelf && expanded.gameObject.activeSelf,
+            "First HUD toggle did not open Expanded mode.");
+        Canvas.ForceUpdateCanvases();
+        RectTransform rootRect = (RectTransform)root;
+        LayoutRebuilder.ForceRebuildLayoutImmediate(rootRect);
+        Require(rootRect.rect.width <= 1920f * 0.3f + 0.1f,
+            "HUD exceeds 30 percent of the reference width.");
+        Require(rootRect.rect.height <= 1040f,
+            "Expanded HUD exceeds the safe vertical area.");
+
+        hud.ToggleHUDMode();
+        Require(hud.CurrentMode == ClubHUDMode.Hidden &&
+                !compact.gameObject.activeSelf && !expanded.gameObject.activeSelf,
+            "Second HUD toggle did not hide gameplay information.");
+        Require(prompt.gameObject.activeSelf ==
+                !string.IsNullOrWhiteSpace(
+                    FindAnyPlayerInteraction()?.CurrentPrompt),
+            "Hidden mode incorrectly controls the interaction prompt.");
+        hud.ToggleHUDMode();
+        Require(hud.CurrentMode == ClubHUDMode.Compact,
+            "Third HUD toggle did not restore Compact mode.");
+
+        hud.SetTemporarilyHidden(true);
+        Require(!root.gameObject.activeSelf && prompt.gameObject.activeSelf ==
+                !string.IsNullOrWhiteSpace(
+                    FindAnyPlayerInteraction()?.CurrentPrompt),
+            "Temporary hiding affected HUD-independent UI.");
+        hud.SetTemporarilyHidden(false);
+        Require(root.gameObject.activeSelf && hud.CurrentMode == ClubHUDMode.Compact,
+            "Closing a panel did not restore the selected HUD mode.");
+
+        Require(PricingPanel.Instance != null,
+            "PricingPanel is missing for HUD visibility validation.");
+        PricingPanel.Instance.Open();
+        Invoke(hud, "Update");
+        Require(PricingPanel.Instance.IsOpen && !root.gameObject.activeSelf,
+            "An administrative panel did not hide GameplayHUDRoot.");
+        PricingPanel.Instance.Close();
+        Invoke(hud, "Update");
+        Require(!PricingPanel.Instance.IsOpen && root.gameObject.activeSelf &&
+                hud.CurrentMode == ClubHUDMode.Compact,
+            "Closing an administrative panel did not restore the HUD.");
+
+        hud.SetMode(ClubHUDMode.Expanded);
+        GameSaveData data = (GameSaveData)Invoke(
+            SaveManager.Instance,
+            "CreateSaveData"
+        );
+        Require(data.hudMode == ClubHUDMode.Expanded,
+            "Save data did not capture the selected HUD mode.");
+        hud.SetMode(ClubHUDMode.Hidden);
+        Invoke(SaveManager.Instance, "RestoreGame", data);
+        Require(hud.CurrentMode == ClubHUDMode.Expanded,
+            "Loading did not restore the saved HUD mode.");
+        Invoke(SaveManager.Instance, "InitializeNewGameState");
+        Require(hud.CurrentMode == ClubHUDMode.Compact,
+            "A new game did not start in Compact mode.");
+
+        ConsumableInventoryManager.Instance.RestoreState(0, 0, 0, 0, 0);
+        ClubRandomEventManager.Instance.RestoreState(
+            new ClubRandomEventState
+            {
+                eventType = ClubRandomEventType.InternetOutage,
+                remainingSeconds = 30f
+            },
+            true
+        );
+        BankruptcyManager.Instance.RestoreState(1);
+        hud.SetMode(ClubHUDMode.Compact);
+        Require(hud.ActiveWarnings.Count >= 3 &&
+                hud.ActiveWarnings[0].Type == HUDWarningType.BankruptcyRisk,
+            "Bankruptcy warning does not have maximum priority.");
+
+        BankruptcyManager.Instance.RestoreState(0);
+        hud.SetMode(ClubHUDMode.Compact);
+        Require(hud.ActiveWarnings.Count >= 2 &&
+                hud.ActiveWarnings[0].Type == HUDWarningType.InternetOutage,
+            "Internet outage did not override lower-priority warnings.");
+
+        ClubRandomEventManager.Instance.RestoreState(null, false);
+        ConsumableInventoryManager.Instance.RestoreState(5, 5, 0, 0, 0);
+        ClientSpawner spawner = UnityEngine.Object.FindAnyObjectByType<ClientSpawner>();
+        Require(spawner != null, "ClientSpawner is missing for HUD warning tests.");
+        List<Client> waitingClients = GetField<List<Client>>(
+            spawner,
+            "waitingClients"
+        );
+        int originalMaxQueueSize = spawner.MaxQueueSize;
+        waitingClients.Add(null);
+        SetField(spawner, "maxQueueSize", waitingClients.Count);
+        hud.SetMode(ClubHUDMode.Compact);
+        Require(hud.ActiveWarnings.Count > 0 &&
+                hud.ActiveWarnings[0].Type == HUDWarningType.QueueFull,
+            "A full client queue did not create a HUD warning.");
+        waitingClients.RemoveAt(waitingClients.Count - 1);
+        SetField(spawner, "maxQueueSize", originalMaxQueueSize);
+        hud.SetMode(ClubHUDMode.Compact);
+        Require(!ContainsWarning(hud, HUDWarningType.QueueFull),
+            "Queue warning remained after the problem was removed.");
+
+        ResetScenarioState();
+        hud.SetMode(ClubHUDMode.Compact);
+    }
+
+    private static PlayerInteraction FindAnyPlayerInteraction()
+    {
+        return UnityEngine.Object.FindAnyObjectByType<PlayerInteraction>();
+    }
+
+    private static bool ContainsWarning(ClubHUDCanvas hud, HUDWarningType type)
+    {
+        foreach (HUDWarningData warning in hud.ActiveWarnings)
+        {
+            if (warning.Type == type)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void ValidateSaveCompatibility()
@@ -673,6 +822,17 @@ public static class PrereleaseValidationSmokeTest
         if (field == null)
             throw new MissingFieldException(target.GetType().Name, fieldName);
         field.SetValue(target, value);
+    }
+
+    private static T GetField<T>(object target, string fieldName)
+    {
+        FieldInfo field = target.GetType().GetField(
+            fieldName,
+            BindingFlags.Instance | BindingFlags.NonPublic
+        );
+        if (field == null)
+            throw new MissingFieldException(target.GetType().Name, fieldName);
+        return (T)field.GetValue(target);
     }
 
     private static void Require(bool condition, string message)

@@ -97,6 +97,15 @@
                     "initialStateCheck": false
                 },
                 {
+                    "name": "ToggleHUD",
+                    "type": "Button",
+                    "id": "bc31d1b4-606a-4ce6-928b-b8cbe5481bd2",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "CameraZoom",
                     "type": "Value",
                     "id": "64d65f59-4f1f-4d8d-9034-9d2478c3950b",
@@ -489,6 +498,28 @@
                     "processors": "",
                     "groups": "Gamepad",
                     "action": "Pause",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "530a80c8-93ae-4dd7-8a98-e3fd8e71a84f",
+                    "path": "<Keyboard>/tab",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "ToggleHUD",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "ca73a7bb-39fd-49d4-88ca-8b53b986a456",
+                    "path": "<Gamepad>/select",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Gamepad",
+                    "action": "ToggleHUD",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

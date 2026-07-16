@@ -11,6 +11,7 @@ public class GameSaveData
     public int savedBalance;
     public int savedClubLevel;
     public int savedReputation;
+    public ClubHUDMode hudMode;
 
     public int money;
     public int totalIncome;

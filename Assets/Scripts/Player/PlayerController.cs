@@ -39,6 +39,16 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    public void OnToggleHUD(InputValue value)
+    {
+        if (!value.isPressed || GameplayInputState.IsBlocked)
+        {
+            return;
+        }
+
+        ClubHUDCanvas.Instance?.ToggleHUDMode();
+    }
+
     private void FixedUpdate()
     {
         if (GameplayInputState.IsBlocked)

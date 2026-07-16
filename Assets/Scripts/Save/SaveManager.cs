@@ -306,6 +306,9 @@ public class SaveManager : MonoBehaviour
             savedBalance = economy.Money,
             savedClubLevel = progression.Level,
             savedReputation = reputation.Reputation,
+            hudMode = ClubHUDCanvas.Instance != null
+                ? ClubHUDCanvas.Instance.CurrentMode
+                : ClubHUDMode.Compact,
             money = economy.Money,
             totalIncome = economy.TotalIncome,
             totalExpenses = economy.TotalExpenses,
@@ -571,6 +574,7 @@ public class SaveManager : MonoBehaviour
         RestorePCEquipment(data);
         ClubCleanlinessManager.Instance.RestoreState(data.trashItems);
         CleanerManager.Instance.RestoreState(data.cleanerHired);
+        ClubHUDCanvas.Instance?.SetMode(data.hudMode);
     }
 
     private void InitializeNewGameState()
@@ -588,6 +592,7 @@ public class SaveManager : MonoBehaviour
         CleanerManager.Instance.RestoreState(false);
         ClubCleanlinessManager.Instance.RestoreState(null);
         PCExpansionManager.Instance.RestorePurchasedPCs(0);
+        ClubHUDCanvas.Instance?.SetMode(ClubHUDMode.Compact);
 
         foreach (RoomDoor door in FindObjectsByType<RoomDoor>())
         {

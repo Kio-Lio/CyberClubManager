@@ -1,59 +1,82 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 public sealed class ClubHUDCanvas : MonoBehaviour
 {
+    public static ClubHUDCanvas Instance { get; private set; }
+
     [Header("Canvas Settings")]
     [SerializeField] private Vector2 referenceResolution =
-        new Vector2(1920f, 1080f);
+        new(1920f, 1080f);
+    [SerializeField, Range(0f, 1f)] private float widthHeightMatch = 0.5f;
+    [SerializeField, Min(400f)] private float hudWidth = 520f;
 
-    [SerializeField, Range(0f, 1f)]
-    private float widthHeightMatch = 0.5f;
-
-    [Header("Text Settings")]
-    [SerializeField] private int fontSize = 22;
+    [Header("HUD Settings")]
+    [SerializeField] private ClubHUDMode currentMode = ClubHUDMode.Compact;
+    [SerializeField, Min(14)] private int compactFontSize = 20;
+    [SerializeField, Min(12)] private int expandedFontSize = 18;
 
     private readonly List<PC> pcs = new();
+    private readonly List<HUDWarningData> warnings = new();
 
+    private GameObject gameplayHUDRoot;
+    private GameObject compactSection;
+    private GameObject expandedSection;
+    private GameObject warningSection;
+    private GameObject interactionPromptPanel;
+
+    private Text dayText;
     private Text balanceText;
-    private Text pricingText;
-    private Text consumableStockText;
-    private Text marketingText;
-    private Text internetProviderText;
-    private Text researchText;
-    private Text randomEventText;
-    private Text demandAnalyticsText;
+    private Text reputationText;
     private Text clubLevelText;
     private Text pcStateText;
-    private Text equipmentStatusText;
-    private Text cleanlinessText;
-    private Text technicianStatusText;
-    private Text cleanerStatusText;
-    private Text clientQueueText;
-    private Text reputationText;
-    private Text satisfactionText;
-    private Text dayText;
     private Text dailyGoalText;
-    private Text dayReportText;
-    private Text financialRiskText;
-    private Text expansionText;
+    private Text warningText;
+
+    private Text clientQueueText;
+    private Text cleanlinessText;
+    private Text equipmentStatusText;
+    private Text consumableStockText;
+    private Text pricingText;
+    private Text internetProviderText;
+    private Text staffText;
+    private Text marketingText;
+    private Text researchText;
+    private Text demandAnalyticsText;
     private Text roomStatusText;
     private Text pcTierText;
+    private Text expansionText;
 
-    private GameObject interactionPromptPanel;
     private Text interactionPromptText;
-
     private PlayerInteraction playerInteraction;
     private ClientSpawner clientSpawner;
     private string currentInteractionPrompt = string.Empty;
-    private string lastDayReport = "Итоги прошлого дня: пока нет";
-    private float randomEventHudRefreshTimer;
+    private bool temporarilyHidden;
     private Font runtimeFont;
+
+    public ClubHUDMode CurrentMode => currentMode;
+    public IReadOnlyList<HUDWarningData> ActiveWarnings => warnings;
+    public bool IsTemporarilyHidden => temporarilyHidden;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticState()
+    {
+        Instance = null;
+    }
 
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(this);
+            return;
+        }
+
+        Instance = this;
         BuildCanvas();
+        SetMode(currentMode);
     }
 
     private void Start()
@@ -68,7 +91,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private void Update()
     {
         RefreshDayTimer();
-        RefreshRandomEventCountdown();
+        SetTemporarilyHidden(GameplayInputState.IsBlocked);
         RefreshInteractionPromptVisibility();
     }
 
@@ -81,6 +104,54 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         if (clientSpawner != null)
         {
             clientSpawner.QueueChanged -= RefreshClientQueue;
+        }
+
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+    }
+
+    public void SetMode(ClubHUDMode mode)
+    {
+        currentMode = Enum.IsDefined(typeof(ClubHUDMode), mode)
+            ? mode
+            : ClubHUDMode.Compact;
+
+        bool compactVisible = currentMode == ClubHUDMode.Compact ||
+            currentMode == ClubHUDMode.Expanded;
+        bool expandedVisible = currentMode == ClubHUDMode.Expanded;
+
+        compactSection?.SetActive(compactVisible);
+        expandedSection?.SetActive(expandedVisible);
+        RefreshAll();
+    }
+
+    public void ToggleHUDMode()
+    {
+        ClubHUDMode nextMode = currentMode switch
+        {
+            ClubHUDMode.Compact => ClubHUDMode.Expanded,
+            ClubHUDMode.Expanded => ClubHUDMode.Hidden,
+            _ => ClubHUDMode.Compact
+        };
+
+        SetMode(nextMode);
+    }
+
+    public void SetTemporarilyHidden(bool hidden)
+    {
+        if (temporarilyHidden == hidden)
+        {
+            return;
+        }
+
+        temporarilyHidden = hidden;
+        gameplayHUDRoot?.SetActive(!hidden);
+
+        if (!hidden)
+        {
+            SetMode(currentMode);
         }
     }
 
@@ -113,37 +184,33 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             gameObject.AddComponent<GraphicRaycaster>();
         }
 
-        CreateInformationPanel();
+        CreateGameplayHUDRoot();
         CreateInteractionPrompt();
     }
 
-    private void CreateInformationPanel()
+    private void CreateGameplayHUDRoot()
     {
-        GameObject panelObject = new GameObject(
-            "InformationPanel",
+        gameplayHUDRoot = new GameObject(
+            "GameplayHUDRoot",
             typeof(RectTransform),
-            typeof(Image),
             typeof(VerticalLayoutGroup),
             typeof(ContentSizeFitter)
         );
+        gameplayHUDRoot.transform.SetParent(transform, false);
 
-        panelObject.transform.SetParent(transform, false);
-
-        RectTransform panelRect = panelObject.GetComponent<RectTransform>();
-        panelRect.anchorMin = new Vector2(0f, 1f);
-        panelRect.anchorMax = new Vector2(0f, 1f);
-        panelRect.pivot = new Vector2(0f, 1f);
-        panelRect.anchoredPosition = new Vector2(20f, -20f);
-        panelRect.sizeDelta = new Vector2(850f, 0f);
-
-        Image panelImage = panelObject.GetComponent<Image>();
-        panelImage.color = new Color(0.03f, 0.04f, 0.06f, 0.82f);
-        panelImage.raycastTarget = false;
+        RectTransform rootRect = gameplayHUDRoot.GetComponent<RectTransform>();
+        rootRect.anchorMin = new Vector2(0f, 1f);
+        rootRect.anchorMax = new Vector2(0f, 1f);
+        rootRect.pivot = new Vector2(0f, 1f);
+        rootRect.anchoredPosition = new Vector2(20f, -20f);
+        rootRect.sizeDelta = new Vector2(
+            Mathf.Min(hudWidth, referenceResolution.x * 0.3f),
+            0f
+        );
 
         VerticalLayoutGroup layout =
-            panelObject.GetComponent<VerticalLayoutGroup>();
-        layout.padding = new RectOffset(18, 18, 14, 14);
-        layout.spacing = 3f;
+            gameplayHUDRoot.GetComponent<VerticalLayoutGroup>();
+        layout.spacing = 8f;
         layout.childAlignment = TextAnchor.UpperLeft;
         layout.childControlWidth = true;
         layout.childControlHeight = true;
@@ -151,112 +218,124 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         layout.childForceExpandHeight = false;
 
         ContentSizeFitter fitter =
-            panelObject.GetComponent<ContentSizeFitter>();
+            gameplayHUDRoot.GetComponent<ContentSizeFitter>();
         fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
         fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-        Transform panelTransform = panelObject.transform;
-        balanceText = CreateInformationLine("BalanceText", panelTransform);
-        pricingText = CreateInformationLine("PricingText", panelTransform);
-        consumableStockText = CreateInformationLine("ConsumableStockText", panelTransform);
-        marketingText = CreateInformationLine("MarketingText", panelTransform);
-        internetProviderText = CreateInformationLine(
-            "InternetProviderText",
-            panelTransform
+        compactSection = CreateSection(
+            "CompactSection",
+            new Color(0.035f, 0.045f, 0.06f, 0.9f),
+            4f
         );
-        researchText = CreateInformationLine("ResearchText", panelTransform);
-        randomEventText = CreateInformationLine("RandomEventText", panelTransform);
-        demandAnalyticsText = CreateInformationLine(
-            "DemandAnalyticsText",
-            panelTransform
+        dayText = CreateLine("DayText", compactSection.transform, compactFontSize);
+        balanceText = CreateLine("BalanceText", compactSection.transform, compactFontSize);
+        reputationText = CreateLine("ReputationText", compactSection.transform, compactFontSize);
+        clubLevelText = CreateLine("ClubLevelText", compactSection.transform, compactFontSize);
+        pcStateText = CreateLine("PCStateText", compactSection.transform, compactFontSize);
+        dailyGoalText = CreateLine("DailyGoalText", compactSection.transform, compactFontSize, 44f);
+
+        warningSection = CreateSection(
+            "WarningSection",
+            new Color(0.48f, 0.12f, 0.06f, 0.96f),
+            0f
         );
-        clubLevelText = CreateInformationLine(
-            "ClubLevelText",
-            panelTransform
+        warningText = CreateLine(
+            "WarningText",
+            warningSection.transform,
+            compactFontSize,
+            44f,
+            new Color(1f, 0.94f, 0.78f)
         );
-        pcStateText = CreateInformationLine("PCStateText", panelTransform);
-        equipmentStatusText = CreateInformationLine(
-            "EquipmentStatusText",
-            panelTransform
+
+        expandedSection = CreateSection(
+            "ExpandedSection",
+            new Color(0.035f, 0.045f, 0.06f, 0.92f),
+            2f
         );
-        cleanlinessText = CreateInformationLine(
-            "CleanlinessText",
-            panelTransform
-        );
-        technicianStatusText = CreateInformationLine(
-            "TechnicianStatusText",
-            panelTransform,
-            54f
-        );
-        cleanerStatusText = CreateInformationLine(
-            "CleanerStatusText",
-            panelTransform,
-            54f
-        );
-        clientQueueText = CreateInformationLine(
-            "ClientQueueText",
-            panelTransform
-        );
-        reputationText = CreateInformationLine("ReputationText", panelTransform);
-        satisfactionText = CreateInformationLine(
-            "SatisfactionText",
-            panelTransform
-        );
-        dayText = CreateInformationLine("DayText", panelTransform);
-        dailyGoalText = CreateInformationLine(
-            "DailyGoalText",
-            panelTransform,
-            54f
-        );
-        dayReportText = CreateInformationLine("DayReportText", panelTransform, 54f);
-        financialRiskText =
-            CreateInformationLine("FinancialRiskText", panelTransform);
-        expansionText = CreateInformationLine("ExpansionText", panelTransform);
-        roomStatusText = CreateInformationLine(
-            "RoomStatusText",
-            panelTransform,
-            54f
-        );
-        pcTierText = CreateInformationLine("PCTierText", panelTransform, 54f);
+        clientQueueText = CreateLine("ClientQueueText", expandedSection.transform, expandedFontSize);
+        cleanlinessText = CreateLine("CleanlinessText", expandedSection.transform, expandedFontSize);
+        equipmentStatusText = CreateLine("EquipmentStatusText", expandedSection.transform, expandedFontSize);
+        consumableStockText = CreateLine("ConsumableStockText", expandedSection.transform, expandedFontSize);
+        pricingText = CreateLine("PricingText", expandedSection.transform, expandedFontSize);
+        internetProviderText = CreateLine("InternetProviderText", expandedSection.transform, expandedFontSize);
+        staffText = CreateLine("StaffText", expandedSection.transform, expandedFontSize);
+        marketingText = CreateLine("MarketingText", expandedSection.transform, expandedFontSize);
+        researchText = CreateLine("ResearchText", expandedSection.transform, expandedFontSize);
+        demandAnalyticsText = CreateLine("DemandAnalyticsText", expandedSection.transform, expandedFontSize);
+        roomStatusText = CreateLine("RoomStatusText", expandedSection.transform, expandedFontSize);
+        pcTierText = CreateLine("PCTierText", expandedSection.transform, expandedFontSize);
+        expansionText = CreateLine("ExpansionText", expandedSection.transform, expandedFontSize);
+
+        warningSection.SetActive(false);
+        expandedSection.SetActive(false);
     }
 
-    private Text CreateInformationLine(
-        string objectName,
+    private GameObject CreateSection(string name, Color color, float spacing)
+    {
+        GameObject section = new GameObject(
+            name,
+            typeof(RectTransform),
+            typeof(Image),
+            typeof(VerticalLayoutGroup),
+            typeof(ContentSizeFitter)
+        );
+        section.transform.SetParent(gameplayHUDRoot.transform, false);
+
+        Image image = section.GetComponent<Image>();
+        image.color = color;
+        image.raycastTarget = false;
+
+        VerticalLayoutGroup layout = section.GetComponent<VerticalLayoutGroup>();
+        layout.padding = new RectOffset(14, 14, 10, 10);
+        layout.spacing = spacing;
+        layout.childAlignment = TextAnchor.UpperLeft;
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+
+        ContentSizeFitter fitter = section.GetComponent<ContentSizeFitter>();
+        fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        return section;
+    }
+
+    private Text CreateLine(
+        string name,
         Transform parent,
-        float preferredHeight = 32f)
+        int size,
+        float preferredHeight = 30f,
+        Color? color = null)
     {
         GameObject textObject = new GameObject(
-            objectName,
+            name,
             typeof(RectTransform),
             typeof(Text),
             typeof(LayoutElement)
         );
-
         textObject.transform.SetParent(parent, false);
 
         Text text = textObject.GetComponent<Text>();
         text.font = runtimeFont;
-        text.fontSize = fontSize;
-        text.color = Color.white;
+        text.fontSize = size;
+        text.color = color ?? Color.white;
         text.alignment = TextAnchor.MiddleLeft;
         text.horizontalOverflow = HorizontalWrapMode.Wrap;
         text.verticalOverflow = VerticalWrapMode.Overflow;
         text.raycastTarget = false;
 
-        LayoutElement layoutElement = textObject.GetComponent<LayoutElement>();
-        layoutElement.preferredHeight = preferredHeight;
-
+        LayoutElement element = textObject.GetComponent<LayoutElement>();
+        element.preferredHeight = preferredHeight;
         return text;
     }
 
     private void CreateInteractionPrompt()
     {
         interactionPromptPanel = new GameObject(
-            "InteractionPromptPanel",
+            "InteractionPrompt",
             typeof(RectTransform),
             typeof(Image)
         );
-
         interactionPromptPanel.transform.SetParent(transform, false);
 
         RectTransform panelRect =
@@ -264,136 +343,73 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         panelRect.anchorMin = new Vector2(0.5f, 0f);
         panelRect.anchorMax = new Vector2(0.5f, 0f);
         panelRect.pivot = new Vector2(0.5f, 0f);
-        panelRect.anchoredPosition = new Vector2(0f, 30f);
-        panelRect.sizeDelta = new Vector2(820f, 62f);
+        panelRect.anchoredPosition = new Vector2(0f, 28f);
+        panelRect.sizeDelta = new Vector2(760f, 58f);
 
-        Image panelImage = interactionPromptPanel.GetComponent<Image>();
-        panelImage.color = new Color(0.03f, 0.04f, 0.06f, 0.88f);
-        panelImage.raycastTarget = false;
+        Image image = interactionPromptPanel.GetComponent<Image>();
+        image.color = new Color(0.035f, 0.045f, 0.06f, 0.92f);
+        image.raycastTarget = false;
 
         GameObject textObject = new GameObject(
             "InteractionPromptText",
             typeof(RectTransform),
             typeof(Text)
         );
-
         textObject.transform.SetParent(interactionPromptPanel.transform, false);
 
         RectTransform textRect = textObject.GetComponent<RectTransform>();
         textRect.anchorMin = Vector2.zero;
         textRect.anchorMax = Vector2.one;
-        textRect.offsetMin = new Vector2(16f, 6f);
-        textRect.offsetMax = new Vector2(-16f, -6f);
+        textRect.offsetMin = new Vector2(14f, 4f);
+        textRect.offsetMax = new Vector2(-14f, -4f);
 
         interactionPromptText = textObject.GetComponent<Text>();
         interactionPromptText.font = runtimeFont;
-        interactionPromptText.fontSize = fontSize;
+        interactionPromptText.fontSize = compactFontSize;
         interactionPromptText.color = Color.white;
         interactionPromptText.alignment = TextAnchor.MiddleCenter;
         interactionPromptText.horizontalOverflow = HorizontalWrapMode.Wrap;
         interactionPromptText.verticalOverflow = VerticalWrapMode.Overflow;
         interactionPromptText.raycastTarget = false;
-
         interactionPromptPanel.SetActive(false);
     }
 
     private void SubscribeToManagers()
     {
         if (EconomyManager.Instance != null)
-        {
             EconomyManager.Instance.MoneyChanged += OnMoneyChanged;
-        }
-
         if (ClubProgressionManager.Instance != null)
-        {
-            ClubProgressionManager.Instance.StatusChanged +=
-                RefreshClubProgression;
-        }
-
+            ClubProgressionManager.Instance.StatusChanged += RefreshClubProgression;
         if (ClubReputationManager.Instance != null)
-        {
             ClubReputationManager.Instance.StatusChanged += RefreshReputation;
-        }
-
-        if (GameDayManager.Instance != null)
-        {
-            GameDayManager.Instance.DayEnded += OnDayEnded;
-        }
-
         if (DailyGoalManager.Instance != null)
-        {
             DailyGoalManager.Instance.StatusChanged += RefreshDailyGoal;
-        }
-
         if (BankruptcyManager.Instance != null)
-        {
-            BankruptcyManager.Instance.StatusChanged += RefreshFinancialRisk;
-        }
-
+            BankruptcyManager.Instance.StatusChanged += RefreshWarnings;
         if (PCExpansionManager.Instance != null)
-        {
             PCExpansionManager.Instance.StatusChanged += RefreshExpansion;
-        }
-
         if (RoomUnlockManager.Instance != null)
-        {
             RoomUnlockManager.Instance.StatusChanged += OnRoomStatusChanged;
-        }
-
         if (TechnicianManager.Instance != null)
-        {
-            TechnicianManager.Instance.StatusChanged += RefreshTechnicianStatus;
-        }
-
-        if (ClubCleanlinessManager.Instance != null)
-        {
-            ClubCleanlinessManager.Instance.StatusChanged += RefreshCleanliness;
-        }
-
+            TechnicianManager.Instance.StatusChanged += RefreshStaff;
         if (CleanerManager.Instance != null)
-        {
-            CleanerManager.Instance.StatusChanged += RefreshCleanerStatus;
-        }
-
+            CleanerManager.Instance.StatusChanged += RefreshStaff;
+        if (ClubCleanlinessManager.Instance != null)
+            ClubCleanlinessManager.Instance.StatusChanged += RefreshCleanliness;
         if (PricingManager.Instance != null)
-        {
             PricingManager.Instance.StatusChanged += RefreshPricing;
-        }
-
-        if (DailyFinancialReportManager.Instance != null)
-        {
-            DailyFinancialReportManager.Instance.StatusChanged += RefreshLastFinancialReport;
-        }
-
         if (ConsumableInventoryManager.Instance != null)
-        {
             ConsumableInventoryManager.Instance.StatusChanged += RefreshConsumableStock;
-        }
-
         if (MarketingManager.Instance != null)
-        {
             MarketingManager.Instance.StatusChanged += RefreshMarketing;
-        }
-
         if (DemandAnalyticsManager.Instance != null)
-        {
             DemandAnalyticsManager.Instance.StatusChanged += RefreshDemandAnalytics;
-        }
-
         if (ClubRandomEventManager.Instance != null)
-        {
-            ClubRandomEventManager.Instance.StatusChanged += RefreshRandomEvent;
-        }
-
+            ClubRandomEventManager.Instance.StatusChanged += RefreshInternetProvider;
         if (InternetProviderManager.Instance != null)
-        {
             InternetProviderManager.Instance.StatusChanged += RefreshInternetProvider;
-        }
-
         if (ClubResearchManager.Instance != null)
-        {
             ClubResearchManager.Instance.StatusChanged += RefreshResearch;
-        }
 
         PC.PCRegistered += RegisterPC;
         PC.PCUnregistered += UnregisterPC;
@@ -402,100 +418,39 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private void UnsubscribeFromManagers()
     {
         if (EconomyManager.Instance != null)
-        {
             EconomyManager.Instance.MoneyChanged -= OnMoneyChanged;
-        }
-
         if (ClubProgressionManager.Instance != null)
-        {
-            ClubProgressionManager.Instance.StatusChanged -=
-                RefreshClubProgression;
-        }
-
+            ClubProgressionManager.Instance.StatusChanged -= RefreshClubProgression;
         if (ClubReputationManager.Instance != null)
-        {
             ClubReputationManager.Instance.StatusChanged -= RefreshReputation;
-        }
-
-        if (GameDayManager.Instance != null)
-        {
-            GameDayManager.Instance.DayEnded -= OnDayEnded;
-        }
-
         if (DailyGoalManager.Instance != null)
-        {
             DailyGoalManager.Instance.StatusChanged -= RefreshDailyGoal;
-        }
-
         if (BankruptcyManager.Instance != null)
-        {
-            BankruptcyManager.Instance.StatusChanged -= RefreshFinancialRisk;
-        }
-
+            BankruptcyManager.Instance.StatusChanged -= RefreshWarnings;
         if (PCExpansionManager.Instance != null)
-        {
             PCExpansionManager.Instance.StatusChanged -= RefreshExpansion;
-        }
-
         if (RoomUnlockManager.Instance != null)
-        {
             RoomUnlockManager.Instance.StatusChanged -= OnRoomStatusChanged;
-        }
-
         if (TechnicianManager.Instance != null)
-        {
-            TechnicianManager.Instance.StatusChanged -= RefreshTechnicianStatus;
-        }
-
-        if (ClubCleanlinessManager.Instance != null)
-        {
-            ClubCleanlinessManager.Instance.StatusChanged -= RefreshCleanliness;
-        }
-
+            TechnicianManager.Instance.StatusChanged -= RefreshStaff;
         if (CleanerManager.Instance != null)
-        {
-            CleanerManager.Instance.StatusChanged -= RefreshCleanerStatus;
-        }
-
+            CleanerManager.Instance.StatusChanged -= RefreshStaff;
+        if (ClubCleanlinessManager.Instance != null)
+            ClubCleanlinessManager.Instance.StatusChanged -= RefreshCleanliness;
         if (PricingManager.Instance != null)
-        {
             PricingManager.Instance.StatusChanged -= RefreshPricing;
-        }
-
-        if (DailyFinancialReportManager.Instance != null)
-        {
-            DailyFinancialReportManager.Instance.StatusChanged -= RefreshLastFinancialReport;
-        }
-
         if (ConsumableInventoryManager.Instance != null)
-        {
             ConsumableInventoryManager.Instance.StatusChanged -= RefreshConsumableStock;
-        }
-
         if (MarketingManager.Instance != null)
-        {
             MarketingManager.Instance.StatusChanged -= RefreshMarketing;
-        }
-
         if (DemandAnalyticsManager.Instance != null)
-        {
             DemandAnalyticsManager.Instance.StatusChanged -= RefreshDemandAnalytics;
-        }
-
         if (ClubRandomEventManager.Instance != null)
-        {
-            ClubRandomEventManager.Instance.StatusChanged -= RefreshRandomEvent;
-        }
-
+            ClubRandomEventManager.Instance.StatusChanged -= RefreshInternetProvider;
         if (InternetProviderManager.Instance != null)
-        {
             InternetProviderManager.Instance.StatusChanged -= RefreshInternetProvider;
-        }
-
         if (ClubResearchManager.Instance != null)
-        {
             ClubResearchManager.Instance.StatusChanged -= RefreshResearch;
-        }
 
         PC.PCRegistered -= RegisterPC;
         PC.PCUnregistered -= UnregisterPC;
@@ -543,12 +498,14 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     {
         foreach (PC pc in pcs)
         {
-            if (pc != null)
+            if (pc == null)
             {
-                pc.StateChanged -= OnPCStateChanged;
-                pc.TierChanged -= OnPCTierChanged;
-                pc.EquipmentChanged -= OnPCEquipmentChanged;
+                continue;
             }
+
+            pc.StateChanged -= OnPCStateChanged;
+            pc.TierChanged -= OnPCTierChanged;
+            pc.EquipmentChanged -= OnPCEquipmentChanged;
         }
 
         pcs.Clear();
@@ -557,12 +514,8 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private void SubscribeToPlayerInteraction()
     {
         playerInteraction = FindAnyObjectByType<PlayerInteraction>();
-
         if (playerInteraction == null)
         {
-            Debug.LogWarning(
-                "PlayerInteraction не найден. Canvas-подсказка отключена."
-            );
             return;
         }
 
@@ -581,14 +534,9 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private void SubscribeToClientSpawner()
     {
         clientSpawner = FindAnyObjectByType<ClientSpawner>();
-
         if (clientSpawner == null)
         {
-            if (clientQueueText != null)
-            {
-                clientQueueText.text = "Очередь: недоступна";
-            }
-
+            RefreshClientQueue();
             return;
         }
 
@@ -599,268 +547,119 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private void RefreshAll()
     {
         RefreshBalance();
-        RefreshPricing();
-        RefreshLastFinancialReport();
-        RefreshConsumableStock();
-        RefreshMarketing();
-        RefreshInternetProvider();
-        RefreshResearch();
-        RefreshRandomEvent();
-        RefreshDemandAnalytics();
+        RefreshDayTimer();
+        RefreshReputation();
         RefreshClubProgression();
         RefreshPCInformation();
-        RefreshEquipmentStatus();
-        RefreshCleanliness();
-        RefreshTechnicianStatus();
-        RefreshCleanerStatus();
-        RefreshClientQueue();
-        RefreshReputation();
-        RefreshDayTimer();
         RefreshDailyGoal();
-        RefreshFinancialRisk();
-        RefreshExpansion();
+        RefreshClientQueue();
+        RefreshCleanliness();
+        RefreshEquipmentStatus();
+        RefreshConsumableStock();
+        RefreshPricing();
+        RefreshInternetProvider();
+        RefreshStaff();
+        RefreshMarketing();
+        RefreshResearch();
+        RefreshDemandAnalytics();
         RefreshRoomStatus();
+        RefreshExpansion();
+        RefreshWarnings();
         RefreshInteractionPromptVisibility();
     }
 
-    private void OnMoneyChanged(int newBalance)
+    private void OnMoneyChanged(int money)
     {
-        balanceText.text = $"Баланс: {newBalance} ₽";
+        balanceText.text = $"Баланс: {money:N0} ₽";
+        RefreshWarnings();
     }
 
     private void RefreshBalance()
     {
-        int balance = EconomyManager.Instance != null
+        int money = EconomyManager.Instance != null
             ? EconomyManager.Instance.Money
             : 0;
-
-        balanceText.text = $"Баланс: {balance} ₽";
+        balanceText.text = $"Баланс: {money:N0} ₽";
     }
 
-    private void RefreshPricing()
+    private void RefreshDayTimer()
     {
-        if (pricingText == null)
+        GameDayManager manager = GameDayManager.Instance;
+        if (manager == null || dayText == null)
         {
             return;
         }
 
-        PricingManager manager = PricingManager.Instance;
-        pricingText.text = manager == null
-            ? "Tariffs: unavailable"
-            : $"Tariffs: Basic {manager.GetPricePercent(PCTier.Basic)}% | " +
-              $"Gaming {manager.GetPricePercent(PCTier.Gaming)}% | " +
-              $"Premium {manager.GetPricePercent(PCTier.Premium)}%";
+        int remaining = Mathf.Max(0, Mathf.CeilToInt(manager.TimeRemaining));
+        dayText.text =
+            $"День {manager.CurrentDay} · {remaining / 60:00}:{remaining % 60:00}";
     }
 
-    private void RefreshLastFinancialReport()
+    private void RefreshReputation()
     {
-        if (dayReportText == null)
-        {
-            return;
-        }
-
-        DailyFinancialReportManager manager = DailyFinancialReportManager.Instance;
-        if (manager == null || !manager.HasLastReport)
-        {
-            dayReportText.text = "Financial report: none yet";
-            return;
-        }
-
-        DailyFinancialReportData report = manager.LastReport;
-        string prefix = report.NetCashChange >= 0 ? "+" : string.Empty;
-        dayReportText.text =
-            $"Day {report.day}: revenue {report.Revenue} RUB | " +
-            $"expenses {report.TotalExpenses} RUB | " +
-            $"bonuses {report.Bonuses} RUB | " +
-            $"result {prefix}{report.NetCashChange} RUB";
-    }
-
-    private void RefreshConsumableStock()
-    {
-        if (consumableStockText == null)
-        {
-            return;
-        }
-
-        ConsumableInventoryManager manager = ConsumableInventoryManager.Instance;
-        consumableStockText.text = manager == null
-            ? "Stock: unavailable"
-            : $"Stock: energy drinks {manager.EnergyDrinkStock}/{manager.MaximumEnergyDrinkStock} | " +
-              $"snacks {manager.SnackStock}/{manager.MaximumSnackStock} | " +
-              $"missed {manager.MissedSales}";
-    }
-
-    private void RefreshMarketing()
-    {
-        if (marketingText == null)
-        {
-            return;
-        }
-
-        MarketingManager manager = MarketingManager.Instance;
-        marketingText.text = manager == null
-            ? "Marketing: unavailable"
-            : manager.HasActiveCampaign
-                ? $"Marketing: {manager.GetDefinition(manager.ActiveCampaign)?.DisplayName} | {manager.RemainingDays} day(s) left"
-                : "Marketing: none active";
-    }
-
-    private void RefreshDemandAnalytics()
-    {
-        if (demandAnalyticsText == null)
-        {
-            return;
-        }
-
-        DemandAnalyticsManager manager = DemandAnalyticsManager.Instance;
-        if (manager == null)
-        {
-            demandAnalyticsText.text = "Спрос: аналитика недоступна";
-            return;
-        }
-
-        DemandAnalyticsReportData report = manager.CurrentReport;
-        demandAnalyticsText.text =
-            $"Спрос: B {report.basic.UtilizationPercent:F0}% | " +
-            $"G {report.gaming.UtilizationPercent:F0}% | " +
-            $"P {report.premium.UtilizationPercent:F0}% | " +
-            $"цена-отказы {report.TotalPriceLostClients}";
-    }
-
-    private void RefreshRandomEventCountdown()
-    {
-        ClubRandomEventManager manager = ClubRandomEventManager.Instance;
-        if (manager == null || !manager.IsInternetUnavailable)
-        {
-            return;
-        }
-
-        randomEventHudRefreshTimer -= Time.deltaTime;
-        if (randomEventHudRefreshTimer <= 0f)
-        {
-            RefreshRandomEvent();
-        }
-    }
-
-    private void RefreshInternetProvider()
-    {
-        if (internetProviderText == null)
-        {
-            return;
-        }
-
-        InternetProviderManager manager = InternetProviderManager.Instance;
-        InternetPlanDefinition plan = manager?.GetActivePlan();
-        if (plan == null)
-        {
-            internetProviderText.text = "Интернет: недоступен";
-            return;
-        }
-
-        internetProviderText.text =
-            $"Интернет: {plan.DisplayName} | " +
-            $"×{plan.SessionSpeedMultiplier:F2} | " +
-            $"{plan.DailyCost} ₽/день | " +
-            $"надежность {plan.Reliability * 100f:F1}%";
-    }
-
-    private void RefreshResearch()
-    {
-        if (researchText == null)
-        {
-            return;
-        }
-
-        ClubResearchManager manager = ClubResearchManager.Instance;
-        researchText.text = manager == null
-            ? "Исследования: недоступны"
-            : $"Исследования: {manager.ResearchedCategoryCount} улучшений | " +
-              $"суммарно {manager.TotalPurchasedLevels} уровней";
-    }
-
-    private void RefreshRandomEvent()
-    {
-        randomEventHudRefreshTimer = 1f;
-        if (randomEventText == null)
-        {
-            return;
-        }
-
-        ClubRandomEventManager manager = ClubRandomEventManager.Instance;
-        if (manager == null || !manager.HasActiveEvent)
-        {
-            randomEventText.text = "Событие: нет";
-            return;
-        }
-
-        if (manager.IsInternetUnavailable)
-        {
-            randomEventText.text =
-                $"Событие: сбой интернета | осталось " +
-                $"{Mathf.CeilToInt(manager.RemainingSeconds)} сек.";
-            return;
-        }
-
-        randomEventText.text =
-            $"Событие: " +
-            $"{ClubRandomEventManager.GetEventDisplayName(manager.ActiveEventType)} | " +
-            "до конца дня";
+        ClubReputationManager manager = ClubReputationManager.Instance;
+        reputationText.text = manager == null
+            ? "Репутация: —"
+            : $"Репутация: {manager.Reputation}";
     }
 
     private void RefreshClubProgression()
     {
-        if (clubLevelText == null)
-        {
-            return;
-        }
-
         ClubProgressionManager manager = ClubProgressionManager.Instance;
-
         if (manager == null)
         {
-            clubLevelText.text = "Уровень клуба: недоступен";
+            clubLevelText.text = "Уровень клуба: —";
             return;
         }
 
-        if (manager.IsMaxLevel)
-        {
-            clubLevelText.text =
-                $"Уровень клуба: {manager.Level} — максимальный";
-            return;
-        }
-
-        clubLevelText.text =
-            $"Уровень клуба: {manager.Level} | " +
-            $"Опыт: {manager.Experience}/" +
-            $"{manager.ExperienceToNextLevel}";
+        clubLevelText.text = manager.IsMaxLevel
+            ? $"Уровень клуба: {manager.Level} · максимум"
+            : $"Уровень клуба: {manager.Level} · XP " +
+              $"{manager.Experience}/{manager.ExperienceToNextLevel}";
     }
 
-    private void OnPCStateChanged(PCState newState)
+    private void RefreshDailyGoal()
+    {
+        DailyGoalManager manager = DailyGoalManager.Instance;
+        if (manager == null)
+        {
+            dailyGoalText.text = "Цель: —";
+            return;
+        }
+
+        int progress = Mathf.Min(manager.CurrentProgress, manager.TargetValue);
+        dailyGoalText.text = manager.GoalCompleted
+            ? $"Цель: выполнена · {manager.GetGoalDescription()}"
+            : $"Цель: {manager.GetGoalDescription()} · " +
+              $"{progress}/{manager.TargetValue}";
+    }
+
+    private void OnPCStateChanged(PCState state)
     {
         RefreshPCInformation();
+        RefreshWarnings();
     }
 
-    private void OnPCTierChanged(PCTier newTier)
+    private void OnPCTierChanged(PCTier tier)
     {
         RefreshPCInformation();
     }
 
     private void OnPCEquipmentChanged()
     {
-        RefreshPCInformation();
         RefreshEquipmentStatus();
+        RefreshWarnings();
     }
 
     private void RefreshPCInformation()
     {
         pcs.RemoveAll(pc => pc == null);
-
-        int freeCount = 0;
-        int occupiedCount = 0;
-        int brokenCount = 0;
-        int basicCount = 0;
-        int gamingCount = 0;
-        int premiumCount = 0;
+        int free = 0;
+        int occupied = 0;
+        int broken = 0;
+        int basic = 0;
+        int gaming = 0;
+        int premium = 0;
 
         foreach (PC pc in pcs)
         {
@@ -869,383 +668,320 @@ public sealed class ClubHUDCanvas : MonoBehaviour
                 continue;
             }
 
-            switch (pc.State)
-            {
-                case PCState.Free:
-                    if (pc.IsAvailable)
-                    {
-                        freeCount++;
-                    }
-                    else
-                    {
-                        brokenCount++;
-                    }
-                    break;
-                case PCState.Occupied:
-                    occupiedCount++;
-                    break;
-                case PCState.Broken:
-                    brokenCount++;
-                    break;
-            }
+            if (pc.State == PCState.Occupied)
+                occupied++;
+            else if (pc.State == PCState.Broken || !pc.IsAvailable)
+                broken++;
+            else
+                free++;
 
             switch (pc.Tier)
             {
                 case PCTier.Basic:
-                    basicCount++;
+                    basic++;
                     break;
                 case PCTier.Gaming:
-                    gamingCount++;
+                    gaming++;
                     break;
                 case PCTier.Premium:
-                    premiumCount++;
+                    premium++;
                     break;
             }
         }
 
         pcStateText.text =
-            $"Свободно: {freeCount} | " +
-            $"Занято: {occupiedCount} | " +
-            $"Сломано: {brokenCount}";
-
-        pcTierText.text =
-            $"ПК: Basic {basicCount} | " +
-            $"Gaming {gamingCount} | " +
-            $"Premium {premiumCount}\n" +
-            $"Улучшения: {PC.BasicToGamingUpgradeCost} ₽ / " +
-            $"{PC.GamingToPremiumUpgradeCost} ₽";
-    }
-
-    private void RefreshEquipmentStatus()
-    {
-        if (equipmentStatusText == null)
-        {
-            return;
-        }
-
-        int healthyCount = 0;
-        int wornCount = 0;
-        int criticalCount = 0;
-
-        foreach (PC pc in pcs)
-        {
-            if (pc == null)
-            {
-                continue;
-            }
-
-            float condition = pc.LowestEquipmentCondition;
-            if (condition <= 20f)
-            {
-                criticalCount++;
-            }
-            else if (condition <= 50f)
-            {
-                wornCount++;
-            }
-            else
-            {
-                healthyCount++;
-            }
-        }
-
-        equipmentStatusText.text =
-            $"Оборудование: исправно {healthyCount} | " +
-            $"изношено {wornCount} | " +
-            $"критично {criticalCount}";
-    }
-
-    private void RefreshCleanliness()
-    {
-        if (cleanlinessText == null)
-        {
-            return;
-        }
-
-        ClubCleanlinessManager manager = ClubCleanlinessManager.Instance;
-        if (manager == null)
-        {
-            cleanlinessText.text = "Чистота: недоступна";
-            return;
-        }
-
-        cleanlinessText.text =
-            $"Чистота: {manager.Cleanliness:F0}/100 | " +
-            $"Мусор: {manager.TrashCount}";
-    }
-
-    private void RefreshTechnicianStatus()
-    {
-        if (technicianStatusText == null)
-        {
-            return;
-        }
-
-        TechnicianManager manager = TechnicianManager.Instance;
-        if (manager == null)
-        {
-            technicianStatusText.text = "Техник: недоступен";
-            return;
-        }
-
-        technicianStatusText.text = manager.TechnicianHired
-            ? $"Техник: работает | {manager.DailySalary} ₽/день\n" +
-              manager.LastServiceMessage
-            : $"Техник: не нанят | найм {manager.HireCost} ₽";
-    }
-
-    private void RefreshCleanerStatus()
-    {
-        if (cleanerStatusText == null)
-        {
-            return;
-        }
-
-        CleanerManager manager = CleanerManager.Instance;
-        if (manager == null)
-        {
-            cleanerStatusText.text = "Уборщик: недоступен";
-            return;
-        }
-
-        cleanerStatusText.text = manager.CleanerHired
-            ? $"Уборщик: работает | {manager.DailySalary} ₽/день\n" +
-              manager.LastWorkMessage
-            : $"Уборщик: не нанят | найм {manager.HireCost} ₽";
+            $"ПК: {free} свободно · {occupied} занято · {broken} сломано";
+        pcTierText.text = $"Классы ПК: B {basic} · G {gaming} · P {premium}";
     }
 
     private void RefreshClientQueue()
     {
-        if (clientQueueText == null)
-        {
-            return;
-        }
-
-        if (clientSpawner == null)
-        {
-            clientQueueText.text = "Очередь: недоступна";
-            return;
-        }
-
-        int regularCount = clientSpawner.GetWaitingClientCount(
-            ClientType.Regular
-        );
-        int gamerCount = clientSpawner.GetWaitingClientCount(
-            ClientType.Gamer
-        );
-        int vipCount = clientSpawner.GetWaitingClientCount(
-            ClientType.VIP
-        );
-
-        clientQueueText.text =
-            $"Очередь: {clientSpawner.WaitingClientCount} | " +
-            $"Обычные: {regularCount} | " +
-            $"Геймеры: {gamerCount} | VIP: {vipCount}";
+        clientQueueText.text = clientSpawner == null
+            ? "Очередь: —"
+            : $"Очередь: {clientSpawner.WaitingClientCount}/" +
+              $"{clientSpawner.MaxQueueSize}";
+        RefreshWarnings();
     }
 
-    private void RefreshReputation()
+    private void RefreshCleanliness()
     {
-        ClubReputationManager manager = ClubReputationManager.Instance;
-
-        if (manager == null)
-        {
-            reputationText.text = "Репутация: недоступна";
-
-            if (satisfactionText != null)
-            {
-                satisfactionText.text =
-                    "Оценки клиентов: недоступны";
-            }
-
-            return;
-        }
-
-        reputationText.text =
-            $"Репутация: {manager.Reputation}/100 | " +
-            $"Обслужено: {manager.ServedClients} | " +
-            $"Потеряно: {manager.LostClients}";
-
-        if (satisfactionText != null)
-        {
-            satisfactionText.text =
-                $"Оценки: отлично {manager.ExcellentClients} | " +
-                $"нормально {manager.NormalClients} | " +
-                $"плохо {manager.PoorClients}";
-        }
+        ClubCleanlinessManager manager = ClubCleanlinessManager.Instance;
+        cleanlinessText.text = manager == null
+            ? "Чистота: —"
+            : $"Чистота: {manager.Cleanliness:F0}% · мусор {manager.TrashCount}";
+        RefreshWarnings();
     }
 
-    private void RefreshDayTimer()
+    private void RefreshEquipmentStatus()
     {
-        GameDayManager manager = GameDayManager.Instance;
-
-        if (manager == null)
-        {
-            return;
-        }
-
-        int remainingSeconds = Mathf.Max(
-            0,
-            Mathf.CeilToInt(manager.TimeRemaining)
-        );
-
-        int minutes = remainingSeconds / 60;
-        int seconds = remainingSeconds % 60;
-
-        dayText.text =
-            $"День: {manager.CurrentDay} | " +
-            $"До конца дня: {minutes:00}:{seconds:00}";
-
-        RefreshLastFinancialReport();
+        GetEquipmentCounts(out int worn, out int critical);
+        equipmentStatusText.text =
+            $"Оборудование: {worn} изношено · {critical} критично";
+        RefreshWarnings();
     }
 
-    private void RefreshDailyGoal()
+    private void GetEquipmentCounts(out int worn, out int critical)
     {
-        if (dailyGoalText == null)
+        worn = 0;
+        critical = 0;
+
+        foreach (PC pc in pcs)
         {
-            return;
-        }
-
-        DailyGoalManager manager = DailyGoalManager.Instance;
-
-        if (manager == null)
-        {
-            dailyGoalText.text = "Цель дня: недоступна";
-            return;
-        }
-
-        int displayedProgress = Mathf.Min(
-            manager.CurrentProgress,
-            manager.TargetValue
-        );
-
-        if (manager.GoalCompleted)
-        {
-            dailyGoalText.text =
-                $"Цель дня выполнена: {manager.GetGoalDescription()}\n" +
-                $"Награда получена: {manager.RewardMoney} ₽";
-            return;
-        }
-
-        dailyGoalText.text =
-            $"Цель дня: {manager.GetGoalDescription()} | " +
-            $"{displayedProgress}/{manager.TargetValue}\n" +
-            $"Награда: {manager.RewardMoney} ₽";
-    }
-
-    private void OnDayEnded(
-        int completedDay,
-        int income,
-        int expenses,
-        int profit)
-    {
-        string profitPrefix = profit >= 0 ? "+" : string.Empty;
-
-        lastDayReport =
-            $"День {completedDay}: " +
-            $"доход {income} ₽ | " +
-            $"расходы {expenses} ₽ | " +
-            $"итог {profitPrefix}{profit} ₽";
-
-        RefreshDayTimer();
-    }
-
-    private void RefreshFinancialRisk()
-    {
-        BankruptcyManager manager = BankruptcyManager.Instance;
-
-        if (manager == null)
-        {
-            financialRiskText.text = "Финансовый риск: недоступен";
-            return;
-        }
-
-        if (manager.ConsecutiveDebtDays == 0)
-        {
-            financialRiskText.text =
-                $"Финансовый риск: отсутствует | " +
-                $"Порог: {manager.BankruptcyThreshold} ₽";
-            return;
-        }
-
-        financialRiskText.text =
-            $"Критический долг: " +
-            $"{manager.ConsecutiveDebtDays}/" +
-            $"{manager.ConsecutiveDebtDaysToLose} дней | " +
-            $"Порог: {manager.BankruptcyThreshold} ₽";
-    }
-
-    private void RefreshExpansion()
-    {
-        PCExpansionManager manager = PCExpansionManager.Instance;
-
-        if (manager == null)
-        {
-            expansionText.text = "Расширение клуба: недоступно";
-            return;
-        }
-
-        expansionText.text =
-            $"Новый ПК: {manager.PurchaseCost} ₽ | " +
-            $"Доступно мест: {manager.RemainingSlots} | " +
-            $"Открыто: {manager.UnlockedSlotCount}/" +
-            $"{manager.TotalExpansionSlots}";
-    }
-
-    private void RefreshRoomStatus()
-    {
-        if (roomStatusText == null)
-        {
-            return;
-        }
-
-        RoomUnlockManager manager = RoomUnlockManager.Instance;
-        if (manager == null || manager.RoomDoors.Count == 0)
-        {
-            roomStatusText.text = "Комнаты: недоступны";
-            return;
-        }
-
-        System.Text.StringBuilder builder = new();
-        builder.Append("Комнаты: ");
-
-        bool first = true;
-
-        foreach (RoomDoor door in manager.RoomDoors)
-        {
-            if (door == null)
+            if (pc == null || !pc.HasRoomAccess)
             {
                 continue;
             }
 
-            if (!first)
+            if (pc.LowestEquipmentCondition <= 20f)
             {
-                builder.Append(" | ");
+                critical++;
+                worn++;
             }
-
-            first = false;
-
-            if (door.IsUnlocked)
+            else if (pc.LowestEquipmentCondition <= 50f)
             {
-                builder.Append($"{door.RoomDisplayName}: открыта");
-            }
-            else
-            {
-                builder.Append(
-                    $"{door.RoomDisplayName}: ур. {door.RequiredClubLevel}, " +
-                    $"{door.UnlockCost} ₽"
-                );
+                worn++;
             }
         }
+    }
 
-        roomStatusText.text = first
-            ? "Комнаты: недоступны"
-            : builder.ToString();
+    private void RefreshConsumableStock()
+    {
+        ConsumableInventoryManager manager = ConsumableInventoryManager.Instance;
+        consumableStockText.text = manager == null
+            ? "Склад: —"
+            : $"Склад: {manager.EnergyDrinkStock} энергетиков · " +
+              $"{manager.SnackStock} снеков";
+        RefreshWarnings();
+    }
+
+    private void RefreshPricing()
+    {
+        PricingManager manager = PricingManager.Instance;
+        pricingText.text = manager == null
+            ? "Тарифы: —"
+            : $"Тарифы: B {manager.GetPricePercent(PCTier.Basic)}% · " +
+              $"G {manager.GetPricePercent(PCTier.Gaming)}% · " +
+              $"P {manager.GetPricePercent(PCTier.Premium)}%";
+    }
+
+    private void RefreshInternetProvider()
+    {
+        InternetPlanDefinition plan =
+            InternetProviderManager.Instance?.GetActivePlan();
+        internetProviderText.text = plan == null
+            ? "Интернет: —"
+            : $"Интернет: {plan.DisplayName} ×{plan.SessionSpeedMultiplier:F2}";
+        RefreshWarnings();
+    }
+
+    private void RefreshStaff()
+    {
+        bool technician = TechnicianManager.Instance != null &&
+            TechnicianManager.Instance.TechnicianHired;
+        bool cleaner = CleanerManager.Instance != null &&
+            CleanerManager.Instance.CleanerHired;
+        staffText.text =
+            $"Персонал: техник {(technician ? "работает" : "не нанят")} · " +
+            $"уборщик {(cleaner ? "работает" : "не нанят")}";
+    }
+
+    private void RefreshMarketing()
+    {
+        MarketingManager manager = MarketingManager.Instance;
+        if (manager == null || !manager.HasActiveCampaign)
+        {
+            marketingText.text = "Маркетинг: нет кампании";
+            return;
+        }
+
+        MarketingCampaignDefinition definition =
+            manager.GetDefinition(manager.ActiveCampaign);
+        marketingText.text =
+            $"Маркетинг: {definition?.DisplayName ?? manager.ActiveCampaign.ToString()} · " +
+            $"{manager.RemainingDays} дн.";
+    }
+
+    private void RefreshResearch()
+    {
+        ClubResearchManager manager = ClubResearchManager.Instance;
+        researchText.text = manager == null
+            ? "Исследования: —"
+            : $"Исследования: {manager.TotalPurchasedLevels} уровней";
+    }
+
+    private void RefreshDemandAnalytics()
+    {
+        DemandAnalyticsManager manager = DemandAnalyticsManager.Instance;
+        if (manager == null)
+        {
+            demandAnalyticsText.text = "Загрузка: —";
+            return;
+        }
+
+        DemandAnalyticsReportData report = manager.CurrentReport;
+        demandAnalyticsText.text =
+            $"Загрузка: B {report.basic.UtilizationPercent:F0}% · " +
+            $"G {report.gaming.UtilizationPercent:F0}% · " +
+            $"P {report.premium.UtilizationPercent:F0}%";
     }
 
     private void OnRoomStatusChanged()
     {
         RefreshRoomStatus();
         RefreshPCInformation();
+    }
+
+    private void RefreshRoomStatus()
+    {
+        RoomUnlockManager manager = RoomUnlockManager.Instance;
+        if (manager == null)
+        {
+            roomStatusText.text = "Комнаты: —";
+            return;
+        }
+
+        int unlocked = 0;
+        foreach (RoomDoor door in manager.RoomDoors)
+        {
+            if (door != null && door.IsUnlocked)
+            {
+                unlocked++;
+            }
+        }
+
+        roomStatusText.text =
+            $"Комнаты: {unlocked}/{manager.RoomDoors.Count} открыто";
+    }
+
+    private void RefreshExpansion()
+    {
+        PCExpansionManager manager = PCExpansionManager.Instance;
+        expansionText.text = manager == null
+            ? "Расширение: —"
+            : $"Расширение: {manager.RemainingSlots} мест · " +
+              $"новый ПК {manager.PurchaseCost:N0} ₽";
+    }
+
+    private void RefreshWarnings()
+    {
+        if (warningSection == null || warningText == null)
+        {
+            return;
+        }
+
+        warnings.Clear();
+        AddQueueWarning();
+        AddEquipmentWarning();
+        AddCleanlinessWarning();
+        AddInventoryWarning();
+        AddInternetWarning();
+        AddBankruptcyWarning();
+        warnings.Sort((left, right) => right.Priority.CompareTo(left.Priority));
+
+        warningText.text = warnings.Count > 0
+            ? warnings[0].Message
+            : string.Empty;
+        bool visible = !temporarilyHidden &&
+            currentMode != ClubHUDMode.Hidden && warnings.Count > 0;
+        warningSection.SetActive(visible);
+    }
+
+    private void AddQueueWarning()
+    {
+        if (clientSpawner == null || clientSpawner.MaxQueueSize <= 0 ||
+            clientSpawner.WaitingClientCount < clientSpawner.MaxQueueSize)
+        {
+            return;
+        }
+
+        warnings.Add(new HUDWarningData(
+            HUDWarningType.QueueFull,
+            "Очередь заполнена — клиенты уходят",
+            80
+        ));
+    }
+
+    private void AddEquipmentWarning()
+    {
+        GetEquipmentCounts(out _, out int critical);
+        if (critical <= 0)
+        {
+            return;
+        }
+
+        warnings.Add(new HUDWarningData(
+            HUDWarningType.CriticalEquipment,
+            $"Критическое оборудование: {critical} ПК",
+            70
+        ));
+    }
+
+    private void AddCleanlinessWarning()
+    {
+        ClubCleanlinessManager manager = ClubCleanlinessManager.Instance;
+        if (manager == null || manager.Cleanliness >= 50f)
+        {
+            return;
+        }
+
+        warnings.Add(new HUDWarningData(
+            HUDWarningType.LowCleanliness,
+            $"Низкая чистота: {manager.Cleanliness:F0}%",
+            60
+        ));
+    }
+
+    private void AddInventoryWarning()
+    {
+        ConsumableInventoryManager manager = ConsumableInventoryManager.Instance;
+        if (manager == null ||
+            (manager.EnergyDrinkStock > 0 && manager.SnackStock > 0))
+        {
+            return;
+        }
+
+        string product = manager.EnergyDrinkStock <= 0 && manager.SnackStock <= 0
+            ? "энергетики и снеки"
+            : manager.EnergyDrinkStock <= 0 ? "энергетики" : "снеки";
+        warnings.Add(new HUDWarningData(
+            HUDWarningType.EmptyInventory,
+            $"Закончились товары: {product}",
+            50
+        ));
+    }
+
+    private void AddInternetWarning()
+    {
+        ClubRandomEventManager manager = ClubRandomEventManager.Instance;
+        if (manager == null || !manager.IsInternetUnavailable)
+        {
+            return;
+        }
+
+        warnings.Add(new HUDWarningData(
+            HUDWarningType.InternetOutage,
+            "Интернет недоступен — новые сессии не запускаются",
+            90
+        ));
+    }
+
+    private void AddBankruptcyWarning()
+    {
+        BankruptcyManager manager = BankruptcyManager.Instance;
+        EconomyManager economy = EconomyManager.Instance;
+        if (manager == null || economy == null ||
+            (manager.ConsecutiveDebtDays <= 0 &&
+             economy.Money > manager.BankruptcyThreshold))
+        {
+            return;
+        }
+
+        warnings.Add(new HUDWarningData(
+            HUDWarningType.BankruptcyRisk,
+            $"Высокий риск банкротства: баланс {economy.Money:N0} ₽ · " +
+            $"{manager.ConsecutiveDebtDays}/{manager.ConsecutiveDebtDaysToLose} дней",
+            100
+        ));
     }
 
     private void OnInteractionPromptChanged(string prompt)
@@ -1261,15 +997,10 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             return;
         }
 
-        bool shouldShow = !GameplayInputState.IsBlocked &&
+        bool visible = !GameplayInputState.IsBlocked &&
             !string.IsNullOrWhiteSpace(currentInteractionPrompt);
-
-        if (interactionPromptPanel.activeSelf != shouldShow)
-        {
-            interactionPromptPanel.SetActive(shouldShow);
-        }
-
-        if (shouldShow)
+        interactionPromptPanel.SetActive(visible);
+        if (visible)
         {
             interactionPromptText.text = currentInteractionPrompt;
         }
@@ -1279,6 +1010,8 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     {
         referenceResolution.x = Mathf.Max(640f, referenceResolution.x);
         referenceResolution.y = Mathf.Max(360f, referenceResolution.y);
-        fontSize = Mathf.Max(12, fontSize);
+        hudWidth = Mathf.Clamp(hudWidth, 400f, referenceResolution.x * 0.3f);
+        compactFontSize = Mathf.Max(14, compactFontSize);
+        expandedFontSize = Mathf.Max(12, expandedFontSize);
     }
 }

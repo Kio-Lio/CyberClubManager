@@ -56,6 +56,7 @@ public sealed class ClientSpawner : MonoBehaviour
     private Sprite generatedClientSprite;
 
     public int WaitingClientCount => waitingClients.Count;
+    public int MaxQueueSize => maxQueueSize;
 
     public event Action QueueChanged;
 
@@ -110,6 +111,7 @@ public sealed class ClientSpawner : MonoBehaviour
         spawnInterval = Mathf.Max(0.1f, spawnInterval);
         minSpawnInterval = Mathf.Max(0.1f, minSpawnInterval);
         maxSpawnInterval = Mathf.Max(minSpawnInterval, maxSpawnInterval);
+        maxQueueSize = Mathf.Max(1, maxQueueSize);
         regularPatience = Mathf.Max(1f, regularPatience);
         gamerPatience = Mathf.Max(1f, gamerPatience);
         vipPatience = Mathf.Max(1f, vipPatience);
