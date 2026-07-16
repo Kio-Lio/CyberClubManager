@@ -34,12 +34,19 @@ public static class GameplayInputState
             bool researchPanelBlocksInput =
                 ClubResearchPanel.Instance != null &&
                 ClubResearchPanel.Instance.IsOpen;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            bool qaPanelBlocksInput =
+                PrereleaseQAPanel.Instance != null &&
+                PrereleaseQAPanel.Instance.IsOpen;
+#else
+            const bool qaPanelBlocksInput = false;
+#endif
 
             return pauseBlocksInput || maintenanceBlocksInput ||
                 pricingBlocksInput || stockPanelBlocksInput || reportBlocksInput ||
                 marketingBlocksInput || analyticsBlocksInput ||
                 randomEventPanelBlocksInput || internetPanelBlocksInput ||
-                researchPanelBlocksInput;
+                researchPanelBlocksInput || qaPanelBlocksInput;
         }
     }
 }

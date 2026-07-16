@@ -216,6 +216,13 @@ public sealed class GameDayManager : MonoBehaviour
         expensesAtDayStart = EconomyManager.Instance.TotalExpenses;
     }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    public void QACompleteCurrentDay()
+    {
+        CompleteDay();
+    }
+#endif
+
     private void OnValidate()
     {
         dayDuration = Mathf.Max(1f, dayDuration);

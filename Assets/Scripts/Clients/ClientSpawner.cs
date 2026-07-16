@@ -330,6 +330,19 @@ public sealed class ClientSpawner : MonoBehaviour
         return count;
     }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    public void QASpawnClient(ClientType clientType)
+    {
+        bool previousForce = forceClientType;
+        ClientType previousType = forcedClientType;
+        forceClientType = true;
+        forcedClientType = clientType;
+        TrySpawnClient();
+        forceClientType = previousForce;
+        forcedClientType = previousType;
+    }
+#endif
+
     private PC FindBestAvailablePC(Client client)
     {
         if (client == null)

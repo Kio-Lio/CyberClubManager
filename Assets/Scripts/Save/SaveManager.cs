@@ -206,6 +206,17 @@ public class SaveManager : MonoBehaviour
             return false;
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (PrereleaseQAPanel.Instance != null &&
+            PrereleaseQAPanel.Instance.IsTaintedByDebugActions)
+        {
+            Debug.LogWarning(
+                "Сохранение отключено: использовались инструменты тестирования"
+            );
+            return false;
+        }
+#endif
+
         if (!CanSave())
         {
             Debug.LogWarning(
@@ -446,15 +457,6 @@ public class SaveManager : MonoBehaviour
             data.totalExpenses
         );
 
-        ClubReputationManager.Instance.RestoreState(
-            data.reputation,
-            data.servedClients,
-            data.lostClients,
-            data.excellentClients,
-            data.normalClients,
-            data.poorClients
-        );
-
         if (data.version >= 18)
         {
             FirstDayTutorialManager.Instance.RestoreState(
@@ -493,6 +495,17 @@ public class SaveManager : MonoBehaviour
             data.dailyGoalServedBaseline,
             data.dailyGoalIncomeBaseline,
             data.dailyGoalCompleted
+        );
+
+        // Restore goal state before reputation publishes StatusChanged. Otherwise
+        // the scene's previous goal can complete during loading and pay twice.
+        ClubReputationManager.Instance.RestoreState(
+            data.reputation,
+            data.servedClients,
+            data.lostClients,
+            data.excellentClients,
+            data.normalClients,
+            data.poorClients
         );
 
         BankruptcyManager.Instance.RestoreState(data.consecutiveDebtDays);
