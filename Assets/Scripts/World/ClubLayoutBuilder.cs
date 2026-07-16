@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public sealed class ClubLayoutBuilder : MonoBehaviour
 {
@@ -61,6 +62,11 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void CreateRuntimeLayout()
     {
+        if (SceneManager.GetActiveScene().name != "SampleScene")
+        {
+            return;
+        }
+
         EnsureRuntimeLayout();
     }
 

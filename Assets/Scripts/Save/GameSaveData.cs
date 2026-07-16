@@ -6,6 +6,12 @@ public class GameSaveData
 {
     public int version = 1;
 
+    public string savedAtUtc;
+    public int savedDay;
+    public int savedBalance;
+    public int savedClubLevel;
+    public int savedReputation;
+
     public int money;
     public int totalIncome;
     public int totalExpenses;

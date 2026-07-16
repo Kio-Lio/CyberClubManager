@@ -21,7 +21,7 @@ public sealed class PauseMenuController : MonoBehaviour
     private float widthHeightMatch = 0.5f;
 
     [Header("Menu Settings")]
-    [SerializeField] private Vector2 menuSize = new Vector2(580f, 620f);
+    [SerializeField] private Vector2 menuSize = new Vector2(580f, 690f);
     [SerializeField] private int titleFontSize = 32;
     [SerializeField] private int textFontSize = 22;
     [SerializeField] private int buttonFontSize = 22;
@@ -29,6 +29,8 @@ public sealed class PauseMenuController : MonoBehaviour
     private bool isMenuOpen;
     private bool isGameOverMode;
     private bool confirmNewGame;
+    private bool confirmMainMenu;
+    private bool isSceneTransitioning;
 
     private bool cursorStateCaptured;
     private bool previousCursorVisible;
@@ -38,6 +40,7 @@ public sealed class PauseMenuController : MonoBehaviour
     private GameObject pauseCanvasObject;
     private GameObject menuRoot;
     private GameObject confirmationPanel;
+    private GameObject mainMenuConfirmationPanel;
 
     private Text titleText;
     private Text gameOverInformationText;
@@ -46,9 +49,13 @@ public sealed class PauseMenuController : MonoBehaviour
     private Button continueButton;
     private Button saveButton;
     private Button newGameButton;
+    private Button mainMenuButton;
     private Button quitButton;
     private Button confirmNewGameButton;
     private Button cancelNewGameButton;
+    private Button saveAndReturnButton;
+    private Button returnWithoutSavingButton;
+    private Button cancelMainMenuButton;
 
     private Font runtimeFont;
 
@@ -191,6 +198,12 @@ public sealed class PauseMenuController : MonoBehaviour
             return;
         }
 
+        if (confirmMainMenu)
+        {
+            HideMainMenuConfirmation();
+            return;
+        }
+
         SetMenuOpen(!isMenuOpen);
     }
 
@@ -223,6 +236,7 @@ public sealed class PauseMenuController : MonoBehaviour
 
         isMenuOpen = shouldOpen;
         confirmNewGame = false;
+        confirmMainMenu = false;
 
         if (isMenuOpen)
         {
@@ -267,6 +281,7 @@ public sealed class PauseMenuController : MonoBehaviour
         statusText.text = string.Empty;
         statusMessageUntil = 0f;
         SetNewGameConfirmationVisible(false);
+        SetMainMenuConfirmationVisible(false);
     }
 
     private void RefreshGameOverInformation()
@@ -315,6 +330,7 @@ public sealed class PauseMenuController : MonoBehaviour
 
     private void ShowNewGameConfirmation()
     {
+        SetMainMenuConfirmationVisible(false);
         confirmNewGame = true;
         SetNewGameConfirmationVisible(true);
         StartCoroutine(SelectDefaultButtonNextFrame());
@@ -350,7 +366,110 @@ public sealed class PauseMenuController : MonoBehaviour
             return;
         }
 
-        SaveManager.Instance.StartNewGame();
+        if (!SaveManager.DeleteSaveFile())
+        {
+            ShowStatusMessage("Не удалось удалить сохранение.");
+            return;
+        }
+
+        isSceneTransitioning = true;
+        SceneTransitionLoader.CloseGameplayPanels();
+        isMenuOpen = false;
+        SetCanvasVisible(false);
+        Time.timeScale = 1f;
+        StartCoroutine(
+            SceneTransitionLoader.LoadSceneAsync(
+                SceneTransitionLoader.GameSceneName
+            )
+        );
+    }
+
+    private void ShowMainMenuConfirmation()
+    {
+        if (isSceneTransitioning)
+        {
+            return;
+        }
+
+        if (isGameOverMode)
+        {
+            ReturnToMainMenu(false);
+            return;
+        }
+
+        SetNewGameConfirmationVisible(false);
+        SetMainMenuConfirmationVisible(true);
+        StartCoroutine(SelectDefaultButtonNextFrame());
+    }
+
+    private void HideMainMenuConfirmation()
+    {
+        SetMainMenuConfirmationVisible(false);
+        StartCoroutine(SelectDefaultButtonNextFrame());
+    }
+
+    private void SaveAndReturnToMainMenu()
+    {
+        if (SaveManager.Instance == null ||
+            !SaveManager.Instance.TrySaveGame())
+        {
+            ShowStatusMessage("Не удалось сохранить игру.");
+            return;
+        }
+
+        ReturnToMainMenu(false);
+    }
+
+    private void ReturnWithoutSaving()
+    {
+        ReturnToMainMenu(false);
+    }
+
+    private void ReturnToMainMenu(bool saveBeforeLeaving)
+    {
+        if (isSceneTransitioning)
+        {
+            return;
+        }
+
+        if (saveBeforeLeaving && SaveManager.Instance != null &&
+            !SaveManager.Instance.TrySaveGame())
+        {
+            ShowStatusMessage("Не удалось сохранить игру.");
+            return;
+        }
+
+        isSceneTransitioning = true;
+        confirmMainMenu = false;
+        confirmNewGame = false;
+        SceneTransitionLoader.CloseGameplayPanels();
+        isMenuOpen = false;
+        SetCanvasVisible(false);
+        Time.timeScale = 1f;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+        StartCoroutine(
+            SceneTransitionLoader.LoadSceneAsync(
+                SceneTransitionLoader.MainMenuSceneName
+            )
+        );
+    }
+
+    private void SetMainMenuConfirmationVisible(bool shouldShow)
+    {
+        confirmMainMenu = shouldShow;
+
+        if (mainMenuConfirmationPanel != null)
+        {
+            mainMenuConfirmationPanel.SetActive(shouldShow);
+        }
+
+        bool showActions = !shouldShow;
+        continueButton?.gameObject.SetActive(showActions && !isGameOverMode);
+        saveButton?.gameObject.SetActive(showActions && !isGameOverMode);
+        newGameButton?.gameObject.SetActive(showActions);
+        mainMenuButton?.gameObject.SetActive(showActions);
+        quitButton?.gameObject.SetActive(showActions);
     }
 
     private void QuitGame()
@@ -389,11 +508,13 @@ public sealed class PauseMenuController : MonoBehaviour
             yield break;
         }
 
-        Button targetButton = confirmNewGame
-            ? cancelNewGameButton
-            : isGameOverMode
-                ? newGameButton
-                : continueButton;
+        Button targetButton = confirmMainMenu
+            ? cancelMainMenuButton
+            : confirmNewGame
+                ? cancelNewGameButton
+                : isGameOverMode
+                    ? newGameButton
+                    : continueButton;
 
         if (targetButton == null || !targetButton.gameObject.activeInHierarchy)
         {
@@ -427,6 +548,7 @@ public sealed class PauseMenuController : MonoBehaviour
         scaler.referenceResolution = referenceResolution;
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         scaler.matchWidthOrHeight = widthHeightMatch;
+        GameUserSettings.ApplyCanvasScale(scaler, referenceResolution);
 
         CreateMenuRoot();
     }
@@ -507,6 +629,14 @@ public sealed class PauseMenuController : MonoBehaviour
 
         confirmationPanel = CreateConfirmationPanel(panelObject.transform);
 
+        mainMenuButton = CreateButton(
+            "MainMenuButton", "ГЛАВНОЕ МЕНЮ", panelObject.transform
+        );
+        mainMenuButton.onClick.AddListener(ShowMainMenuConfirmation);
+
+        mainMenuConfirmationPanel =
+            CreateMainMenuConfirmationPanel(panelObject.transform);
+
         quitButton = CreateButton(
             "QuitButton", "Выйти из игры", panelObject.transform
         );
@@ -576,6 +706,62 @@ public sealed class PauseMenuController : MonoBehaviour
             "CancelNewGameButton", "Отмена", buttonsRow.transform
         );
         cancelNewGameButton.onClick.AddListener(HideNewGameConfirmation);
+
+        panelObject.SetActive(false);
+        return panelObject;
+    }
+
+    private GameObject CreateMainMenuConfirmationPanel(Transform parent)
+    {
+        GameObject panelObject = new GameObject(
+            "MainMenuConfirmationPanel",
+            typeof(RectTransform),
+            typeof(VerticalLayoutGroup),
+            typeof(LayoutElement)
+        );
+        panelObject.transform.SetParent(parent, false);
+
+        LayoutElement panelLayout = panelObject.GetComponent<LayoutElement>();
+        panelLayout.preferredHeight = 260f;
+
+        VerticalLayoutGroup verticalLayout =
+            panelObject.GetComponent<VerticalLayoutGroup>();
+        verticalLayout.spacing = 8f;
+        verticalLayout.childAlignment = TextAnchor.MiddleCenter;
+        verticalLayout.childControlWidth = true;
+        verticalLayout.childControlHeight = true;
+        verticalLayout.childForceExpandWidth = true;
+        verticalLayout.childForceExpandHeight = false;
+
+        CreateLabel(
+            "MainMenuConfirmationText",
+            panelObject.transform,
+            "Сохранить прогресс перед выходом в главное меню?",
+            20,
+            58f,
+            FontStyle.Bold
+        );
+
+        saveAndReturnButton = CreateButton(
+            "SaveAndReturnButton",
+            "СОХРАНИТЬ И ВЫЙТИ",
+            panelObject.transform
+        );
+        saveAndReturnButton.onClick.AddListener(SaveAndReturnToMainMenu);
+
+        returnWithoutSavingButton = CreateButton(
+            "ReturnWithoutSavingButton",
+            "ВЫЙТИ БЕЗ СОХРАНЕНИЯ",
+            panelObject.transform
+        );
+        returnWithoutSavingButton.onClick.AddListener(ReturnWithoutSaving);
+
+        cancelMainMenuButton = CreateButton(
+            "CancelMainMenuButton",
+            "ОТМЕНА",
+            panelObject.transform
+        );
+        cancelMainMenuButton.onClick.AddListener(HideMainMenuConfirmation);
 
         panelObject.SetActive(false);
         return panelObject;

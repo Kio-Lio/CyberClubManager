@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public sealed class ClientNavigationManager : MonoBehaviour
 {
@@ -44,6 +45,11 @@ public sealed class ClientNavigationManager : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void CreateRuntimeGraph()
     {
+        if (SceneManager.GetActiveScene().name != "SampleScene")
+        {
+            return;
+        }
+
         EnsureRuntimeGraph();
     }
 

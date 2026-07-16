@@ -106,6 +106,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         scaler.referenceResolution = referenceResolution;
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         scaler.matchWidthOrHeight = widthHeightMatch;
+        GameUserSettings.ApplyCanvasScale(scaler, referenceResolution);
 
         if (GetComponent<GraphicRaycaster>() == null)
         {

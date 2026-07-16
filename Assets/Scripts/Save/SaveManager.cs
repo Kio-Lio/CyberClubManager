@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Globalization;
 using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -8,14 +9,96 @@ public class SaveManager : MonoBehaviour
 {
     public static SaveManager Instance { get; private set; }
 
-    private const int CurrentSaveVersion = 18;
+    private const int CurrentSaveVersion = 19;
     private const string SaveFileName = "cyber_club_save.json";
 
     private bool suppressSaving;
     private Coroutine pendingSaveCoroutine;
 
-    private string SavePath =>
-        Path.Combine(Application.persistentDataPath, SaveFileName);
+    private string SavePath => GetSavePath();
+
+    private static string GetSavePath()
+    {
+        return Path.Combine(Application.persistentDataPath, SaveFileName);
+    }
+
+    public static bool HasSaveFile()
+    {
+        return File.Exists(GetSavePath());
+    }
+
+    public static GameSaveSummary TryReadSaveSummary()
+    {
+        GameSaveSummary summary = new GameSaveSummary();
+        string savePath = GetSavePath();
+
+        if (!File.Exists(savePath))
+        {
+            return summary;
+        }
+
+        try
+        {
+            string json = File.ReadAllText(savePath);
+            GameSaveData data = JsonUtility.FromJson<GameSaveData>(json);
+
+            if (data == null || data.version <= 0 ||
+                data.version > CurrentSaveVersion)
+            {
+                return summary;
+            }
+
+            bool hasMetadata = data.version >= 19;
+            summary.day = hasMetadata ? data.savedDay : data.currentDay;
+            summary.balance = hasMetadata ? data.savedBalance : data.money;
+            summary.clubLevel = hasMetadata
+                ? data.savedClubLevel
+                : data.clubLevel;
+            summary.reputation = hasMetadata
+                ? data.savedReputation
+                : data.reputation;
+
+            if (!DateTime.TryParse(
+                    data.savedAtUtc,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.RoundtripKind,
+                    out DateTime savedAtUtc))
+            {
+                savedAtUtc = File.GetLastWriteTimeUtc(savePath);
+            }
+
+            summary.savedAt = savedAtUtc.ToLocalTime();
+            summary.isValid = summary.day > 0 && summary.clubLevel > 0;
+            return summary;
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning(
+                $"Save summary could not be read: {exception.Message}"
+            );
+            return summary;
+        }
+    }
+
+    public static bool DeleteSaveFile()
+    {
+        string savePath = GetSavePath();
+
+        try
+        {
+            if (File.Exists(savePath))
+            {
+                File.Delete(savePath);
+            }
+
+            return !File.Exists(savePath);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError($"Could not delete save file: {exception.Message}");
+            return false;
+        }
+    }
 
     private void Awake()
     {
@@ -207,6 +290,11 @@ public class SaveManager : MonoBehaviour
         GameSaveData data = new GameSaveData
         {
             version = CurrentSaveVersion,
+            savedAtUtc = DateTime.UtcNow.ToString("O"),
+            savedDay = gameDay.CurrentDay,
+            savedBalance = economy.Money,
+            savedClubLevel = progression.Level,
+            savedReputation = reputation.Reputation,
             money = economy.Money,
             totalIncome = economy.TotalIncome,
             totalExpenses = economy.TotalExpenses,
