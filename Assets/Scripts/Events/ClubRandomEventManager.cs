@@ -179,9 +179,10 @@ public sealed class ClubRandomEventManager : MonoBehaviour
                 StartDayEvent(eventType, "Наплыв посетителей: поток клиентов увеличен.");
                 break;
             case ClubRandomEventType.InternetOutage:
-                activeEvent.eventType = eventType;
-                activeEvent.remainingSeconds = internetOutageDuration;
-                lastEventMessage = $"Сбой интернета на {internetOutageDuration:F0} сек.";
+                ConfigureInternetOutage(
+                    internetOutageDuration,
+                    "Сбой интернет-линии."
+                );
                 break;
             case ClubRandomEventType.PowerSurge:
                 ApplyPowerSurge();
@@ -198,8 +199,35 @@ public sealed class ClubRandomEventManager : MonoBehaviour
         }
 
         Debug.Log(lastEventMessage);
-        StatusChanged?.Invoke();
         EventTriggered?.Invoke(eventType, lastEventMessage);
+        StatusChanged?.Invoke();
+    }
+
+    public bool TriggerInternetOutage(float duration, string sourceMessage)
+    {
+        if (HasActiveEvent)
+        {
+            return false;
+        }
+
+        ConfigureInternetOutage(duration, sourceMessage);
+        Debug.Log(lastEventMessage);
+        EventTriggered?.Invoke(
+            ClubRandomEventType.InternetOutage,
+            lastEventMessage
+        );
+        StatusChanged?.Invoke();
+        return true;
+    }
+
+    private void ConfigureInternetOutage(float duration, string sourceMessage)
+    {
+        activeEvent.eventType = ClubRandomEventType.InternetOutage;
+        activeEvent.remainingSeconds = Mathf.Max(1f, duration);
+        activeEvent.remainingDays = 0;
+        lastEventMessage =
+            $"{sourceMessage} Интернет недоступен " +
+            $"{activeEvent.remainingSeconds:F0} сек.";
     }
 
     private void StartDayEvent(ClubRandomEventType eventType, string message)

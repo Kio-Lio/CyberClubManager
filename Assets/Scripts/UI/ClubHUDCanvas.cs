@@ -20,6 +20,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private Text pricingText;
     private Text consumableStockText;
     private Text marketingText;
+    private Text internetProviderText;
     private Text randomEventText;
     private Text demandAnalyticsText;
     private Text clubLevelText;
@@ -157,6 +158,10 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         pricingText = CreateInformationLine("PricingText", panelTransform);
         consumableStockText = CreateInformationLine("ConsumableStockText", panelTransform);
         marketingText = CreateInformationLine("MarketingText", panelTransform);
+        internetProviderText = CreateInformationLine(
+            "InternetProviderText",
+            panelTransform
+        );
         randomEventText = CreateInformationLine("RandomEventText", panelTransform);
         demandAnalyticsText = CreateInformationLine(
             "DemandAnalyticsText",
@@ -377,6 +382,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             ClubRandomEventManager.Instance.StatusChanged += RefreshRandomEvent;
         }
 
+        if (InternetProviderManager.Instance != null)
+        {
+            InternetProviderManager.Instance.StatusChanged += RefreshInternetProvider;
+        }
+
         PC.PCRegistered += RegisterPC;
         PC.PCUnregistered += UnregisterPC;
     }
@@ -467,6 +477,11 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         if (ClubRandomEventManager.Instance != null)
         {
             ClubRandomEventManager.Instance.StatusChanged -= RefreshRandomEvent;
+        }
+
+        if (InternetProviderManager.Instance != null)
+        {
+            InternetProviderManager.Instance.StatusChanged -= RefreshInternetProvider;
         }
 
         PC.PCRegistered -= RegisterPC;
@@ -575,6 +590,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         RefreshLastFinancialReport();
         RefreshConsumableStock();
         RefreshMarketing();
+        RefreshInternetProvider();
         RefreshRandomEvent();
         RefreshDemandAnalytics();
         RefreshClubProgression();
@@ -710,6 +726,28 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         {
             RefreshRandomEvent();
         }
+    }
+
+    private void RefreshInternetProvider()
+    {
+        if (internetProviderText == null)
+        {
+            return;
+        }
+
+        InternetProviderManager manager = InternetProviderManager.Instance;
+        InternetPlanDefinition plan = manager?.GetActivePlan();
+        if (plan == null)
+        {
+            internetProviderText.text = "Интернет: недоступен";
+            return;
+        }
+
+        internetProviderText.text =
+            $"Интернет: {plan.DisplayName} | " +
+            $"×{plan.SessionSpeedMultiplier:F2} | " +
+            $"{plan.DailyCost} ₽/день | " +
+            $"надежность {plan.Reliability * 100f:F1}%";
     }
 
     private void RefreshRandomEvent()

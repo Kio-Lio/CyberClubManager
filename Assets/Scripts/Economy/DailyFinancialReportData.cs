@@ -16,10 +16,12 @@ public sealed class DailyFinancialReportData
     public int consumableRestockExpenses;
     public int marketingExpenses;
     public int randomEventExpenses;
+    public int internetSubscriptionExpenses;
     public int pcUpgradeExpenses;
     public int expansionExpenses;
     public int roomUnlockExpenses;
     public int staffHireExpenses;
+    public int internetConnectionExpenses;
     public int otherExpenses;
 
     public int Revenue => sessionRevenue + consumableRevenue + otherIncome;
@@ -27,9 +29,11 @@ public sealed class DailyFinancialReportData
     public int OperatingExpenses =>
         fixedOperatingExpenses + electricityExpenses + staffSalaryExpenses +
         pcRepairExpenses + equipmentRepairExpenses + consumableRestockExpenses +
-        marketingExpenses + randomEventExpenses + otherExpenses;
+        marketingExpenses + randomEventExpenses + internetSubscriptionExpenses +
+        otherExpenses;
     public int InvestmentExpenses =>
-        pcUpgradeExpenses + expansionExpenses + roomUnlockExpenses + staffHireExpenses;
+        pcUpgradeExpenses + expansionExpenses + roomUnlockExpenses +
+        staffHireExpenses + internetConnectionExpenses;
     public int TotalExpenses => OperatingExpenses + InvestmentExpenses;
     public int NetCashChange => Revenue + Bonuses - TotalExpenses;
 
@@ -53,10 +57,12 @@ public sealed class DailyFinancialReportData
         consumableRestockExpenses = 0;
         marketingExpenses = 0;
         randomEventExpenses = 0;
+        internetSubscriptionExpenses = 0;
         pcUpgradeExpenses = 0;
         expansionExpenses = 0;
         roomUnlockExpenses = 0;
         staffHireExpenses = 0;
+        internetConnectionExpenses = 0;
         otherExpenses = 0;
     }
 }

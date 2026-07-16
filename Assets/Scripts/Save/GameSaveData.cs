@@ -58,6 +58,7 @@ public class GameSaveData
     public DemandAnalyticsReportData lastDemandAnalytics;
     public ClubRandomEventState activeRandomEvent;
     public bool randomEventRolledForCurrentDay;
+    public InternetPlanType activeInternetPlan;
 }
 
 [Serializable]

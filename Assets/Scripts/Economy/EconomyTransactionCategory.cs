@@ -15,9 +15,11 @@ public enum EconomyTransactionCategory
     ConsumableRestock,
     MarketingExpense,
     RandomEventExpense,
+    InternetSubscription,
 
     PCUpgrade,
     ExpansionPurchase,
     RoomUnlock,
-    StaffHire
+    StaffHire,
+    InternetConnection
 }

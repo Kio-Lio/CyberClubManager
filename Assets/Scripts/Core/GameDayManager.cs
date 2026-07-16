@@ -78,8 +78,9 @@ public sealed class GameDayManager : MonoBehaviour
             out int electricityCost,
             out int staffCost
         );
-        int operatingExpenses = fixedOperatingCost + electricityCost + staffCost;
-
+        int internetCost = InternetProviderManager.Instance != null
+            ? InternetProviderManager.Instance.GetDailyCost()
+            : 0;
         if (EconomyManager.Instance != null)
         {
             EconomyManager.Instance.ApplyMandatoryExpense(
@@ -94,6 +95,13 @@ public sealed class GameDayManager : MonoBehaviour
                 staffCost,
                 EconomyTransactionCategory.StaffSalary
             );
+            if (internetCost > 0)
+            {
+                EconomyManager.Instance.ApplyMandatoryExpense(
+                    internetCost,
+                    EconomyTransactionCategory.InternetSubscription
+                );
+            }
         }
         else
         {
@@ -133,7 +141,10 @@ public sealed class GameDayManager : MonoBehaviour
             out int electricityCost,
             out int staffCost
         );
-        return fixedOperatingCost + electricityCost + staffCost;
+        int internetCost = InternetProviderManager.Instance != null
+            ? InternetProviderManager.Instance.GetDailyCost()
+            : 0;
+        return fixedOperatingCost + electricityCost + staffCost + internetCost;
     }
 
     private void CalculateOperatingExpenseBreakdown(

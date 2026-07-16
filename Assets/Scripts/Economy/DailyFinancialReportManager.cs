@@ -101,10 +101,12 @@ public sealed class DailyFinancialReportManager : MonoBehaviour
             case EconomyTransactionCategory.ConsumableRestock: currentReport.consumableRestockExpenses += amount; break;
             case EconomyTransactionCategory.MarketingExpense: currentReport.marketingExpenses += amount; break;
             case EconomyTransactionCategory.RandomEventExpense: currentReport.randomEventExpenses += amount; break;
+            case EconomyTransactionCategory.InternetSubscription: currentReport.internetSubscriptionExpenses += amount; break;
             case EconomyTransactionCategory.PCUpgrade: currentReport.pcUpgradeExpenses += amount; break;
             case EconomyTransactionCategory.ExpansionPurchase: currentReport.expansionExpenses += amount; break;
             case EconomyTransactionCategory.RoomUnlock: currentReport.roomUnlockExpenses += amount; break;
             case EconomyTransactionCategory.StaffHire: currentReport.staffHireExpenses += amount; break;
+            case EconomyTransactionCategory.InternetConnection: currentReport.internetConnectionExpenses += amount; break;
             default: currentReport.otherExpenses += amount; break;
         }
 

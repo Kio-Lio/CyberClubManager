@@ -453,9 +453,21 @@ public class PC : MonoBehaviour, IInteractable
 
     private IEnumerator SessionTimer()
     {
-        Debug.Log($"Игровая сессия началась. Длительность: {sessionDuration} секунд.");
-        yield return new WaitForSeconds(sessionDuration);
+        float effectiveDuration = GetEffectiveSessionDuration();
+        Debug.Log(
+            $"Игровая сессия началась. Длительность: " +
+            $"{effectiveDuration:F2} секунд."
+        );
+        yield return new WaitForSeconds(effectiveDuration);
         CompleteSession();
+    }
+
+    private float GetEffectiveSessionDuration()
+    {
+        float speedMultiplier = InternetProviderManager.Instance != null
+            ? InternetProviderManager.Instance.GetSessionSpeedMultiplier()
+            : 1f;
+        return sessionDuration / Mathf.Max(0.1f, speedMultiplier);
     }
 
     private void CompleteSession()

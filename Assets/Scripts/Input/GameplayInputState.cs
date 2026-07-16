@@ -28,11 +28,14 @@ public static class GameplayInputState
             bool randomEventPanelBlocksInput =
                 ClubRandomEventPanel.Instance != null &&
                 ClubRandomEventPanel.Instance.IsOpen;
+            bool internetPanelBlocksInput =
+                InternetProviderPanel.Instance != null &&
+                InternetProviderPanel.Instance.IsOpen;
 
             return pauseBlocksInput || maintenanceBlocksInput ||
                 pricingBlocksInput || stockPanelBlocksInput || reportBlocksInput ||
                 marketingBlocksInput || analyticsBlocksInput ||
-                randomEventPanelBlocksInput;
+                randomEventPanelBlocksInput || internetPanelBlocksInput;
         }
     }
 }

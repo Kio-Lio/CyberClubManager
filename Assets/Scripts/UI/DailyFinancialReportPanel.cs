@@ -130,12 +130,14 @@ public sealed class DailyFinancialReportPanel : MonoBehaviour
             $"Equipment repair: {report.equipmentRepairExpenses} RUB\n" +
             $"Restocking: {report.consumableRestockExpenses} RUB\n" +
             $"Marketing: {report.marketingExpenses} RUB\n" +
-            $"Случайные события: {report.randomEventExpenses} ₽\n\n" +
+            $"Случайные события: {report.randomEventExpenses} ₽\n" +
+            $"Интернет: {report.internetSubscriptionExpenses} ₽\n\n" +
             "INVESTMENTS\n" +
             $"Upgrades: {report.pcUpgradeExpenses} RUB\n" +
             $"Expansion: {report.expansionExpenses} RUB\n" +
             $"Rooms: {report.roomUnlockExpenses} RUB\n" +
-            $"Staff hiring: {report.staffHireExpenses} RUB\n\n" +
+            $"Staff hiring: {report.staffHireExpenses} RUB\n" +
+            $"Подключение тарифа: {report.internetConnectionExpenses} ₽\n\n" +
             $"Balance change: {prefix}{report.NetCashChange} RUB";
     }
 
