@@ -35,6 +35,12 @@ public sealed class InternetProviderManager : MonoBehaviour
 
     private void Update()
     {
+        if (FirstDayTutorialManager.Instance != null &&
+            FirstDayTutorialManager.Instance.SuppressProviderFailures)
+        {
+            return;
+        }
+
         reliabilityTimer -= Time.deltaTime;
         if (reliabilityTimer > 0f)
         {

@@ -78,6 +78,12 @@ public sealed class PricingManager : MonoBehaviour
         SetPricePercentInternal(tier, newPercent);
         Debug.Log($"Tariff {tier}: {newPercent}%.");
         StatusChanged?.Invoke();
+        if (tier == PCTier.Basic && GetPricePercent(PCTier.Basic) == 110)
+        {
+            FirstDayTutorialManager.Instance?.ReportAction(
+                TutorialStepType.ChangeBasicPrice
+            );
+        }
         return true;
     }
 

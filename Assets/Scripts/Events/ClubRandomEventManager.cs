@@ -75,6 +75,12 @@ public sealed class ClubRandomEventManager : MonoBehaviour
 
     private void Update()
     {
+        if (FirstDayTutorialManager.Instance != null &&
+            FirstDayTutorialManager.Instance.SuppressRandomEvents)
+        {
+            return;
+        }
+
         UpdateTimedEvent();
 
         if (eventRolledForCurrentDay || HasActiveEvent)

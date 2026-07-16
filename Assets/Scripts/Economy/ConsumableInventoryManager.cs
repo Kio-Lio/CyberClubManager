@@ -149,6 +149,12 @@ public sealed class ConsumableInventoryManager : MonoBehaviour
         lastStatusMessage = $"Restocked {GetDisplayName(type)}: {amount} for {cost} RUB.";
         Debug.Log(lastStatusMessage);
         StatusChanged?.Invoke();
+        if (type == ConsumableType.EnergyDrink)
+        {
+            FirstDayTutorialManager.Instance?.ReportAction(
+                TutorialStepType.RestockEnergyDrinks
+            );
+        }
         return true;
     }
 

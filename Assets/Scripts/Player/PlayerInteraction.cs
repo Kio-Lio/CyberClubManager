@@ -107,7 +107,14 @@ public class PlayerInteraction : MonoBehaviour
             nearestCandidate = candidate;
         }
 
+        bool targetChanged = currentBehaviour != nearestCandidate;
         currentBehaviour = nearestCandidate;
+        if (targetChanged && currentBehaviour is PC)
+        {
+            FirstDayTutorialManager.Instance?.ReportAction(
+                TutorialStepType.ApproachPC
+            );
+        }
         RefreshPrompt();
     }
 

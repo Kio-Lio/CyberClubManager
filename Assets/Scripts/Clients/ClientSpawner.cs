@@ -263,6 +263,9 @@ public sealed class ClientSpawner : MonoBehaviour
 
         waitingClients.Add(client);
         QueueChanged?.Invoke();
+        FirstDayTutorialManager.Instance?.ReportAction(
+            TutorialStepType.WaitForFirstClient
+        );
 
         Debug.Log(
             $"{clientObject.name}: в клуб пришел клиент типа " +
@@ -380,6 +383,12 @@ public sealed class ClientSpawner : MonoBehaviour
 
     private ClientType GenerateClientType()
     {
+        if (FirstDayTutorialManager.Instance != null &&
+            FirstDayTutorialManager.Instance.SuppressAdvancedClients)
+        {
+            return ClientType.Regular;
+        }
+
         if (forceClientType)
         {
             return forcedClientType;
@@ -473,6 +482,12 @@ public sealed class ClientSpawner : MonoBehaviour
 
     private int GeneratePriceTolerance(ClientType clientType)
     {
+        if (FirstDayTutorialManager.Instance != null &&
+            FirstDayTutorialManager.Instance.ShouldForceTutorialClient)
+        {
+            return 120;
+        }
+
         if (forcePriceTolerance)
         {
             return Mathf.Max(1, forcedPriceTolerancePercent);

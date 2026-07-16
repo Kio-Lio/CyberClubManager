@@ -108,9 +108,22 @@ public sealed class ClubCleanlinessManager : MonoBehaviour
 
     private void OnPCSessionCompleted(PC pc)
     {
+        bool forceTutorialTrash = FirstDayTutorialManager.Instance != null &&
+            FirstDayTutorialManager.Instance.ShouldForceTutorialTrash;
         if (pc == null || activeTrashItems.Count >= maximumTrashItems ||
             CountTrashForPC(pc.name) >= maximumTrashPerPC ||
-            UnityEngine.Random.value > trashSpawnChance)
+            (!forceTutorialTrash && UnityEngine.Random.value > trashSpawnChance))
+        {
+            return;
+        }
+
+        SpawnTrashForPC(pc);
+    }
+
+    public void EnsureTutorialTrash(PC pc)
+    {
+        if (pc == null || activeTrashItems.Count >= maximumTrashItems ||
+            CountTrashForPC(pc.name) > 0)
         {
             return;
         }
@@ -232,6 +245,9 @@ public sealed class ClubCleanlinessManager : MonoBehaviour
         Destroy(trash.gameObject);
         StatusChanged?.Invoke();
         Debug.Log($"Мусор убран. Чистота клуба: {Cleanliness:F0}%.");
+        FirstDayTutorialManager.Instance?.ReportAction(
+            TutorialStepType.CleanTrash
+        );
         return true;
     }
 

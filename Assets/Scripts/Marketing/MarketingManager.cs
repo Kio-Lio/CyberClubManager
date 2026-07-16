@@ -69,6 +69,14 @@ public sealed class MarketingManager : MonoBehaviour
 
     public bool TryStartCampaign(MarketingCampaignType campaignType)
     {
+        if (FirstDayTutorialManager.Instance != null &&
+            FirstDayTutorialManager.Instance.SuppressMarketingEffects)
+        {
+            lastStatusMessage = "Доступно после обучения.";
+            StatusChanged?.Invoke();
+            return false;
+        }
+
         if (HasActiveCampaign)
         {
             lastStatusMessage = "Wait for the current campaign to finish.";
@@ -115,12 +123,27 @@ public sealed class MarketingManager : MonoBehaviour
 
     public float GetDemandMultiplier()
     {
+        if (FirstDayTutorialManager.Instance != null &&
+            FirstDayTutorialManager.Instance.SuppressMarketingEffects)
+        {
+            return 1f;
+        }
+
         MarketingCampaignDefinition definition = HasActiveCampaign ? GetDefinition(activeCampaign) : null;
         return definition != null ? Mathf.Max(0.1f, definition.DemandMultiplier) : 1f;
     }
 
     public void GetClientWeights(float defaultRegularWeight, float defaultGamerWeight, float defaultVIPWeight, out float regularWeight, out float gamerWeight, out float vipWeight)
     {
+        if (FirstDayTutorialManager.Instance != null &&
+            FirstDayTutorialManager.Instance.SuppressMarketingEffects)
+        {
+            regularWeight = defaultRegularWeight;
+            gamerWeight = defaultGamerWeight;
+            vipWeight = defaultVIPWeight;
+            return;
+        }
+
         MarketingCampaignDefinition definition = HasActiveCampaign ? GetDefinition(activeCampaign) : null;
         if (definition == null)
         {

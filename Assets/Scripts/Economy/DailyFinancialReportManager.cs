@@ -92,6 +92,7 @@ public sealed class DailyFinancialReportManager : MonoBehaviour
             case EconomyTransactionCategory.SessionRevenue: currentReport.sessionRevenue += amount; break;
             case EconomyTransactionCategory.ConsumableRevenue: currentReport.consumableRevenue += amount; break;
             case EconomyTransactionCategory.DailyGoalReward: currentReport.bonusIncome += amount; break;
+            case EconomyTransactionCategory.TutorialReward: currentReport.tutorialRewardIncome += amount; break;
             case EconomyTransactionCategory.OtherIncome: currentReport.otherIncome += amount; break;
             case EconomyTransactionCategory.FixedOperatingCost: currentReport.fixedOperatingExpenses += amount; break;
             case EconomyTransactionCategory.Electricity: currentReport.electricityExpenses += amount; break;

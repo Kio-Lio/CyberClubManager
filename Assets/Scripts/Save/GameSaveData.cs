@@ -60,6 +60,11 @@ public class GameSaveData
     public bool randomEventRolledForCurrentDay;
     public InternetPlanType activeInternetPlan;
     public ClubResearchSaveData[] clubResearch;
+    public bool tutorialStarted;
+    public bool tutorialCompleted;
+    public int tutorialStepIndex;
+    public int tutorialStepProgress;
+    public bool tutorialRepairStepPrepared;
 }
 
 [Serializable]

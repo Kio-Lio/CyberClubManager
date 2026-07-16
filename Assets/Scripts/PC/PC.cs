@@ -498,6 +498,11 @@ public class PC : MonoBehaviour, IInteractable
             ? ClubResearchManager.Instance.GetPCBreakdownMultiplier()
             : 1f;
         float effectiveBreakdownChance = breakdownChance * breakdownMultiplier;
+        if (FirstDayTutorialManager.Instance != null &&
+            FirstDayTutorialManager.Instance.SuppressRandomEvents)
+        {
+            effectiveBreakdownChance = 0f;
+        }
 
         if (UnityEngine.Random.value < effectiveBreakdownChance)
         {
@@ -651,7 +656,29 @@ public class PC : MonoBehaviour, IInteractable
 
     public bool TryRepairEquipment(PCEquipmentType equipmentType)
     {
-        return TryRepairEquipment(GetEquipment(equipmentType));
+        bool repaired = TryRepairEquipment(GetEquipment(equipmentType));
+        if (repaired && equipmentType == PCEquipmentType.Mouse)
+        {
+            FirstDayTutorialManager.Instance?.ReportAction(
+                TutorialStepType.RepairEquipment
+            );
+        }
+        return repaired;
+    }
+
+    public void SetEquipmentCondition(
+        PCEquipmentType equipmentType,
+        float condition)
+    {
+        PCEquipmentCondition equipment = GetEquipment(equipmentType);
+        if (equipment == null)
+        {
+            return;
+        }
+
+        equipment.RestoreCondition(condition);
+        EquipmentChanged?.Invoke();
+        StateChanged?.Invoke(State);
     }
 
     public int GetTotalEquipmentRepairCost()

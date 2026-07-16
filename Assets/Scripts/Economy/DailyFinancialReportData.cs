@@ -7,6 +7,7 @@ public sealed class DailyFinancialReportData
     public int sessionRevenue;
     public int consumableRevenue;
     public int bonusIncome;
+    public int tutorialRewardIncome;
     public int otherIncome;
     public int fixedOperatingExpenses;
     public int electricityExpenses;
@@ -26,7 +27,7 @@ public sealed class DailyFinancialReportData
     public int otherExpenses;
 
     public int Revenue => sessionRevenue + consumableRevenue + otherIncome;
-    public int Bonuses => bonusIncome;
+    public int Bonuses => bonusIncome + tutorialRewardIncome;
     public int OperatingExpenses =>
         fixedOperatingExpenses + electricityExpenses + staffSalaryExpenses +
         pcRepairExpenses + equipmentRepairExpenses + consumableRestockExpenses +
@@ -49,6 +50,7 @@ public sealed class DailyFinancialReportData
         sessionRevenue = 0;
         consumableRevenue = 0;
         bonusIncome = 0;
+        tutorialRewardIncome = 0;
         otherIncome = 0;
         fixedOperatingExpenses = 0;
         electricityExpenses = 0;

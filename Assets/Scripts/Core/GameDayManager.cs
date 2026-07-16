@@ -43,7 +43,23 @@ public sealed class GameDayManager : MonoBehaviour
             return;
         }
 
-        timeRemaining = dayDuration;
+        timeRemaining = GetCurrentDayDuration();
+        SaveEconomySnapshot();
+    }
+
+    public float GetCurrentDayDuration()
+    {
+        bool tutorialDay = FirstDayTutorialManager.Instance != null &&
+            FirstDayTutorialManager.Instance.IsTutorialActive &&
+            CurrentDay == 1;
+        return tutorialDay ? 180f : dayDuration;
+    }
+
+    public void InitializeNewGameDay(bool tutorialDay)
+    {
+        currentDay = 1;
+        timeRemaining = tutorialDay ? 180f : dayDuration;
+        stateRestored = true;
         SaveEconomySnapshot();
     }
 
@@ -54,7 +70,11 @@ public sealed class GameDayManager : MonoBehaviour
         int savedExpensesAtDayStart)
     {
         currentDay = Mathf.Max(1, savedCurrentDay);
-        timeRemaining = Mathf.Clamp(savedTimeRemaining, 0.1f, dayDuration);
+        timeRemaining = Mathf.Clamp(
+            savedTimeRemaining,
+            0.1f,
+            GetCurrentDayDuration()
+        );
         incomeAtDayStart = Mathf.Max(0, savedIncomeAtDayStart);
         expensesAtDayStart = Mathf.Max(0, savedExpensesAtDayStart);
         stateRestored = true;
@@ -125,7 +145,7 @@ public sealed class GameDayManager : MonoBehaviour
         );
 
         currentDay++;
-        timeRemaining = dayDuration;
+        timeRemaining = GetCurrentDayDuration();
 
         DailyFinancialReportManager.Instance?.FinalizeDay(completedDay);
         DemandAnalyticsManager.Instance?.FinalizeDay(completedDay);

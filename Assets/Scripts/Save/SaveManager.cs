@@ -8,7 +8,7 @@ public class SaveManager : MonoBehaviour
 {
     public static SaveManager Instance { get; private set; }
 
-    private const int CurrentSaveVersion = 17;
+    private const int CurrentSaveVersion = 18;
     private const string SaveFileName = "cyber_club_save.json";
 
     private bool suppressSaving;
@@ -30,7 +30,10 @@ public class SaveManager : MonoBehaviour
 
     private void Start()
     {
-        LoadGame();
+        if (!LoadGame())
+        {
+            InitializeNewGameState();
+        }
 
         if (GameDayManager.Instance != null)
         {
@@ -187,7 +190,8 @@ public class SaveManager : MonoBehaviour
                DemandAnalyticsManager.Instance != null &&
                ClubRandomEventManager.Instance != null &&
                InternetProviderManager.Instance != null &&
-               ClubResearchManager.Instance != null;
+               ClubResearchManager.Instance != null &&
+               FirstDayTutorialManager.Instance != null;
     }
 
     private GameSaveData CreateSaveData()
@@ -248,7 +252,13 @@ public class SaveManager : MonoBehaviour
             randomEventRolledForCurrentDay =
                 ClubRandomEventManager.Instance.EventRolledForCurrentDay,
             activeInternetPlan = InternetProviderManager.Instance.ActivePlan,
-            clubResearch = ClubResearchManager.Instance.CreateSaveData()
+            clubResearch = ClubResearchManager.Instance.CreateSaveData(),
+            tutorialStarted = FirstDayTutorialManager.Instance.TutorialStarted,
+            tutorialCompleted = FirstDayTutorialManager.Instance.IsTutorialCompleted,
+            tutorialStepIndex = FirstDayTutorialManager.Instance.CurrentStepIndex,
+            tutorialStepProgress = FirstDayTutorialManager.Instance.CurrentProgress,
+            tutorialRepairStepPrepared =
+                FirstDayTutorialManager.Instance.TutorialRepairStepPrepared
         };
 
         RoomDoor[] roomDoors = FindObjectsByType<RoomDoor>();
@@ -294,12 +304,12 @@ public class SaveManager : MonoBehaviour
         return data;
     }
 
-    private void LoadGame()
+    private bool LoadGame()
     {
         if (!File.Exists(SavePath))
         {
             Debug.Log("Сохранение не найдено. Начата новая игра.");
-            return;
+            return false;
         }
 
         try
@@ -310,7 +320,7 @@ public class SaveManager : MonoBehaviour
             if (data == null)
             {
                 Debug.LogError("Файл сохранения не содержит данных.");
-                return;
+                return false;
             }
 
             if (data.version > CurrentSaveVersion)
@@ -318,15 +328,17 @@ public class SaveManager : MonoBehaviour
                 Debug.LogError(
                     "Сохранение создано более новой версией игры и не может быть загружено."
                 );
-                return;
+                return false;
             }
 
             RestoreGame(data);
             Debug.Log($"Игра загружена: {SavePath}");
+            return true;
         }
         catch (Exception exception)
         {
             Debug.LogError($"Ошибка загрузки игры: {exception.Message}");
+            return false;
         }
     }
 
@@ -355,12 +367,35 @@ public class SaveManager : MonoBehaviour
             data.poorClients
         );
 
+        if (data.version >= 18)
+        {
+            FirstDayTutorialManager.Instance.RestoreState(
+                data.tutorialStarted,
+                data.tutorialCompleted,
+                data.tutorialStepIndex,
+                data.tutorialStepProgress,
+                data.tutorialRepairStepPrepared
+            );
+        }
+        else
+        {
+            FirstDayTutorialManager.Instance.RestoreState(
+                true, true, 0, 0, false
+            );
+        }
+
         GameDayManager.Instance.RestoreState(
             data.currentDay,
             data.timeRemaining,
             data.incomeAtDayStart,
             data.expensesAtDayStart
         );
+        if (data.version >= 18)
+        {
+            FirstDayTutorialManager.Instance.RestoreFirstDayRestrictions(
+                data.currentDay
+            );
+        }
 
         DailyGoalManager.Instance.RestoreState(
             data.activeGoalDay,
@@ -435,6 +470,30 @@ public class SaveManager : MonoBehaviour
         RestorePCEquipment(data);
         ClubCleanlinessManager.Instance.RestoreState(data.trashItems);
         CleanerManager.Instance.RestoreState(data.cleanerHired);
+    }
+
+    private void InitializeNewGameState()
+    {
+        EconomyManager.Instance.RestoreState(1200, 0, 0);
+        ClubReputationManager.Instance.RestoreState(50, 0, 0, 0, 0, 0);
+        ClubProgressionManager.Instance.RestoreState(1, 0);
+        PricingManager.Instance.RestoreState(100, 100, 100);
+        ConsumableInventoryManager.Instance.RestoreState(0, 5, 0, 0, 0);
+        InternetProviderManager.Instance.RestoreState(InternetPlanType.Basic);
+        MarketingManager.Instance.RestoreState(MarketingCampaignType.None, 0);
+        ClubRandomEventManager.Instance.RestoreState(null, false);
+        ClubResearchManager.Instance.RestoreState(null);
+        TechnicianManager.Instance.RestoreState(false);
+        CleanerManager.Instance.RestoreState(false);
+        ClubCleanlinessManager.Instance.RestoreState(null);
+        PCExpansionManager.Instance.RestorePurchasedPCs(0);
+
+        foreach (RoomDoor door in FindObjectsByType<RoomDoor>())
+        {
+            door.RestoreState(false);
+        }
+
+        FirstDayTutorialManager.Instance.StartTutorial();
     }
 
     private static void RestoreRoomDoors(GameSaveData data)

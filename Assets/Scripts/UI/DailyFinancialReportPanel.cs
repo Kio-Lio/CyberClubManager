@@ -95,6 +95,9 @@ public sealed class DailyFinancialReportPanel : MonoBehaviour
         }
 
         RestoreGameplayState();
+        FirstDayTutorialManager.Instance?.ReportAction(
+            TutorialStepType.ReviewFinancialReport
+        );
     }
 
     private void OnReportCompleted(DailyFinancialReportData report)
@@ -121,7 +124,8 @@ public sealed class DailyFinancialReportPanel : MonoBehaviour
             $"Sessions: {report.sessionRevenue} RUB\n" +
             $"Drinks and snacks: {report.consumableRevenue} RUB\n" +
             $"Other revenue: {report.otherIncome} RUB\n" +
-            $"Rewards: {report.Bonuses} RUB\n\n" +
+            $"Daily goal rewards: {report.bonusIncome} RUB\n" +
+            $"Награда за обучение: {report.tutorialRewardIncome} ₽\n\n" +
             "OPERATING EXPENSES\n" +
             $"Club upkeep: {report.fixedOperatingExpenses} RUB\n" +
             $"Electricity: {report.electricityExpenses} RUB\n" +

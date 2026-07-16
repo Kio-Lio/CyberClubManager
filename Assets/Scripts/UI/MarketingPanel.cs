@@ -147,6 +147,12 @@ public sealed class MarketingPanel : MonoBehaviour
             : "Current campaign:\nNone";
         statusText.text = manager.LastStatusMessage;
         int balance = EconomyManager.Instance != null ? EconomyManager.Instance.Money : 0;
+        bool tutorialBlocked = FirstDayTutorialManager.Instance != null &&
+            FirstDayTutorialManager.Instance.SuppressMarketingEffects;
+        if (tutorialBlocked)
+        {
+            statusText.text = "Доступно после обучения";
+        }
 
         for (int i = 0; i < CampaignTypes.Length; i++)
         {
@@ -164,7 +170,8 @@ public sealed class MarketingPanel : MonoBehaviour
                 text.text = $"{definition.DisplayName}\n{activationCost} RUB | {definition.DurationDays} day(s) | demand +{(definition.DemandMultiplier - 1f) * 100f:F0}%";
             }
 
-            button.interactable = !manager.HasActiveCampaign && balance >= activationCost;
+            button.interactable = !tutorialBlocked &&
+                !manager.HasActiveCampaign && balance >= activationCost;
         }
     }
 
