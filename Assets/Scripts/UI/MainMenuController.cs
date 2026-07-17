@@ -16,7 +16,6 @@ public sealed class MainMenuController : MonoBehaviour
         new Vector2(1920f, 1080f);
 
     private Font runtimeFont;
-    private CanvasScaler canvasScaler;
     private Button continueButton;
     private Button newGameButton;
     private Button deleteCorruptedSaveButton;
@@ -64,7 +63,6 @@ public sealed class MainMenuController : MonoBehaviour
         Time.timeScale = 1f;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        GameUserSettings.ApplyDisplayAndAudio();
         EnsureEventSystem();
         BuildInterface();
         RefreshSaveState();
@@ -186,46 +184,53 @@ public sealed class MainMenuController : MonoBehaviour
 
     private void OpenSettings()
     {
-        PopulateSettingsControls();
-        settingsOverlay.SetActive(true);
-        SelectButton("ApplySettingsButton");
+        GameSettingsPanel.Instance?.Open(
+            () => SelectButton("SettingsButton")
+        );
     }
 
     private void CloseSettings()
     {
-        settingsOverlay.SetActive(false);
-        SelectButton("SettingsButton");
+        settingsOverlay?.SetActive(false);
     }
 
     private void ApplySettings()
     {
-        Vector2Int resolution = resolutions[selectedResolutionIndex];
-        GameUserSettings.Save(
-            volumeSlider.value,
-            fullscreenToggle.isOn,
-            resolution.x,
-            resolution.y,
-            uiScaleSlider.value,
-            screenEffectsToggle.isOn
-        );
-        GameUserSettings.ApplyCanvasScale(canvasScaler, ReferenceResolution);
-        ShowStatus("Настройки сохранены.");
         CloseSettings();
     }
 
     private void SelectPreviousResolution()
     {
+        if (resolutions == null || resolutions.Count == 0)
+        {
+            return;
+        }
+
         selectedResolutionIndex =
-            (selectedResolutionIndex - 1 + resolutions.Count) %
-            resolutions.Count;
-        RefreshResolutionText();
+            (selectedResolutionIndex - 1 + resolutions.Count) % resolutions.Count;
     }
 
     private void SelectNextResolution()
     {
-        selectedResolutionIndex =
-            (selectedResolutionIndex + 1) % resolutions.Count;
-        RefreshResolutionText();
+        if (resolutions == null || resolutions.Count == 0)
+        {
+            return;
+        }
+
+        selectedResolutionIndex = (selectedResolutionIndex + 1) % resolutions.Count;
+    }
+
+    private void RefreshSliderLabels()
+    {
+        if (volumeValueText != null && volumeSlider != null)
+        {
+            volumeValueText.text = $"{Mathf.RoundToInt(volumeSlider.value * 100f)}%";
+        }
+
+        if (uiScaleValueText != null && uiScaleSlider != null)
+        {
+            uiScaleValueText.text = $"{Mathf.RoundToInt(uiScaleSlider.value * 100f)}%";
+        }
     }
 
     private void ExitGame()
@@ -255,51 +260,6 @@ public sealed class MainMenuController : MonoBehaviour
         }
     }
 
-    private void PopulateSettingsControls()
-    {
-        resolutions = GameUserSettings.GetSupportedResolutions();
-        Vector2Int savedResolution = new Vector2Int(
-            GameUserSettings.ResolutionWidth,
-            GameUserSettings.ResolutionHeight
-        );
-        selectedResolutionIndex = Mathf.Max(
-            0,
-            resolutions.FindIndex(item => item == savedResolution)
-        );
-
-        fullscreenToggle.isOn = GameUserSettings.Fullscreen;
-        screenEffectsToggle.isOn = GameUserSettings.ScreenEffectsEnabled;
-        volumeSlider.value = GameUserSettings.MasterVolume;
-        uiScaleSlider.value = GameUserSettings.UIScale;
-        RefreshResolutionText();
-        RefreshSliderLabels();
-    }
-
-    private void RefreshResolutionText()
-    {
-        if (resolutionValueText == null || resolutions == null ||
-            resolutions.Count == 0)
-        {
-            return;
-        }
-
-        Vector2Int resolution = resolutions[selectedResolutionIndex];
-        resolutionValueText.text = $"{resolution.x} × {resolution.y}";
-    }
-
-    private void RefreshSliderLabels()
-    {
-        if (volumeValueText != null)
-        {
-            volumeValueText.text = $"{Mathf.RoundToInt(volumeSlider.value * 100f)}%";
-        }
-
-        if (uiScaleValueText != null)
-        {
-            uiScaleValueText.text = $"{Mathf.RoundToInt(uiScaleSlider.value * 100f)}%";
-        }
-    }
-
     private void ShowStatus(string message)
     {
         if (statusText != null)
@@ -324,13 +284,12 @@ public sealed class MainMenuController : MonoBehaviour
         Canvas canvas = canvasObject.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
 
-        canvasScaler = canvasObject.GetComponent<CanvasScaler>();
+        CanvasScaler canvasScaler = canvasObject.GetComponent<CanvasScaler>();
         canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         canvasScaler.referenceResolution = ReferenceResolution;
         canvasScaler.screenMatchMode =
             CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         canvasScaler.matchWidthOrHeight = 0.5f;
-        GameUserSettings.ApplyCanvasScale(canvasScaler, ReferenceResolution);
 
         GameObject root = CreateImage(
             "MainMenuRoot",
@@ -341,7 +300,6 @@ public sealed class MainMenuController : MonoBehaviour
         CreateAccentBands(root.transform);
         CreateMainPanel(root.transform);
         CreateSavePanel(root.transform);
-        settingsOverlay = CreateSettingsOverlay(root.transform);
         newGameConfirmationOverlay =
             CreateNewGameConfirmation(root.transform);
     }
@@ -378,6 +336,7 @@ public sealed class MainMenuController : MonoBehaviour
             parent,
             new Color(0.025f, 0.045f, 0.06f, 0.94f)
         );
+        panel.AddComponent<ScalableUIRoot>();
         RectTransform rect = panel.GetComponent<RectTransform>();
         rect.anchorMin = new Vector2(0.07f, 0.12f);
         rect.anchorMax = new Vector2(0.49f, 0.88f);
@@ -445,6 +404,7 @@ public sealed class MainMenuController : MonoBehaviour
             parent,
             new Color(0.07f, 0.075f, 0.095f, 0.96f)
         );
+        panel.AddComponent<ScalableUIRoot>();
         RectTransform rect = panel.GetComponent<RectTransform>();
         rect.anchorMin = new Vector2(0.55f, 0.24f);
         rect.anchorMax = new Vector2(0.91f, 0.76f);
@@ -549,6 +509,7 @@ public sealed class MainMenuController : MonoBehaviour
             overlay.transform,
             new Vector2(660f, 330f)
         );
+        panel.AddComponent<ScalableUIRoot>();
         VerticalLayoutGroup layout = panel.AddComponent<VerticalLayoutGroup>();
         layout.padding = new RectOffset(36, 36, 30, 30);
         layout.spacing = 16f;

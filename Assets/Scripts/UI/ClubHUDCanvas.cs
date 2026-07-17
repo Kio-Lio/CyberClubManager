@@ -196,6 +196,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             typeof(VerticalLayoutGroup),
             typeof(ContentSizeFitter)
         );
+        gameplayHUDRoot.AddComponent<ScalableUIRoot>();
         gameplayHUDRoot.transform.SetParent(transform, false);
 
         RectTransform rootRect = gameplayHUDRoot.GetComponent<RectTransform>();
@@ -336,6 +337,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             typeof(RectTransform),
             typeof(Image)
         );
+        interactionPromptPanel.AddComponent<ScalableUIRoot>();
         interactionPromptPanel.transform.SetParent(transform, false);
 
         RectTransform panelRect =

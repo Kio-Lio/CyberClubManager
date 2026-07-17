@@ -592,7 +592,10 @@ public class SaveManager : MonoBehaviour
         CleanerManager.Instance.RestoreState(false);
         ClubCleanlinessManager.Instance.RestoreState(null);
         PCExpansionManager.Instance.RestorePurchasedPCs(0);
-        ClubHUDCanvas.Instance?.SetMode(ClubHUDMode.Compact);
+        ClubHUDMode initialHUDMode = GameSettingsManager.Instance != null
+            ? GameSettingsManager.Instance.Settings.defaultHUDMode
+            : ClubHUDMode.Compact;
+        ClubHUDCanvas.Instance?.SetMode(initialHUDMode);
 
         foreach (RoomDoor door in FindObjectsByType<RoomDoor>())
         {

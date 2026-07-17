@@ -21,6 +21,14 @@ public static class PrereleaseValidationSmokeTest
         Path.GetTempPath(),
         "cyber_club_prerelease_validation_save.bak"
     );
+    private static readonly string SettingsPath = Path.Combine(
+        Application.persistentDataPath,
+        "settings.json"
+    );
+    private static readonly string SettingsBackupPath = Path.Combine(
+        Path.GetTempPath(),
+        "cyber_club_prerelease_validation_settings.bak"
+    );
 
     private static double runAt;
     private static bool testFailed;
@@ -844,6 +852,9 @@ public static class PrereleaseValidationSmokeTest
     {
         if (File.Exists(SaveBackupPath)) File.Delete(SaveBackupPath);
         if (File.Exists(SavePath)) File.Copy(SavePath, SaveBackupPath, true);
+        if (File.Exists(SettingsBackupPath)) File.Delete(SettingsBackupPath);
+        if (File.Exists(SettingsPath))
+            File.Copy(SettingsPath, SettingsBackupPath, true);
     }
 
     private static void RestoreSave()
@@ -853,6 +864,13 @@ public static class PrereleaseValidationSmokeTest
         {
             File.Copy(SaveBackupPath, SavePath, true);
             File.Delete(SaveBackupPath);
+        }
+
+        if (File.Exists(SettingsPath)) File.Delete(SettingsPath);
+        if (File.Exists(SettingsBackupPath))
+        {
+            File.Copy(SettingsBackupPath, SettingsPath, true);
+            File.Delete(SettingsBackupPath);
         }
     }
 

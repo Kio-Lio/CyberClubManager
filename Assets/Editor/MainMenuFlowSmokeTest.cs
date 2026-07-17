@@ -13,6 +13,9 @@ public static class MainMenuFlowSmokeTest
     private const string PhaseKey = "CyberClub.MainMenuSmoke.Phase";
     private const string BackupPrefsKey = "CyberClub.MainMenuSmoke.Prefs";
     private const string HadSaveKey = "CyberClub.MainMenuSmoke.HadSave";
+    private const string HadSettingsKey = "CyberClub.MainMenuSmoke.HadSettings";
+    private const string HadCorruptedSettingsKey =
+        "CyberClub.MainMenuSmoke.HadCorruptedSettings";
     private const string MainMenuScenePath = "Assets/Scenes/MainMenu.unity";
     private static readonly string SavePath = Path.Combine(
         Application.persistentDataPath,
@@ -21,6 +24,22 @@ public static class MainMenuFlowSmokeTest
     private static readonly string SaveBackupPath = Path.Combine(
         Path.GetTempPath(),
         "cyber_club_main_menu_smoke_save.bak"
+    );
+    private static readonly string SettingsPath = Path.Combine(
+        Application.persistentDataPath,
+        "settings.json"
+    );
+    private static readonly string CorruptedSettingsPath = Path.Combine(
+        Application.persistentDataPath,
+        "settings.corrupted.json"
+    );
+    private static readonly string SettingsBackupPath = Path.Combine(
+        Path.GetTempPath(),
+        "cyber_club_main_menu_smoke_settings.bak"
+    );
+    private static readonly string CorruptedSettingsBackupPath = Path.Combine(
+        Path.GetTempPath(),
+        "cyber_club_main_menu_smoke_corrupted_settings.bak"
     );
 
     private static double nextCheckAt;
@@ -56,7 +75,6 @@ public static class MainMenuFlowSmokeTest
         {
             BackupEnvironment();
             SaveManager.DeleteSaveFile();
-            GameUserSettings.Save(0.42f, false, 1280, 720, 1.15f, false);
             EditorPrefs.SetBool(PendingKey, true);
             EditorPrefs.SetInt(PhaseKey, 0);
             EditorSceneManager.OpenScene(MainMenuScenePath, OpenSceneMode.Single);
@@ -144,7 +162,10 @@ public static class MainMenuFlowSmokeTest
         Require(!SaveManager.HasSaveFile(), "Smoke test save was not cleared.");
         Require(!menu.ContinueAvailable,
             "Continue must be disabled without a save.");
+        ConfigureSmokeSettings();
         VerifyStoredSettings();
+        VerifySettingsRecovery();
+        ConfigureSmokeSettings();
 
         GameSaveData version18 = new GameSaveData
         {
@@ -210,9 +231,12 @@ public static class MainMenuFlowSmokeTest
         Require(FirstDayTutorialManager.Instance != null &&
                 FirstDayTutorialManager.Instance.IsTutorialActive,
             "New game did not start first-day tutorial.");
+        Require(ClubHUDCanvas.Instance.CurrentMode == ClubHUDMode.Expanded,
+            "New game did not use the default HUD mode from settings.");
         RequireSingleManagers();
         Require(!SaveManager.HasSaveFile(),
             "New game unexpectedly retained the old save.");
+        ClubHUDCanvas.Instance.SetMode(ClubHUDMode.Hidden);
         Require(SaveManager.Instance.TrySaveGame(),
             "Version 19 save could not be created.");
 
@@ -226,6 +250,20 @@ public static class MainMenuFlowSmokeTest
         Require(pause != null, "Pause menu was not created.");
         Invoke(pause, "SetMenuOpen", true);
         Require(Time.timeScale == 0f, "Pause menu did not pause the game.");
+        Invoke(pause, "OpenSettings");
+        GameSettingsPanel panel = GameSettingsPanel.Instance;
+        Require(panel.IsOpen && Time.timeScale == 0f,
+            "Settings did not open from pause without resuming the game.");
+        panel.ApplyPendingDisplaySettings();
+        Require(panel.IsDisplayConfirmationOpen,
+            "Display confirmation did not open.");
+        SetField(panel, "confirmationRemaining", 0f);
+        Invoke(panel, "Update");
+        Require(!panel.IsDisplayConfirmationOpen,
+            "Display confirmation did not expire while paused.");
+        panel.Close();
+        Require(pause.BlocksGameplayInput && Time.timeScale == 0f,
+            "Closing settings did not return to the paused menu.");
         SchedulePhase(2, 2d);
         Invoke(pause, "SaveAndReturnToMainMenu");
     }
@@ -254,6 +292,8 @@ public static class MainMenuFlowSmokeTest
                 GameDayManager.Instance.CurrentDay == 1 &&
                 ClubReputationManager.Instance.Reputation == 50,
             "Version 19 save was not restored.");
+        Require(ClubHUDCanvas.Instance.CurrentMode == ClubHUDMode.Hidden,
+            "The saved HUD mode was replaced by the settings default.");
 
         GameSaveData data = JsonUtility.FromJson<GameSaveData>(
             File.ReadAllText(SavePath)
@@ -347,13 +387,101 @@ public static class MainMenuFlowSmokeTest
 
     private static void VerifyStoredSettings()
     {
+        GameSettingsManager manager = GameSettingsManager.Instance;
+        Require(manager != null, "GameSettingsManager is missing.");
         Require(Mathf.Abs(GameUserSettings.MasterVolume - 0.42f) < 0.001f &&
                 !GameUserSettings.Fullscreen &&
                 GameUserSettings.ResolutionWidth == 1280 &&
                 GameUserSettings.ResolutionHeight == 720 &&
-                Mathf.Abs(GameUserSettings.UIScale - 1.15f) < 0.001f &&
-                !GameUserSettings.ScreenEffectsEnabled,
-            "PlayerPrefs settings did not survive save deletion or scene load.");
+                Mathf.Abs(GameUserSettings.UIScale - 1.2f) < 0.001f &&
+                Mathf.Abs(manager.Settings.musicVolume - 0.67f) < 0.001f &&
+                Mathf.Abs(manager.Settings.effectsVolume - 0.73f) < 0.001f &&
+                manager.Settings.version == 1,
+            "Settings JSON did not survive save deletion or scene load.");
+        Require(Mathf.Abs(AudioListener.volume - 0.42f) < 0.001f,
+            "Master audio volume was not applied.");
+        GameSettingsResources resources =
+            Resources.Load<GameSettingsResources>("GameSettingsResources");
+        Require(resources != null && resources.MainAudioMixer != null,
+            "Main audio mixer resources are missing.");
+        Require(resources.MainAudioMixer.GetFloat("MusicVolume", out float musicDb) &&
+                resources.MainAudioMixer.GetFloat("EffectsVolume", out float effectsDb) &&
+                !Mathf.Approximately(musicDb, effectsDb),
+            "Music and Effects were not applied independently.");
+        manager.SetMasterVolume(0f);
+        Require(Mathf.Approximately(AudioListener.volume, 0f) &&
+                resources.MainAudioMixer.GetFloat("MasterVolume", out float masterDb) &&
+                Mathf.Approximately(masterDb, -80f),
+            "Master volume at zero did not mute the audio channel.");
+        manager.SetMasterVolume(0.42f);
+
+        GameObject root = new GameObject("SettingsScaleSmoke");
+        ScalableUIRoot scalable = root.AddComponent<ScalableUIRoot>();
+        scalable.ApplyCurrentScale();
+        Require(Mathf.Abs(root.transform.localScale.x - 1.2f) < 0.001f,
+            "The interface scale did not reach scalable UI roots.");
+        UnityEngine.Object.Destroy(root);
+
+        string beforePreview = File.ReadAllText(SettingsPath);
+        manager.PreviewDisplayMode(
+            manager.Settings.resolutionWidth,
+            manager.Settings.resolutionHeight,
+            new RefreshRate
+            {
+                numerator = (uint)manager.Settings.refreshRateNumerator,
+                denominator = (uint)manager.Settings.refreshRateDenominator
+            },
+            manager.Settings.fullscreen,
+            !manager.Settings.verticalSync
+        );
+        Require(File.ReadAllText(SettingsPath) == beforePreview,
+            "Display preview was written before confirmation.");
+        manager.RestoreDisplayPreview();
+
+        GameSettingsPanel panel = GameSettingsPanel.Instance;
+        Require(panel != null, "Shared settings panel is missing.");
+        panel.Open();
+        Require(panel.IsOpen && GameplayInputState.IsBlocked,
+            "Open settings panel did not block gameplay input.");
+        panel.ShowControlsScreen();
+        Require(panel.IsControlsOpen, "Controls screen did not open.");
+        panel.HandleBack();
+        Require(!panel.IsControlsOpen, "Escape hierarchy did not leave controls.");
+        panel.Close();
+    }
+
+    private static void ConfigureSmokeSettings()
+    {
+        GameSettingsManager manager = GameSettingsManager.Instance;
+        Require(manager != null, "GameSettingsManager is missing.");
+        GameSettingsData data = manager.Settings;
+        manager.SetMasterVolume(0.42f);
+        manager.SetMusicVolume(0.67f);
+        manager.SetEffectsVolume(0.73f);
+        manager.SetInterfaceScale(1.2f);
+        manager.SetDefaultHUDMode(ClubHUDMode.Expanded);
+        manager.ConfirmDisplaySettings(
+            1280,
+            720,
+            new RefreshRate
+            {
+                numerator = (uint)Mathf.Max(1, data.refreshRateNumerator),
+                denominator = (uint)Mathf.Max(1, data.refreshRateDenominator)
+            },
+            false,
+            true
+        );
+    }
+
+    private static void VerifySettingsRecovery()
+    {
+        File.WriteAllText(SettingsPath, "{ invalid settings json");
+        GameSettingsManager.Instance.LoadSettings();
+        GameSettingsManager.Instance.ApplyAllSettings();
+        Require(File.Exists(CorruptedSettingsPath),
+            "Corrupted settings file was not preserved.");
+        Require(GameSettingsManager.Instance.Settings.version == 1,
+            "Corrupted settings did not fall back to defaults.");
     }
 
     private static void SchedulePhase(int phase, double delay)
@@ -373,6 +501,16 @@ public static class MainMenuFlowSmokeTest
         method.Invoke(target, args);
     }
 
+    private static void SetField(object target, string fieldName, object value)
+    {
+        FieldInfo field = target.GetType().GetField(
+            fieldName,
+            BindingFlags.Instance | BindingFlags.NonPublic
+        );
+        Require(field != null, $"Field {fieldName} was not found.");
+        field.SetValue(target, value);
+    }
+
     private static void BackupEnvironment()
     {
         bool hadSave = File.Exists(SavePath);
@@ -380,6 +518,24 @@ public static class MainMenuFlowSmokeTest
         if (hadSave)
         {
             File.Copy(SavePath, SaveBackupPath, true);
+        }
+
+        bool hadSettings = File.Exists(SettingsPath);
+        EditorPrefs.SetBool(HadSettingsKey, hadSettings);
+        if (hadSettings)
+        {
+            File.Copy(SettingsPath, SettingsBackupPath, true);
+        }
+
+        bool hadCorruptedSettings = File.Exists(CorruptedSettingsPath);
+        EditorPrefs.SetBool(HadCorruptedSettingsKey, hadCorruptedSettings);
+        if (hadCorruptedSettings)
+        {
+            File.Copy(
+                CorruptedSettingsPath,
+                CorruptedSettingsBackupPath,
+                true
+            );
         }
 
         PreferenceBackup backup = new PreferenceBackup
@@ -416,6 +572,17 @@ public static class MainMenuFlowSmokeTest
             File.Delete(SaveBackupPath);
         }
 
+        RestoreFile(
+            SettingsPath,
+            SettingsBackupPath,
+            EditorPrefs.GetBool(HadSettingsKey, false)
+        );
+        RestoreFile(
+            CorruptedSettingsPath,
+            CorruptedSettingsBackupPath,
+            EditorPrefs.GetBool(HadCorruptedSettingsKey, false)
+        );
+
         PreferenceBackup backup = JsonUtility.FromJson<PreferenceBackup>(
             EditorPrefs.GetString(BackupPrefsKey, "{}")
         );
@@ -429,6 +596,28 @@ public static class MainMenuFlowSmokeTest
         Time.timeScale = 1f;
         EditorPrefs.DeleteKey(BackupPrefsKey);
         EditorPrefs.DeleteKey(HadSaveKey);
+        EditorPrefs.DeleteKey(HadSettingsKey);
+        EditorPrefs.DeleteKey(HadCorruptedSettingsKey);
+    }
+
+    private static void RestoreFile(
+        string destination,
+        string backup,
+        bool existed)
+    {
+        if (existed && File.Exists(backup))
+        {
+            File.Copy(backup, destination, true);
+        }
+        else if (File.Exists(destination))
+        {
+            File.Delete(destination);
+        }
+
+        if (File.Exists(backup))
+        {
+            File.Delete(backup);
+        }
     }
 
     private static void RestoreFloat(string key, bool existed, float value)

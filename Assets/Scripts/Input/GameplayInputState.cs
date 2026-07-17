@@ -34,6 +34,9 @@ public static class GameplayInputState
             bool researchPanelBlocksInput =
                 ClubResearchPanel.Instance != null &&
                 ClubResearchPanel.Instance.IsOpen;
+            bool settingsBlocksInput =
+                GameSettingsPanel.Instance != null &&
+                GameSettingsPanel.Instance.IsOpen;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             bool qaPanelBlocksInput =
                 PrereleaseQAPanel.Instance != null &&
@@ -46,7 +49,8 @@ public static class GameplayInputState
                 pricingBlocksInput || stockPanelBlocksInput || reportBlocksInput ||
                 marketingBlocksInput || analyticsBlocksInput ||
                 randomEventPanelBlocksInput || internetPanelBlocksInput ||
-                researchPanelBlocksInput || qaPanelBlocksInput;
+                researchPanelBlocksInput || settingsBlocksInput ||
+                qaPanelBlocksInput;
         }
     }
 }

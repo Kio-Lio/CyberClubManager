@@ -21,7 +21,7 @@ public sealed class PauseMenuController : MonoBehaviour
     private float widthHeightMatch = 0.5f;
 
     [Header("Menu Settings")]
-    [SerializeField] private Vector2 menuSize = new Vector2(580f, 690f);
+    [SerializeField] private Vector2 menuSize = new Vector2(580f, 760f);
     [SerializeField] private int titleFontSize = 32;
     [SerializeField] private int textFontSize = 22;
     [SerializeField] private int buttonFontSize = 22;
@@ -48,6 +48,7 @@ public sealed class PauseMenuController : MonoBehaviour
 
     private Button continueButton;
     private Button saveButton;
+    private Button settingsButton;
     private Button newGameButton;
     private Button mainMenuButton;
     private Button quitButton;
@@ -126,7 +127,19 @@ public sealed class PauseMenuController : MonoBehaviour
 
     public void OnPause(InputValue inputValue)
     {
-        if (!inputValue.isPressed || isGameOverMode)
+        if (!inputValue.isPressed)
+        {
+            return;
+        }
+
+        if (GameSettingsPanel.Instance != null &&
+            GameSettingsPanel.Instance.IsOpen)
+        {
+            GameSettingsPanel.Instance.HandleBack();
+            return;
+        }
+
+        if (isGameOverMode)
         {
             return;
         }
@@ -328,6 +341,27 @@ public sealed class PauseMenuController : MonoBehaviour
         );
     }
 
+    private void OpenSettings()
+    {
+        if (!isMenuOpen || GameSettingsPanel.Instance == null)
+        {
+            return;
+        }
+
+        SetCanvasVisible(false);
+        GameSettingsPanel.Instance.Open(() =>
+        {
+            if (!isMenuOpen || isSceneTransitioning)
+            {
+                return;
+            }
+
+            SetCanvasVisible(true);
+            UpdateMenuMode();
+            StartCoroutine(SelectDefaultButtonNextFrame());
+        });
+    }
+
     private void ShowNewGameConfirmation()
     {
         SetMainMenuConfirmationVisible(false);
@@ -467,6 +501,7 @@ public sealed class PauseMenuController : MonoBehaviour
         bool showActions = !shouldShow;
         continueButton?.gameObject.SetActive(showActions && !isGameOverMode);
         saveButton?.gameObject.SetActive(showActions && !isGameOverMode);
+        settingsButton?.gameObject.SetActive(showActions);
         newGameButton?.gameObject.SetActive(showActions);
         mainMenuButton?.gameObject.SetActive(showActions);
         quitButton?.gameObject.SetActive(showActions);
@@ -580,6 +615,7 @@ public sealed class PauseMenuController : MonoBehaviour
             typeof(Image),
             typeof(VerticalLayoutGroup)
         );
+        panelObject.AddComponent<ScalableUIRoot>();
 
         panelObject.transform.SetParent(parent, false);
 
@@ -621,6 +657,11 @@ public sealed class PauseMenuController : MonoBehaviour
             "SaveButton", "Сохранить игру", panelObject.transform
         );
         saveButton.onClick.AddListener(SaveGame);
+
+        settingsButton = CreateButton(
+            "SettingsButton", "Настройки", panelObject.transform
+        );
+        settingsButton.onClick.AddListener(OpenSettings);
 
         newGameButton = CreateButton(
             "NewGameButton", "Новая игра", panelObject.transform

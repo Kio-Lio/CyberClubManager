@@ -156,6 +156,7 @@ public sealed class ClientFeedbackUI : MonoBehaviour
             typeof(CanvasGroup),
             typeof(VerticalLayoutGroup)
         );
+        panelObject.AddComponent<ScalableUIRoot>();
         panelObject.transform.SetParent(transform, false);
 
         RectTransform panelRect = panelObject.GetComponent<RectTransform>();
