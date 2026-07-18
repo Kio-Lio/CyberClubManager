@@ -21,6 +21,7 @@ public sealed class MainMenuController : MonoBehaviour
     private Button deleteCorruptedSaveButton;
     private Text saveSummaryText;
     private Text statusText;
+    private GameObject mainMenuCanvasObject;
     private GameObject settingsOverlay;
     private GameObject newGameConfirmationOverlay;
 
@@ -184,9 +185,23 @@ public sealed class MainMenuController : MonoBehaviour
 
     private void OpenSettings()
     {
-        GameSettingsPanel.Instance?.Open(
-            () => SelectButton("SettingsButton")
-        );
+        GameSettingsPanel panel = GameSettingsPanel.Instance;
+        if (panel == null)
+        {
+            Debug.LogError("GameSettingsPanel is missing in MainMenu.");
+            return;
+        }
+
+        panel.Open(() =>
+        {
+            mainMenuCanvasObject?.SetActive(true);
+            SelectButton("SettingsButton");
+        });
+
+        if (panel.IsOpen)
+        {
+            mainMenuCanvasObject?.SetActive(false);
+        }
     }
 
     private void CloseSettings()
@@ -272,19 +287,20 @@ public sealed class MainMenuController : MonoBehaviour
     {
         runtimeFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
-        GameObject canvasObject = new GameObject(
+        mainMenuCanvasObject = new GameObject(
             "MainMenuCanvas",
             typeof(RectTransform),
             typeof(Canvas),
             typeof(CanvasScaler),
             typeof(GraphicRaycaster)
         );
-        canvasObject.transform.SetParent(transform, false);
+        mainMenuCanvasObject.transform.SetParent(transform, false);
 
-        Canvas canvas = canvasObject.GetComponent<Canvas>();
+        Canvas canvas = mainMenuCanvasObject.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
 
-        CanvasScaler canvasScaler = canvasObject.GetComponent<CanvasScaler>();
+        CanvasScaler canvasScaler =
+            mainMenuCanvasObject.GetComponent<CanvasScaler>();
         canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         canvasScaler.referenceResolution = ReferenceResolution;
         canvasScaler.screenMatchMode =
@@ -293,7 +309,7 @@ public sealed class MainMenuController : MonoBehaviour
 
         GameObject root = CreateImage(
             "MainMenuRoot",
-            canvasObject.transform,
+            mainMenuCanvasObject.transform,
             new Color(0.018f, 0.028f, 0.042f, 1f)
         );
         Stretch(root.GetComponent<RectTransform>());

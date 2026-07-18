@@ -162,6 +162,7 @@ public static class MainMenuFlowSmokeTest
         Require(!SaveManager.HasSaveFile(), "Smoke test save was not cleared.");
         Require(!menu.ContinueAvailable,
             "Continue must be disabled without a save.");
+        VerifyMainMenuSettingsTransition(menu);
         ConfigureSmokeSettings();
         VerifyStoredSettings();
         VerifySettingsRecovery();
@@ -261,11 +262,31 @@ public static class MainMenuFlowSmokeTest
         Invoke(panel, "Update");
         Require(!panel.IsDisplayConfirmationOpen,
             "Display confirmation did not expire while paused.");
-        panel.Close();
+        panel.HandleBack();
         Require(pause.BlocksGameplayInput && Time.timeScale == 0f,
-            "Closing settings did not return to the paused menu.");
+            "Escape from settings did not return to the paused menu.");
         SchedulePhase(2, 2d);
         Invoke(pause, "SaveAndReturnToMainMenu");
+    }
+
+    private static void VerifyMainMenuSettingsTransition(
+        MainMenuController menu)
+    {
+        GameObject mainMenuCanvas = GetField<GameObject>(
+            menu,
+            "mainMenuCanvasObject"
+        );
+        Invoke(menu, "OpenSettings");
+
+        GameSettingsPanel panel = GameSettingsPanel.Instance;
+        Require(panel != null && panel.IsOpen,
+            "Settings did not open from MainMenu.");
+        Require(!mainMenuCanvas.activeSelf,
+            "MainMenu canvas remained active behind settings.");
+
+        panel.HandleBack();
+        Require(mainMenuCanvas.activeSelf,
+            "Escape from settings did not return to MainMenu.");
     }
 
     private static void VerifySavedMenuAndContinue()
@@ -509,6 +530,16 @@ public static class MainMenuFlowSmokeTest
         );
         Require(field != null, $"Field {fieldName} was not found.");
         field.SetValue(target, value);
+    }
+
+    private static T GetField<T>(object target, string fieldName)
+    {
+        FieldInfo field = target.GetType().GetField(
+            fieldName,
+            BindingFlags.Instance | BindingFlags.NonPublic
+        );
+        Require(field != null, $"Field {fieldName} was not found.");
+        return (T)field.GetValue(target);
     }
 
     private static void BackupEnvironment()
