@@ -144,8 +144,8 @@ public static class ManagerModeSmokeTest
             "PC_01 was not detected as a clickable object.");
         Require(!string.IsNullOrWhiteSpace(manager.CurrentPrompt),
             "Click interaction did not produce a HUD prompt.");
-        Require(manager.TrySelectAtWorldPosition(pcObject.transform.position),
-            "PC_01 could not be selected.");
+        Require(manager.TryActivateAtWorldPosition(pcObject.transform.position),
+            "PC_01 could not be selected with a left-click action.");
         Require(manager.SelectedBehaviour == pcObject.GetComponent<PC>(),
             "Selected object state is incorrect.");
         Require(UnityEngine.Object.FindAnyObjectByType<ManagerSelectionPanel>() != null,

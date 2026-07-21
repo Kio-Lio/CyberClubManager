@@ -1,14 +1,17 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 [DefaultExecutionOrder(100)]
 public sealed class ManagerModeController : MonoBehaviour,
     IInteractionPromptSource
 {
     private const string GameplaySceneName = "SampleScene";
+    private static readonly List<RaycastResult> UIRaycastResults = new();
 
     [Header("Camera")]
     [SerializeField, Min(0.1f)] private float keyboardPanSpeed = 8f;
@@ -178,6 +181,34 @@ public sealed class ManagerModeController : MonoBehaviour,
         return candidate != null;
     }
 
+    public bool TryActivateAtWorldPosition(Vector2 worldPosition)
+    {
+        MonoBehaviour candidate = FindInteractableAt(worldPosition);
+        SetHoveredBehaviour(candidate);
+
+        if (candidate == null)
+        {
+            ClearSelection();
+            return false;
+        }
+
+        if (candidate != selectedBehaviour)
+        {
+            SelectBehaviour(candidate);
+            return true;
+        }
+
+        if (candidate is not IInteractable interactable)
+        {
+            return false;
+        }
+
+        interactable.Interact();
+        SelectionChanged?.Invoke(selectedBehaviour);
+        RefreshPrompt();
+        return true;
+    }
+
     public void SelectBehaviour(MonoBehaviour behaviour)
     {
         if (selectedBehaviour == behaviour)
@@ -336,7 +367,7 @@ public sealed class ManagerModeController : MonoBehaviour,
         );
         if (mouse.leftButton.wasPressedThisFrame)
         {
-            TrySelectAtWorldPosition(worldPosition);
+            TryActivateAtWorldPosition(worldPosition);
             return;
         }
 
@@ -451,9 +482,16 @@ public sealed class ManagerModeController : MonoBehaviour,
         string prompt = interactable.GetInteractionPrompt() ?? string.Empty;
         prompt = prompt.Replace("E - ", string.Empty)
             .Replace("E — ", string.Empty);
+
+        if (hoveredBehaviour != selectedBehaviour)
+        {
+            SetPrompt($"ЛКМ · выбрать {hoveredBehaviour.name}");
+            return;
+        }
+
         SetPrompt(string.IsNullOrWhiteSpace(prompt)
             ? string.Empty
-            : $"ЛКМ · {prompt}");
+            : $"ЛКМ ещё раз · {prompt}");
     }
 
     private void SetPrompt(string prompt)
@@ -484,8 +522,53 @@ public sealed class ManagerModeController : MonoBehaviour,
 
     private static bool IsPointerOverUI()
     {
-        return EventSystem.current != null &&
-            EventSystem.current.IsPointerOverGameObject();
+        EventSystem eventSystem = EventSystem.current;
+        Mouse mouse = Mouse.current;
+        if (eventSystem == null || mouse == null)
+        {
+            return false;
+        }
+
+        PointerEventData pointerData = new(eventSystem)
+        {
+            position = mouse.position.ReadValue()
+        };
+
+        UIRaycastResults.Clear();
+        eventSystem.RaycastAll(pointerData, UIRaycastResults);
+
+        foreach (RaycastResult result in UIRaycastResults)
+        {
+            GameObject hitObject = result.gameObject;
+            if (hitObject == null)
+            {
+                continue;
+            }
+
+            if (hitObject.GetComponentInParent<Selectable>() != null ||
+                IsManagerPanel(hitObject.transform))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsManagerPanel(Transform current)
+    {
+        while (current != null)
+        {
+            if (current.name == "ManagerCommandBar" ||
+                current.name == "ManagerSelectionPanel")
+            {
+                return true;
+            }
+
+            current = current.parent;
+        }
+
+        return false;
     }
 
     private static MonoBehaviour FindInteractableBehaviour(Collider2D collider)
