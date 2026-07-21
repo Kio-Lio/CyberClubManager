@@ -17,6 +17,7 @@ public sealed class PCExpansionManager : MonoBehaviour
     private Sprite generatedPCSprite;
 
     public int PurchaseCost => pcPurchaseCost;
+    public int SaleRefund => Mathf.RoundToInt(pcPurchaseCost * 0.5f);
     public int PurchasedPCCount => nextSlotIndex;
     public int TotalExpansionSlots => expansionPositions.Length;
     public int UnlockedSlotCount
@@ -85,6 +86,17 @@ public sealed class PCExpansionManager : MonoBehaviour
     {
         EnsureExpansionPositions();
 
+        Vector3 position = nextSlotIndex < expansionPositions.Length
+            ? expansionPositions[nextSlotIndex]
+            : Vector3.zero;
+        return TryPurchasePCAt(position, out _);
+    }
+
+    public bool TryPurchasePCAt(Vector3 position, out PC createdPC)
+    {
+        EnsureExpansionPositions();
+        createdPC = null;
+
         if (BankruptcyManager.Instance != null && BankruptcyManager.Instance.IsGameOver)
         {
             return false;
@@ -123,12 +135,79 @@ public sealed class PCExpansionManager : MonoBehaviour
             return false;
         }
 
-        Vector3 position = expansionPositions[nextSlotIndex];
-        CreatePC(position);
+        createdPC = CreatePC(position);
         nextSlotIndex++;
 
         Debug.Log(
             $"Куплен новый ПК за {pcPurchaseCost} ₽. " +
+            $"Свободных мест для расширения: {RemainingSlots}."
+        );
+
+        StatusChanged?.Invoke();
+        return true;
+    }
+
+    public string GetNextPCName()
+    {
+        return $"PC_{nextSlotIndex + 6:00}";
+    }
+
+    public bool IsExpansionPC(PC pc)
+    {
+        if (pc == null || !pc.name.StartsWith("PC_", StringComparison.Ordinal) ||
+            !int.TryParse(pc.name.Substring(3), out int pcNumber))
+        {
+            return false;
+        }
+
+        return pcNumber >= 6 &&
+            pcNumber < 6 + expansionPositions.Length;
+    }
+
+    public bool CanMovePC(PC pc)
+    {
+        return IsExpansionPC(pc) && pc.gameObject.activeInHierarchy &&
+            pc.IsFree && !pc.IsReserved;
+    }
+
+    public bool CanSellPC(PC pc)
+    {
+        if (!CanMovePC(pc) || nextSlotIndex <= 0)
+        {
+            return false;
+        }
+
+        return pc.name == $"PC_{nextSlotIndex + 5:00}";
+    }
+
+    public bool TrySellPC(PC pc)
+    {
+        if (!CanSellPC(pc) || EconomyManager.Instance == null ||
+            (BankruptcyManager.Instance != null &&
+             BankruptcyManager.Instance.IsGameOver))
+        {
+            return false;
+        }
+
+        ClientNavigationNode approachNode = pc.ApproachNode;
+        pc.SetApproachNode(null);
+        if (approachNode != null)
+        {
+            DestroyRuntimeObject(approachNode.gameObject);
+        }
+
+        string soldName = pc.name;
+        pc.gameObject.SetActive(false);
+        DestroyRuntimeObject(pc.gameObject);
+        nextSlotIndex--;
+
+        EconomyManager.Instance.AddBonusMoney(
+            SaleRefund,
+            EconomyTransactionCategory.AssetSale
+        );
+
+        Debug.Log(
+            $"Продан {soldName}. Возврат: {SaleRefund} ₽. " +
             $"Свободных мест для расширения: {RemainingSlots}."
         );
 
@@ -208,13 +287,14 @@ public sealed class PCExpansionManager : MonoBehaviour
         StatusChanged?.Invoke();
     }
 
-    private void CreatePC(Vector3 position)
+    private PC CreatePC(Vector3 position)
     {
         int pcNumber = nextSlotIndex + 6;
         string pcName = $"PC_{pcNumber:00}";
         GameObject pcObject = FindOrCreateUniquePCObject(pcName);
 
         ConfigureExistingPC(pcObject, position);
+        return pcObject.GetComponent<PC>();
     }
 
     private static GameObject FindOrCreateUniquePCObject(string pcName)
@@ -287,6 +367,22 @@ public sealed class PCExpansionManager : MonoBehaviour
         }
 
         DestroyImmediate(duplicate);
+    }
+
+    private static void DestroyRuntimeObject(GameObject target)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        if (Application.isPlaying)
+        {
+            Destroy(target);
+            return;
+        }
+
+        DestroyImmediate(target);
     }
 
     private void ConfigureExistingPC(GameObject pcObject, Vector3 position)

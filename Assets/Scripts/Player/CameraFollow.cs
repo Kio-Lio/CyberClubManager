@@ -106,6 +106,20 @@ public sealed class CameraFollow : MonoBehaviour
         SnapToTarget();
     }
 
+    public void Pan(Vector2 worldDelta)
+    {
+        if (worldDelta.sqrMagnitude < 0.000001f)
+        {
+            return;
+        }
+
+        target = null;
+        transform.position = ClampCameraPosition(
+            transform.position + (Vector3)worldDelta
+        );
+        followVelocity = Vector3.zero;
+    }
+
     public void SetBounds(CameraBounds2D newBounds)
     {
         cameraBounds = newBounds;

@@ -9,7 +9,7 @@ public class SaveManager : MonoBehaviour
 {
     public static SaveManager Instance { get; private set; }
 
-    private const int CurrentSaveVersion = 19;
+    private const int CurrentSaveVersion = 20;
     private const string SaveFileName = "cyber_club_save.json";
 
     private bool suppressSaving;
@@ -398,7 +398,10 @@ public class SaveManager : MonoBehaviour
                 new PCSaveData
                 {
                     objectName = pc.name,
-                    tier = (int)pc.Tier
+                    tier = (int)pc.Tier,
+                    hasPosition = expansion.IsExpansionPC(pc),
+                    positionX = pc.transform.position.x,
+                    positionY = pc.transform.position.y
                 }
             );
         }
@@ -570,6 +573,7 @@ public class SaveManager : MonoBehaviour
 
         RestoreRoomDoors(data);
         PCExpansionManager.Instance.RestorePurchasedPCs(data.purchasedPCCount);
+        RestorePCPositions(data);
         RestorePCTiers(data);
         RestorePCEquipment(data);
         ClubCleanlinessManager.Instance.RestoreState(data.trashItems);
@@ -683,6 +687,41 @@ public class SaveManager : MonoBehaviour
             );
 
             targetPC.RestoreTier((PCTier)tierValue);
+        }
+    }
+
+    private static void RestorePCPositions(GameSaveData data)
+    {
+        if (data.pcs == null)
+        {
+            return;
+        }
+
+        ClientNavigationManager navigation =
+            ClientNavigationManager.Instance ??
+            ClientNavigationManager.EnsureRuntimeGraph();
+
+        foreach (PCSaveData pcData in data.pcs)
+        {
+            if (pcData == null || !pcData.hasPosition ||
+                string.IsNullOrWhiteSpace(pcData.objectName))
+            {
+                continue;
+            }
+
+            GameObject pcObject = GameObject.Find(pcData.objectName);
+            PC pc = pcObject != null ? pcObject.GetComponent<PC>() : null;
+            if (pc == null)
+            {
+                continue;
+            }
+
+            pc.transform.position = new Vector3(
+                pcData.positionX,
+                pcData.positionY,
+                0f
+            );
+            navigation.EnsureApproachNode(pc);
         }
     }
 

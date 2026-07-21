@@ -578,7 +578,12 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
             cameraFollow.SetBounds(cameraBounds);
         }
 
-        if (cameraFollow != null && player != null)
+        if (cameraFollow != null &&
+            FindAnyObjectByType<ManagerModeController>() != null)
+        {
+            cameraFollow.SetTarget(null);
+        }
+        else if (cameraFollow != null && player != null)
         {
             cameraFollow.SetTarget(player.transform);
         }

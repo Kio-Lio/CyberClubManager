@@ -50,7 +50,8 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     private Text expansionText;
 
     private Text interactionPromptText;
-    private PlayerInteraction playerInteraction;
+    private MonoBehaviour interactionPromptSourceBehaviour;
+    private IInteractionPromptSource interactionPromptSource;
     private ClientSpawner clientSpawner;
     private string currentInteractionPrompt = string.Empty;
     private bool temporarilyHidden;
@@ -83,7 +84,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     {
         SubscribeToManagers();
         RegisterExistingPCs();
-        SubscribeToPlayerInteraction();
+        SubscribeToInteractionPromptSource();
         SubscribeToClientSpawner();
         RefreshAll();
     }
@@ -99,7 +100,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     {
         UnsubscribeFromManagers();
         UnsubscribeFromPCs();
-        UnsubscribeFromPlayerInteraction();
+        UnsubscribeFromInteractionPromptSource();
 
         if (clientSpawner != null)
         {
@@ -192,52 +193,167 @@ public sealed class ClubHUDCanvas : MonoBehaviour
     {
         gameplayHUDRoot = new GameObject(
             "GameplayHUDRoot",
-            typeof(RectTransform),
-            typeof(VerticalLayoutGroup),
-            typeof(ContentSizeFitter)
+            typeof(RectTransform)
         );
         gameplayHUDRoot.AddComponent<ScalableUIRoot>();
         gameplayHUDRoot.transform.SetParent(transform, false);
 
         RectTransform rootRect = gameplayHUDRoot.GetComponent<RectTransform>();
-        rootRect.anchorMin = new Vector2(0f, 1f);
-        rootRect.anchorMax = new Vector2(0f, 1f);
-        rootRect.pivot = new Vector2(0f, 1f);
-        rootRect.anchoredPosition = new Vector2(20f, -20f);
-        rootRect.sizeDelta = new Vector2(
-            Mathf.Min(hudWidth, referenceResolution.x * 0.3f),
-            0f
+        StretchToParent(rootRect);
+
+        compactSection = CreateContainer(
+            "CompactSection",
+            gameplayHUDRoot.transform
         );
 
-        VerticalLayoutGroup layout =
-            gameplayHUDRoot.GetComponent<VerticalLayoutGroup>();
-        layout.spacing = 8f;
-        layout.childAlignment = TextAnchor.UpperLeft;
-        layout.childControlWidth = true;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = true;
-        layout.childForceExpandHeight = false;
-
-        ContentSizeFitter fitter =
-            gameplayHUDRoot.GetComponent<ContentSizeFitter>();
-        fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-        compactSection = CreateSection(
-            "CompactSection",
-            new Color(0.035f, 0.045f, 0.06f, 0.9f),
+        GameObject economyPanel = CreatePanel(
+            "EconomyPanel",
+            compactSection.transform,
+            new Vector2(0f, 1f),
+            new Vector2(0f, 1f),
+            new Vector2(0f, 1f),
+            new Vector2(18f, -18f),
+            new Vector2(470f, 106f),
             4f
         );
-        dayText = CreateLine("DayText", compactSection.transform, compactFontSize);
-        balanceText = CreateLine("BalanceText", compactSection.transform, compactFontSize);
-        reputationText = CreateLine("ReputationText", compactSection.transform, compactFontSize);
-        clubLevelText = CreateLine("ClubLevelText", compactSection.transform, compactFontSize);
-        pcStateText = CreateLine("PCStateText", compactSection.transform, compactFontSize);
-        dailyGoalText = CreateLine("DailyGoalText", compactSection.transform, compactFontSize, 44f);
+        CreateSectionTitle("EconomyTitle", economyPanel.transform, "КЛУБ");
+        balanceText = CreateLine(
+            "BalanceText",
+            economyPanel.transform,
+            compactFontSize + 2,
+            30f,
+            new Color(0.3f, 1f, 0.38f)
+        );
+        dayText = CreateLine(
+            "DayText",
+            economyPanel.transform,
+            compactFontSize,
+            28f,
+            new Color(0.82f, 0.9f, 1f)
+        );
 
-        warningSection = CreateSection(
+        GameObject progressionPanel = CreatePanel(
+            "ProgressionPanel",
+            compactSection.transform,
+            new Vector2(0.5f, 1f),
+            new Vector2(0.5f, 1f),
+            new Vector2(0.5f, 1f),
+            new Vector2(0f, -18f),
+            new Vector2(540f, 106f),
+            4f
+        );
+        CreateSectionTitle(
+            "ProgressionTitle",
+            progressionPanel.transform,
+            "РЕПУТАЦИЯ И ПРОГРЕСС"
+        );
+        reputationText = CreateLine(
+            "ReputationText",
+            progressionPanel.transform,
+            compactFontSize + 2,
+            30f,
+            new Color(0.24f, 0.68f, 1f)
+        );
+        clubLevelText = CreateLine(
+            "ClubLevelText",
+            progressionPanel.transform,
+            compactFontSize,
+            28f,
+            new Color(0.82f, 0.9f, 1f)
+        );
+
+        GameObject operationsPanel = CreatePanel(
+            "OperationsPanel",
+            compactSection.transform,
+            new Vector2(1f, 1f),
+            new Vector2(1f, 1f),
+            new Vector2(1f, 1f),
+            new Vector2(-18f, -18f),
+            new Vector2(500f, 106f),
+            4f
+        );
+        CreateSectionTitle(
+            "OperationsTitle",
+            operationsPanel.transform,
+            "СОСТОЯНИЕ КЛУБА"
+        );
+        cleanlinessText = CreateLine(
+            "CleanlinessText",
+            operationsPanel.transform,
+            compactFontSize,
+            30f,
+            new Color(0.3f, 1f, 0.38f)
+        );
+        clientQueueText = CreateLine(
+            "ClientQueueText",
+            operationsPanel.transform,
+            compactFontSize,
+            28f,
+            new Color(0.82f, 0.9f, 1f)
+        );
+
+        GameObject pcStatusPanel = CreatePanel(
+            "PCStatusPanel",
+            compactSection.transform,
+            new Vector2(0f, 0f),
+            new Vector2(1f, 0f),
+            new Vector2(0.5f, 0f),
+            new Vector2(0f, 18f),
+            new Vector2(-36f, 64f),
+            4f,
+            true
+        );
+        CreateSectionTitle(
+            "PCStatusTitle",
+            pcStatusPanel.transform,
+            "СТАТУС ПК"
+        );
+        pcStateText = CreateLine(
+            "PCStateText",
+            pcStatusPanel.transform,
+            compactFontSize,
+            28f,
+            new Color(0.82f, 0.9f, 1f)
+        );
+        pcTierText = CreateLine(
+            "PCTierText",
+            pcStatusPanel.transform,
+            compactFontSize,
+            28f,
+            new Color(0.3f, 1f, 0.38f)
+        );
+
+        GameObject goalPanel = CreatePanel(
+            "DailyGoalPanel",
+            compactSection.transform,
+            new Vector2(0f, 1f),
+            new Vector2(0f, 1f),
+            new Vector2(0f, 1f),
+            new Vector2(18f, -140f),
+            new Vector2(470f, 100f),
+            4f
+        );
+        CreateSectionTitle(
+            "DailyGoalTitle",
+            goalPanel.transform,
+            "ЕЖЕДНЕВНАЯ ЦЕЛЬ"
+        );
+        dailyGoalText = CreateLine(
+            "DailyGoalText",
+            goalPanel.transform,
+            expandedFontSize + 1,
+            54f,
+            new Color(0.3f, 1f, 0.38f)
+        );
+
+        warningSection = CreatePanel(
             "WarningSection",
-            new Color(0.48f, 0.12f, 0.06f, 0.96f),
+            gameplayHUDRoot.transform,
+            new Vector2(1f, 1f),
+            new Vector2(1f, 1f),
+            new Vector2(1f, 1f),
+            new Vector2(-18f, -140f),
+            new Vector2(500f, 76f),
             0f
         );
         warningText = CreateLine(
@@ -245,16 +361,25 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             warningSection.transform,
             compactFontSize,
             44f,
-            new Color(1f, 0.94f, 0.78f)
+            new Color(1f, 0.35f, 0.28f)
         );
 
-        expandedSection = CreateSection(
+        expandedSection = CreatePanel(
             "ExpandedSection",
-            new Color(0.035f, 0.045f, 0.06f, 0.92f),
+            gameplayHUDRoot.transform,
+            new Vector2(0f, 1f),
+            new Vector2(0f, 1f),
+            new Vector2(0f, 1f),
+            new Vector2(18f, -254f),
+            new Vector2(Mathf.Min(hudWidth, 520f), 470f),
             2f
         );
-        clientQueueText = CreateLine("ClientQueueText", expandedSection.transform, expandedFontSize);
-        cleanlinessText = CreateLine("CleanlinessText", expandedSection.transform, expandedFontSize);
+        CreateSectionTitle(
+            "ExpandedTitle",
+            expandedSection.transform,
+            "АНАЛИТИКА И УПРАВЛЕНИЕ"
+        );
+        demandAnalyticsText = CreateLine("DemandAnalyticsText", expandedSection.transform, expandedFontSize);
         equipmentStatusText = CreateLine("EquipmentStatusText", expandedSection.transform, expandedFontSize);
         consumableStockText = CreateLine("ConsumableStockText", expandedSection.transform, expandedFontSize);
         pricingText = CreateLine("PricingText", expandedSection.transform, expandedFontSize);
@@ -262,43 +387,89 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         staffText = CreateLine("StaffText", expandedSection.transform, expandedFontSize);
         marketingText = CreateLine("MarketingText", expandedSection.transform, expandedFontSize);
         researchText = CreateLine("ResearchText", expandedSection.transform, expandedFontSize);
-        demandAnalyticsText = CreateLine("DemandAnalyticsText", expandedSection.transform, expandedFontSize);
         roomStatusText = CreateLine("RoomStatusText", expandedSection.transform, expandedFontSize);
-        pcTierText = CreateLine("PCTierText", expandedSection.transform, expandedFontSize);
         expansionText = CreateLine("ExpansionText", expandedSection.transform, expandedFontSize);
 
         warningSection.SetActive(false);
         expandedSection.SetActive(false);
     }
 
-    private GameObject CreateSection(string name, Color color, float spacing)
+    private GameObject CreateContainer(string name, Transform parent)
+    {
+        GameObject container = new GameObject(name, typeof(RectTransform));
+        container.transform.SetParent(parent, false);
+        StretchToParent(container.GetComponent<RectTransform>());
+        return container;
+    }
+
+    private GameObject CreatePanel(
+        string name,
+        Transform parent,
+        Vector2 anchorMin,
+        Vector2 anchorMax,
+        Vector2 pivot,
+        Vector2 position,
+        Vector2 size,
+        float spacing,
+        bool horizontal = false)
     {
         GameObject section = new GameObject(
             name,
             typeof(RectTransform),
             typeof(Image),
-            typeof(VerticalLayoutGroup),
-            typeof(ContentSizeFitter)
+            horizontal
+                ? typeof(HorizontalLayoutGroup)
+                : typeof(VerticalLayoutGroup),
+            typeof(Outline)
         );
-        section.transform.SetParent(gameplayHUDRoot.transform, false);
+        section.transform.SetParent(parent, false);
+
+        RectTransform rect = section.GetComponent<RectTransform>();
+        rect.anchorMin = anchorMin;
+        rect.anchorMax = anchorMax;
+        rect.pivot = pivot;
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
 
         Image image = section.GetComponent<Image>();
-        image.color = color;
+        image.color = new Color(0.018f, 0.04f, 0.07f, 0.94f);
         image.raycastTarget = false;
 
-        VerticalLayoutGroup layout = section.GetComponent<VerticalLayoutGroup>();
-        layout.padding = new RectOffset(14, 14, 10, 10);
+        HorizontalOrVerticalLayoutGroup layout = horizontal
+            ? section.GetComponent<HorizontalLayoutGroup>()
+            : section.GetComponent<VerticalLayoutGroup>();
+        layout.padding = new RectOffset(16, 16, 8, 8);
         layout.spacing = spacing;
-        layout.childAlignment = TextAnchor.UpperLeft;
+        layout.childAlignment = horizontal
+            ? TextAnchor.MiddleLeft
+            : TextAnchor.UpperLeft;
         layout.childControlWidth = true;
         layout.childControlHeight = true;
         layout.childForceExpandWidth = true;
         layout.childForceExpandHeight = false;
 
-        ContentSizeFitter fitter = section.GetComponent<ContentSizeFitter>();
-        fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        Outline outline = section.GetComponent<Outline>();
+        outline.effectColor = new Color(0.08f, 0.38f, 0.68f, 0.8f);
+        outline.effectDistance = new Vector2(1.5f, -1.5f);
+        outline.useGraphicAlpha = true;
         return section;
+    }
+
+    private Text CreateSectionTitle(
+        string name,
+        Transform parent,
+        string value)
+    {
+        Text title = CreateLine(
+            name,
+            parent,
+            Mathf.Max(14, expandedFontSize - 1),
+            22f,
+            new Color(0.32f, 0.7f, 1f)
+        );
+        title.text = value;
+        title.fontStyle = FontStyle.Bold;
+        return title;
     }
 
     private Text CreateLine(
@@ -327,7 +498,17 @@ public sealed class ClubHUDCanvas : MonoBehaviour
 
         LayoutElement element = textObject.GetComponent<LayoutElement>();
         element.preferredHeight = preferredHeight;
+        element.flexibleWidth = 1f;
         return text;
+    }
+
+    private static void StretchToParent(RectTransform rect)
+    {
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = Vector2.zero;
     }
 
     private void CreateInteractionPrompt()
@@ -345,12 +526,16 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         panelRect.anchorMin = new Vector2(0.5f, 0f);
         panelRect.anchorMax = new Vector2(0.5f, 0f);
         panelRect.pivot = new Vector2(0.5f, 0f);
-        panelRect.anchoredPosition = new Vector2(0f, 28f);
+        panelRect.anchoredPosition = new Vector2(0f, 96f);
         panelRect.sizeDelta = new Vector2(760f, 58f);
 
         Image image = interactionPromptPanel.GetComponent<Image>();
-        image.color = new Color(0.035f, 0.045f, 0.06f, 0.92f);
+        image.color = new Color(0.018f, 0.04f, 0.07f, 0.96f);
         image.raycastTarget = false;
+
+        Outline outline = interactionPromptPanel.AddComponent<Outline>();
+        outline.effectColor = new Color(0.08f, 0.38f, 0.68f, 0.8f);
+        outline.effectDistance = new Vector2(1.5f, -1.5f);
 
         GameObject textObject = new GameObject(
             "InteractionPromptText",
@@ -513,24 +698,34 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         pcs.Clear();
     }
 
-    private void SubscribeToPlayerInteraction()
+    private void SubscribeToInteractionPromptSource()
     {
-        playerInteraction = FindAnyObjectByType<PlayerInteraction>();
-        if (playerInteraction == null)
+        ManagerModeController managerMode =
+            FindAnyObjectByType<ManagerModeController>();
+        interactionPromptSourceBehaviour = managerMode != null
+            ? managerMode
+            : FindAnyObjectByType<PlayerInteraction>();
+        interactionPromptSource =
+            interactionPromptSourceBehaviour as IInteractionPromptSource;
+
+        if (interactionPromptSource == null)
         {
             return;
         }
 
-        playerInteraction.PromptChanged += OnInteractionPromptChanged;
-        currentInteractionPrompt = playerInteraction.CurrentPrompt;
+        interactionPromptSource.PromptChanged += OnInteractionPromptChanged;
+        currentInteractionPrompt = interactionPromptSource.CurrentPrompt;
     }
 
-    private void UnsubscribeFromPlayerInteraction()
+    private void UnsubscribeFromInteractionPromptSource()
     {
-        if (playerInteraction != null)
+        if (interactionPromptSource != null)
         {
-            playerInteraction.PromptChanged -= OnInteractionPromptChanged;
+            interactionPromptSource.PromptChanged -= OnInteractionPromptChanged;
         }
+
+        interactionPromptSource = null;
+        interactionPromptSourceBehaviour = null;
     }
 
     private void SubscribeToClientSpawner()

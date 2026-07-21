@@ -425,22 +425,76 @@ public sealed class GameSettingsPanel : MonoBehaviour
         overlayRoot = CreateImage(
             "GameSettingsOverlay",
             canvasObject.transform,
-            new Color(0f, 0f, 0f, 0.86f)
+            new Color(0.002f, 0.008f, 0.018f, 1f)
         );
         Stretch(overlayRoot.GetComponent<RectTransform>());
+        CreateBackdrop(overlayRoot.transform);
         settingsPanel = CreateSettingsScreen(overlayRoot.transform);
         controlsPanel = CreateControlsScreen(overlayRoot.transform);
         confirmationPanel = CreateDisplayConfirmation(overlayRoot.transform);
     }
 
+    private void CreateBackdrop(Transform parent)
+    {
+        Texture2D texture =
+            Resources.Load<Texture2D>("UI/MainMenuBackground");
+        if (texture != null)
+        {
+            GameObject backgroundObject = new(
+                "ClubBackground",
+                typeof(RectTransform),
+                typeof(RawImage),
+                typeof(AspectRatioFitter)
+            );
+            backgroundObject.transform.SetParent(parent, false);
+
+            RectTransform backgroundRect =
+                backgroundObject.GetComponent<RectTransform>();
+            backgroundRect.anchorMin = new Vector2(0.5f, 0.5f);
+            backgroundRect.anchorMax = new Vector2(0.5f, 0.5f);
+            backgroundRect.pivot = new Vector2(0.5f, 0.5f);
+            backgroundRect.anchoredPosition = Vector2.zero;
+            backgroundRect.sizeDelta = ReferenceResolution;
+
+            RawImage background = backgroundObject.GetComponent<RawImage>();
+            background.texture = texture;
+            background.color = new Color(0.72f, 0.82f, 1f, 1f);
+            background.raycastTarget = false;
+
+            AspectRatioFitter fitter =
+                backgroundObject.GetComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+            fitter.aspectRatio = (float)texture.width / texture.height;
+        }
+
+        GameObject dimmer = CreateImage(
+            "SettingsDimmer",
+            parent,
+            new Color(0.002f, 0.01f, 0.025f, 0.78f)
+        );
+        Stretch(dimmer.GetComponent<RectTransform>());
+        dimmer.GetComponent<Image>().raycastTarget = false;
+    }
+
     private GameObject CreateSettingsScreen(Transform parent)
     {
-        GameObject panel = CreatePanel("SettingsPanel", parent, new Vector2(860f, 820f));
+        GameObject panel = CreatePanel("SettingsPanel", parent, new Vector2(900f, 850f));
         panel.AddComponent<ScalableUIRoot>();
         VerticalLayoutGroup layout = panel.AddComponent<VerticalLayoutGroup>();
         ConfigureVertical(layout, new RectOffset(34, 34, 24, 24), 5f);
 
-        CreateLabel("Title", panel.transform, "НАСТРОЙКИ", 30, 48f, FontStyle.Bold);
+        Text title = CreateLabel(
+            "Title",
+            panel.transform,
+            "НАСТРОЙКИ",
+            34,
+            52f,
+            FontStyle.Bold,
+            new Color(0.9f, 0.95f, 1f)
+        );
+        Shadow titleShadow = title.gameObject.AddComponent<Shadow>();
+        titleShadow.effectColor = new Color(0.04f, 0.5f, 1f, 0.7f);
+        titleShadow.effectDistance = new Vector2(2f, -2f);
         CreateSectionLabel(panel.transform, "ЭКРАН");
         CreateResolutionRow(panel.transform);
         fullscreenToggle = CreateToggleRow(panel.transform, "Полный экран");
@@ -491,20 +545,30 @@ public sealed class GameSettingsPanel : MonoBehaviour
             17,
             30f,
             FontStyle.Normal,
-            new Color(1f, 0.78f, 0.34f)
+            new Color(1f, 0.72f, 0.28f)
         );
         return panel;
     }
 
     private GameObject CreateControlsScreen(Transform parent)
     {
-        GameObject panel = CreatePanel("ControlsPanel", parent, new Vector2(760f, 650f));
+        GameObject panel = CreatePanel("ControlsPanel", parent, new Vector2(780f, 740f));
         panel.AddComponent<ScalableUIRoot>();
         VerticalLayoutGroup layout = panel.AddComponent<VerticalLayoutGroup>();
         ConfigureVertical(layout, new RectOffset(38, 38, 30, 30), 10f);
-        CreateLabel("Title", panel.transform, "УПРАВЛЕНИЕ", 30, 58f, FontStyle.Bold);
-        CreateControlLine(panel.transform, "Движение", "WASD / левый стик");
-        CreateControlLine(panel.transform, "Взаимодействие", "E / South Button");
+        CreateLabel(
+            "Title",
+            panel.transform,
+            "УПРАВЛЕНИЕ",
+            32,
+            58f,
+            FontStyle.Bold,
+            new Color(0.9f, 0.95f, 1f)
+        );
+        CreateControlLine(panel.transform, "Камера", "WASD / стрелки");
+        CreateControlLine(panel.transform, "Выбор объекта", "ЛКМ");
+        CreateControlLine(panel.transform, "Перетащить камеру", "СКМ");
+        CreateControlLine(panel.transform, "Отмена строительства", "ПКМ / Esc");
         CreateControlLine(panel.transform, "Пауза", "Esc / Start");
         CreateControlLine(panel.transform, "HUD", "Tab / Select");
         CreateControlLine(panel.transform, "Масштаб камеры", "колесо / правый стик");
@@ -530,7 +594,7 @@ public sealed class GameSettingsPanel : MonoBehaviour
         GameObject panel = CreatePanel(
             "DisplayConfirmationPanel",
             parent,
-            new Vector2(650f, 330f)
+            new Vector2(680f, 340f)
         );
         panel.AddComponent<ScalableUIRoot>();
         VerticalLayoutGroup layout = panel.AddComponent<VerticalLayoutGroup>();
@@ -594,15 +658,16 @@ public sealed class GameSettingsPanel : MonoBehaviour
         GameObject toggleObject = CreateImage(
             "Toggle",
             row.transform,
-            new Color(0.12f, 0.16f, 0.20f, 1f)
+            new Color(0.015f, 0.055f, 0.095f, 1f)
         );
         toggleObject.AddComponent<LayoutElement>().preferredWidth = 100f;
+        AddCyanOutline(toggleObject, 1f, 0.65f);
         Toggle toggle = toggleObject.AddComponent<Toggle>();
         toggle.targetGraphic = toggleObject.GetComponent<Image>();
         GameObject checkmarkObject = CreateImage(
             "Checkmark",
             toggleObject.transform,
-            new Color(0.22f, 0.82f, 0.65f, 1f)
+            new Color(0.03f, 0.66f, 1f, 1f)
         );
         RectTransform checkmark = checkmarkObject.GetComponent<RectTransform>();
         checkmark.anchorMin = new Vector2(0.06f, 0.2f);
@@ -652,7 +717,7 @@ public sealed class GameSettingsPanel : MonoBehaviour
         GameObject background = CreateImage(
             "Background",
             sliderObject.transform,
-            new Color(0.11f, 0.15f, 0.18f, 1f)
+            new Color(0.015f, 0.05f, 0.085f, 1f)
         );
         Stretch(background.GetComponent<RectTransform>());
         background.GetComponent<RectTransform>().offsetMin = new Vector2(0f, 16f);
@@ -661,7 +726,7 @@ public sealed class GameSettingsPanel : MonoBehaviour
         GameObject fill = CreateImage(
             "Fill",
             sliderObject.transform,
-            new Color(0.24f, 0.86f, 0.67f, 1f)
+            new Color(0.03f, 0.62f, 1f, 1f)
         );
         Stretch(fill.GetComponent<RectTransform>());
         fill.GetComponent<RectTransform>().offsetMin = new Vector2(2f, 16f);
@@ -672,7 +737,11 @@ public sealed class GameSettingsPanel : MonoBehaviour
         Stretch(handleArea.GetComponent<RectTransform>());
         handleArea.GetComponent<RectTransform>().offsetMin = new Vector2(8f, 0f);
         handleArea.GetComponent<RectTransform>().offsetMax = new Vector2(-8f, 0f);
-        GameObject handle = CreateImage("Handle", handleArea.transform, Color.white);
+        GameObject handle = CreateImage(
+            "Handle",
+            handleArea.transform,
+            new Color(0.76f, 0.91f, 1f, 1f)
+        );
         handle.GetComponent<RectTransform>().sizeDelta = new Vector2(18f, 34f);
 
         Slider slider = sliderObject.GetComponent<Slider>();
@@ -700,7 +769,7 @@ public sealed class GameSettingsPanel : MonoBehaviour
             18,
             28f,
             FontStyle.Bold,
-            new Color(0.34f, 0.94f, 0.74f)
+            new Color(0.22f, 0.68f, 1f)
         );
     }
 
@@ -709,8 +778,9 @@ public sealed class GameSettingsPanel : MonoBehaviour
         GameObject panel = CreateImage(
             name,
             parent,
-            new Color(0.03f, 0.045f, 0.06f, 1f)
+            new Color(0.006f, 0.022f, 0.042f, 0.985f)
         );
+        AddCyanOutline(panel, 2f, 0.9f);
         RectTransform rect = panel.GetComponent<RectTransform>();
         rect.anchorMin = new Vector2(0.5f, 0.5f);
         rect.anchorMax = new Vector2(0.5f, 0.5f);
@@ -749,12 +819,23 @@ public sealed class GameSettingsPanel : MonoBehaviour
         GameObject buttonObject = CreateImage(
             name,
             parent,
-            new Color(0.10f, 0.16f, 0.20f, 1f)
+            Color.white
         );
         buttonObject.AddComponent<LayoutElement>().preferredHeight = 46f;
         Button button = buttonObject.AddComponent<Button>();
         button.targetGraphic = buttonObject.GetComponent<Image>();
         button.onClick.AddListener(action);
+
+        ColorBlock colors = button.colors;
+        colors.normalColor = new Color(0.015f, 0.05f, 0.085f, 1f);
+        colors.highlightedColor = new Color(0.025f, 0.2f, 0.34f, 1f);
+        colors.selectedColor = new Color(0.02f, 0.15f, 0.28f, 1f);
+        colors.pressedColor = new Color(0.01f, 0.1f, 0.2f, 1f);
+        colors.disabledColor = new Color(0.012f, 0.025f, 0.045f, 0.7f);
+        colors.colorMultiplier = 1f;
+        button.colors = colors;
+        AddCyanOutline(buttonObject, 1f, 0.58f);
+
         Text text = CreateLabel(
             "Text",
             buttonObject.transform,
@@ -817,6 +898,18 @@ public sealed class GameSettingsPanel : MonoBehaviour
         image.transform.SetParent(parent, false);
         image.GetComponent<Image>().color = color;
         return image;
+    }
+
+    private static void AddCyanOutline(
+        GameObject target,
+        float distance,
+        float alpha)
+    {
+        Outline outline = target.GetComponent<Outline>() ??
+            target.AddComponent<Outline>();
+        outline.effectColor = new Color(0.03f, 0.55f, 1f, alpha);
+        outline.effectDistance = new Vector2(distance, -distance);
+        outline.useGraphicAlpha = true;
     }
 
     private static void CreateSpacer(Transform parent, float height)

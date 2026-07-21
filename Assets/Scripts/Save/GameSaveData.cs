@@ -79,6 +79,9 @@ public class PCSaveData
 {
     public string objectName;
     public int tier;
+    public bool hasPosition;
+    public float positionX;
+    public float positionY;
 }
 
 [Serializable]

@@ -249,11 +249,11 @@ public sealed class FirstDayTutorialManager : MonoBehaviour
     {
         steps = new[]
         {
-            new TutorialStepDefinition(TutorialStepType.ApproachPC, "Осмотрите игровой зал", "Подойдите к любому компьютеру.", "Подойти к ПК"),
+            new TutorialStepDefinition(TutorialStepType.ApproachPC, "Осмотрите игровой зал", "Наведите курсор и выберите любой компьютер.", "Выбрать ПК"),
             new TutorialStepDefinition(TutorialStepType.WaitForFirstClient, "Первый посетитель", "Дождитесь прихода первого клиента.", "Дождаться клиента"),
             new TutorialStepDefinition(TutorialStepType.CompleteFirstSession, "Первая сессия", "Клиент автоматически займет подходящий ПК.", "Завершить первую сессию"),
             new TutorialStepDefinition(TutorialStepType.CleanTrash, "Поддерживайте чистоту", "После посетителей может оставаться мусор.", "Убрать мусор"),
-            new TutorialStepDefinition(TutorialStepType.RepairEquipment, "Обслуживание оборудования", "Используйте синий терминал или подойдите к ПК.", "Отремонтировать мышь"),
+            new TutorialStepDefinition(TutorialStepType.RepairEquipment, "Обслуживание оборудования", "Выберите синий терминал или нужный компьютер.", "Отремонтировать мышь"),
             new TutorialStepDefinition(TutorialStepType.RestockEnergyDrinks, "Пополнение склада", "Купите упаковку энергетиков.", "Купить энергетики"),
             new TutorialStepDefinition(TutorialStepType.ChangeBasicPrice, "Настройка тарифа", "Установите тариф Basic на 110%.", "Basic: 110%"),
             new TutorialStepDefinition(TutorialStepType.ServeClients, "Самостоятельная работа", "Обслужите еще трех посетителей.", "Обслужено", 3),

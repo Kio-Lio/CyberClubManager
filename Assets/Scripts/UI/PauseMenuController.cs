@@ -132,6 +132,13 @@ public sealed class PauseMenuController : MonoBehaviour
             return;
         }
 
+        if (ManagerBuildController.Instance != null &&
+            ManagerBuildController.Instance.IsPlacing)
+        {
+            ManagerBuildController.Instance.CancelPlacement();
+            return;
+        }
+
         if (GameSettingsPanel.Instance != null &&
             GameSettingsPanel.Instance.IsOpen)
         {

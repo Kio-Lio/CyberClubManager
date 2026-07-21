@@ -5,6 +5,7 @@ public enum EconomyTransactionCategory
     ConsumableRevenue,
     DailyGoalReward,
     TutorialReward,
+    AssetSale,
 
     OtherExpense,
     FixedOperatingCost,

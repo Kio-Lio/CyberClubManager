@@ -6,15 +6,16 @@ using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public static class PlaytestBuild
 {
-    public const string Version = "0.1.0";
-    public const string BuildDirectory = "Builds/Playtest-0.1.0";
+    public const string Version = "0.1.1";
+    public const string BuildDirectory = "Builds/Playtest-0.1.1";
     public const string ExecutablePath =
         BuildDirectory + "/CyberClubManager.exe";
     public const string ArchivePath =
-        "Builds/CyberClubManager-Playtest-0.1.0-Windows-x64.zip";
+        "Builds/CyberClubManager-Playtest-0.1.1-Windows-x64.zip";
 
     private const string IconPath =
         "Assets/Art/Icons/PlaytestAppIcon.png";
@@ -26,6 +27,10 @@ public static class PlaytestBuild
         PlayerSettings.companyName = "Kio-Lio";
         PlayerSettings.productName = "Cyber Club Manager";
         PlayerSettings.bundleVersion = Version;
+        PlayerSettings.SetGraphicsAPIs(
+            BuildTarget.StandaloneWindows64,
+            new[] { GraphicsDeviceType.Direct3D11 }
+        );
 
         Texture2D icon = AssetDatabase.LoadAssetAtPath<Texture2D>(IconPath);
         if (icon == null)
@@ -50,7 +55,7 @@ public static class PlaytestBuild
         Debug.Log("PLAYTEST_PROJECT_SETTINGS: PASS");
     }
 
-    [MenuItem("Cyber Club Manager/Playtest/Build 0.1.0")]
+    [MenuItem("Cyber Club Manager/Playtest/Build 0.1.1")]
     public static void Build()
     {
         ConfigureProject();

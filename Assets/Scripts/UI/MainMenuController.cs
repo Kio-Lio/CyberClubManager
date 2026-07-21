@@ -87,6 +87,15 @@ public sealed class MainMenuController : MonoBehaviour
         if (continueButton != null)
         {
             continueButton.interactable = hasSave && saveSummary.isValid;
+
+            Text continueLabel =
+                continueButton.GetComponentInChildren<Text>();
+            if (continueLabel != null)
+            {
+                continueLabel.color = continueButton.interactable
+                    ? new Color(0.88f, 0.94f, 1f, 1f)
+                    : new Color(0.34f, 0.42f, 0.52f, 1f);
+            }
         }
 
         if (deleteCorruptedSaveButton != null)
@@ -101,28 +110,23 @@ public sealed class MainMenuController : MonoBehaviour
 
         if (!hasSave)
         {
-            saveSummaryText.text =
-                "Сохранение не найдено\n\n" +
-                "Начните новую игру, чтобы открыть клуб.";
+            saveSummaryText.text = "СОХРАНЕНИЕ НЕ НАЙДЕНО";
+            SelectButton("NewGameButton");
             return;
         }
 
         if (saveIsCorrupted)
         {
-            saveSummaryText.text =
-                "СОХРАНЕНИЕ ПОВРЕЖДЕНО\n\n" +
-                "Продолжение невозможно. Удалите файл сохранения и " +
-                "начните новую игру.";
+            saveSummaryText.text = "СОХРАНЕНИЕ ПОВРЕЖДЕНО";
+            SelectButton("NewGameButton");
             return;
         }
 
         saveSummaryText.text =
-            $"День: {saveSummary.day}\n" +
-            $"Баланс: {saveSummary.balance:N0} ₽\n" +
-            $"Уровень клуба: {saveSummary.clubLevel}\n" +
-            $"Репутация: {saveSummary.reputation}\n\n" +
-            "Последнее сохранение:\n" +
-            saveSummary.savedAt.ToString("dd.MM.yyyy HH:mm");
+            $"ДЕНЬ {saveSummary.day}  •  {saveSummary.balance:N0} ₽  •  " +
+            $"УРОВЕНЬ {saveSummary.clubLevel}  •  РЕПУТАЦИЯ " +
+            saveSummary.reputation;
+        SelectButton("ContinueButton");
     }
 
     private void ContinueGame()
@@ -310,14 +314,63 @@ public sealed class MainMenuController : MonoBehaviour
         GameObject root = CreateImage(
             "MainMenuRoot",
             mainMenuCanvasObject.transform,
-            new Color(0.018f, 0.028f, 0.042f, 1f)
+            new Color(0.005f, 0.01f, 0.018f, 1f)
         );
         Stretch(root.GetComponent<RectTransform>());
-        CreateAccentBands(root.transform);
+        CreateBackground(root.transform);
         CreateMainPanel(root.transform);
-        CreateSavePanel(root.transform);
         newGameConfirmationOverlay =
             CreateNewGameConfirmation(root.transform);
+    }
+
+    private void CreateBackground(Transform parent)
+    {
+        Texture2D texture =
+            Resources.Load<Texture2D>("UI/MainMenuBackground");
+
+        if (texture != null)
+        {
+            GameObject backgroundObject = new GameObject(
+                "ClubBackground",
+                typeof(RectTransform),
+                typeof(RawImage),
+                typeof(AspectRatioFitter)
+            );
+            backgroundObject.transform.SetParent(parent, false);
+
+            RectTransform backgroundRect =
+                backgroundObject.GetComponent<RectTransform>();
+            backgroundRect.anchorMin = new Vector2(0.5f, 0.5f);
+            backgroundRect.anchorMax = new Vector2(0.5f, 0.5f);
+            backgroundRect.pivot = new Vector2(0.5f, 0.5f);
+            backgroundRect.anchoredPosition = Vector2.zero;
+            backgroundRect.sizeDelta = ReferenceResolution;
+
+            RawImage background = backgroundObject.GetComponent<RawImage>();
+            background.texture = texture;
+            background.color = Color.white;
+            background.raycastTarget = false;
+
+            AspectRatioFitter fitter =
+                backgroundObject.GetComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+            fitter.aspectRatio = (float)texture.width / texture.height;
+        }
+        else
+        {
+            Debug.LogWarning(
+                "Main menu background is missing at " +
+                "Resources/UI/MainMenuBackground."
+            );
+        }
+
+        GameObject tint = CreateImage(
+            "BackgroundTint",
+            parent,
+            new Color(0.005f, 0.012f, 0.025f, 0.2f)
+        );
+        Stretch(tint.GetComponent<RectTransform>());
+        tint.GetComponent<Image>().raycastTarget = false;
     }
 
     private void CreateAccentBands(Transform parent)
@@ -350,117 +403,100 @@ public sealed class MainMenuController : MonoBehaviour
         GameObject panel = CreateImage(
             "MainActions",
             parent,
-            new Color(0.025f, 0.045f, 0.06f, 0.94f)
+            new Color(0.008f, 0.025f, 0.045f, 0.985f)
         );
         panel.AddComponent<ScalableUIRoot>();
+        AddCyanOutline(panel, 2f, 0.9f);
         RectTransform rect = panel.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0.07f, 0.12f);
-        rect.anchorMax = new Vector2(0.49f, 0.88f);
+        rect.anchorMin = new Vector2(0.035f, 0.1f);
+        rect.anchorMax = new Vector2(0.34f, 0.91f);
         rect.offsetMin = Vector2.zero;
         rect.offsetMax = Vector2.zero;
 
         VerticalLayoutGroup layout = panel.AddComponent<VerticalLayoutGroup>();
-        layout.padding = new RectOffset(44, 44, 38, 38);
-        layout.spacing = 14f;
+        layout.padding = new RectOffset(48, 48, 38, 24);
+        layout.spacing = 8f;
         layout.childAlignment = TextAnchor.UpperLeft;
         layout.childControlWidth = true;
         layout.childControlHeight = true;
         layout.childForceExpandWidth = true;
         layout.childForceExpandHeight = false;
 
-        CreateLabel(
+        Text title = CreateLabel(
             "GameTitle",
             panel.transform,
-            "CYBER CLUB MANAGER",
-            48,
-            122f,
+            "CYBER CLUB\nMANAGER",
+            62,
+            145f,
             FontStyle.Bold,
             TextAnchor.MiddleLeft,
-            new Color(0.35f, 0.95f, 0.75f, 1f)
+            new Color(0.9f, 0.95f, 1f, 1f)
         );
+        title.lineSpacing = 0.8f;
+        Shadow titleShadow = title.gameObject.AddComponent<Shadow>();
+        titleShadow.effectColor = new Color(0.1f, 0.55f, 1f, 0.65f);
+        titleShadow.effectDistance = new Vector2(2f, -2f);
         CreateLabel(
             "Subtitle",
             panel.transform,
-            "Управление компьютерным клубом",
-            23,
-            48f,
+            "СИМУЛЯТОР КОМПЬЮТЕРНОГО КЛУБА",
+            19,
+            34f,
             FontStyle.Normal,
             TextAnchor.MiddleLeft,
-            new Color(0.82f, 0.88f, 0.92f, 1f)
+            new Color(0.32f, 0.66f, 0.96f, 1f)
         );
-        CreateSpacer(panel.transform, 28f);
+        CreateDivider(panel.transform);
 
-        continueButton = CreateButton(
+        continueButton = CreateMainMenuButton(
             "ContinueButton", "ПРОДОЛЖИТЬ", panel.transform, ContinueGame
         );
-        newGameButton = CreateButton(
+        newGameButton = CreateMainMenuButton(
             "NewGameButton", "НОВАЯ ИГРА", panel.transform, RequestNewGame
         );
-        CreateButton(
+        CreateMainMenuButton(
             "SettingsButton", "НАСТРОЙКИ", panel.transform, OpenSettings
         );
-        CreateButton("ExitButton", "ВЫХОД", panel.transform, ExitGame);
+        CreateMainMenuButton("ExitButton", "ВЫХОД", panel.transform, ExitGame);
 
-        statusText = CreateLabel(
-            "StatusText",
-            panel.transform,
-            string.Empty,
-            19,
-            46f,
-            FontStyle.Normal,
-            TextAnchor.MiddleLeft,
-            new Color(0.96f, 0.78f, 0.30f, 1f)
-        );
-    }
-
-    private void CreateSavePanel(Transform parent)
-    {
-        GameObject panel = CreateImage(
-            "SaveCard",
-            parent,
-            new Color(0.07f, 0.075f, 0.095f, 0.96f)
-        );
-        panel.AddComponent<ScalableUIRoot>();
-        RectTransform rect = panel.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0.55f, 0.24f);
-        rect.anchorMax = new Vector2(0.91f, 0.76f);
-        rect.offsetMin = Vector2.zero;
-        rect.offsetMax = Vector2.zero;
-
-        VerticalLayoutGroup layout = panel.AddComponent<VerticalLayoutGroup>();
-        layout.padding = new RectOffset(38, 38, 34, 34);
-        layout.spacing = 16f;
-        layout.childAlignment = TextAnchor.UpperLeft;
-        layout.childControlWidth = true;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = true;
-        layout.childForceExpandHeight = false;
-
-        CreateLabel(
-            "SaveTitle",
-            panel.transform,
-            "ТЕКУЩИЙ КЛУБ",
-            27,
-            54f,
-            FontStyle.Bold,
-            TextAnchor.MiddleLeft,
-            Color.white
-        );
         saveSummaryText = CreateLabel(
             "SaveSummary",
             panel.transform,
             string.Empty,
-            23,
-            250f,
+            15,
+            38f,
             FontStyle.Normal,
-            TextAnchor.UpperLeft,
-            new Color(0.84f, 0.89f, 0.93f, 1f)
+            TextAnchor.MiddleLeft,
+            new Color(0.42f, 0.58f, 0.74f, 1f)
         );
         deleteCorruptedSaveButton = CreateButton(
             "DeleteCorruptedSaveButton",
             "УДАЛИТЬ СОХРАНЕНИЕ",
             panel.transform,
             DeleteCorruptedSave
+        );
+        deleteCorruptedSaveButton.GetComponent<LayoutElement>()
+            .preferredHeight = 42f;
+
+        statusText = CreateLabel(
+            "StatusText",
+            panel.transform,
+            string.Empty,
+            16,
+            30f,
+            FontStyle.Normal,
+            TextAnchor.MiddleLeft,
+            new Color(0.96f, 0.78f, 0.30f, 1f)
+        );
+        CreateLabel(
+            "VersionText",
+            panel.transform,
+            $"Версия {Application.version}",
+            14,
+            24f,
+            FontStyle.Normal,
+            TextAnchor.MiddleLeft,
+            new Color(0.28f, 0.4f, 0.55f, 1f)
         );
     }
 
@@ -748,6 +784,7 @@ public sealed class MainMenuController : MonoBehaviour
         rect.pivot = new Vector2(0.5f, 0.5f);
         rect.sizeDelta = size;
         rect.anchoredPosition = Vector2.zero;
+        AddCyanOutline(panel, 2f, 0.85f);
         return panel;
     }
 
@@ -797,12 +834,56 @@ public sealed class MainMenuController : MonoBehaviour
         colors.pressedColor = new Color(0.08f, 0.12f, 0.15f, 1f);
         colors.disabledColor = new Color(0.07f, 0.08f, 0.09f, 0.6f);
         button.colors = colors;
+        AddCyanOutline(buttonObject, 1f, 0.42f);
 
         Text text = CreateLabel(
             "Text", buttonObject.transform, caption, 22, 56f,
             FontStyle.Bold, TextAnchor.MiddleCenter, Color.white
         );
         Stretch(text.rectTransform);
+        return button;
+    }
+
+    private Button CreateMainMenuButton(
+        string objectName,
+        string caption,
+        Transform parent,
+        UnityEngine.Events.UnityAction action)
+    {
+        Button button = CreateButton(
+            objectName,
+            caption,
+            parent,
+            action
+        );
+
+        button.GetComponent<LayoutElement>().preferredHeight = 70f;
+        Image image = button.GetComponent<Image>();
+        image.color = Color.white;
+
+        ColorBlock colors = button.colors;
+        colors.normalColor = new Color(0.015f, 0.04f, 0.075f, 0.98f);
+        colors.highlightedColor = new Color(0.025f, 0.2f, 0.34f, 1f);
+        colors.selectedColor = new Color(0.02f, 0.15f, 0.28f, 1f);
+        colors.pressedColor = new Color(0.01f, 0.1f, 0.2f, 1f);
+        colors.disabledColor = new Color(0.015f, 0.025f, 0.045f, 0.82f);
+        colors.colorMultiplier = 1f;
+        button.colors = colors;
+
+        Text text = button.GetComponentInChildren<Text>();
+        if (text != null)
+        {
+            text.fontSize = 26;
+            text.color = new Color(0.88f, 0.94f, 1f, 1f);
+        }
+
+        Outline outline = button.GetComponent<Outline>();
+        if (outline != null)
+        {
+            outline.effectColor = new Color(0.08f, 0.48f, 0.84f, 0.82f);
+            outline.effectDistance = new Vector2(2f, -2f);
+        }
+
         return button;
     }
 
@@ -875,6 +956,35 @@ public sealed class MainMenuController : MonoBehaviour
         );
         spacer.transform.SetParent(parent, false);
         spacer.GetComponent<LayoutElement>().preferredHeight = height;
+    }
+
+    private static void CreateDivider(Transform parent)
+    {
+        GameObject divider = new GameObject(
+            "TitleDivider",
+            typeof(RectTransform),
+            typeof(Image),
+            typeof(LayoutElement)
+        );
+        divider.transform.SetParent(parent, false);
+        divider.GetComponent<Image>().color =
+            new Color(0.05f, 0.64f, 1f, 0.9f);
+        divider.GetComponent<Image>().raycastTarget = false;
+        LayoutElement layout = divider.GetComponent<LayoutElement>();
+        layout.preferredHeight = 3f;
+        layout.flexibleWidth = 1f;
+    }
+
+    private static void AddCyanOutline(
+        GameObject target,
+        float distance,
+        float alpha)
+    {
+        Outline outline = target.GetComponent<Outline>() ??
+            target.AddComponent<Outline>();
+        outline.effectColor = new Color(0.03f, 0.55f, 1f, alpha);
+        outline.effectDistance = new Vector2(distance, -distance);
+        outline.useGraphicAlpha = true;
     }
 
     private static void Stretch(RectTransform rectTransform)

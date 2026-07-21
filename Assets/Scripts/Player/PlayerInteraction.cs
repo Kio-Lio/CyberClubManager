@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerInteraction : MonoBehaviour
+public class PlayerInteraction : MonoBehaviour, IInteractionPromptSource
 {
     private readonly List<MonoBehaviour> candidates = new();
 
@@ -21,7 +21,7 @@ public class PlayerInteraction : MonoBehaviour
 
     public void OnInteract(InputValue inputValue)
     {
-        if (!inputValue.isPressed)
+        if (!isActiveAndEnabled || !inputValue.isPressed)
         {
             return;
         }

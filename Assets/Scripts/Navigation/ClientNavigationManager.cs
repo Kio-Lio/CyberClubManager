@@ -283,6 +283,34 @@ public sealed class ClientNavigationManager : MonoBehaviour
         return approachNode;
     }
 
+    public bool TryGetOpenApproachPosition(
+        Vector3 pcPosition,
+        out Vector3 approachPosition)
+    {
+        Vector3[] offsets =
+        {
+            Vector3.up,
+            Vector3.down,
+            Vector3.left,
+            Vector3.right
+        };
+
+        foreach (Vector3 offset in offsets)
+        {
+            Vector3 candidate = pcPosition + offset;
+            if (!IsApproachPositionOpen(candidate))
+            {
+                continue;
+            }
+
+            approachPosition = candidate;
+            return true;
+        }
+
+        approachPosition = pcPosition + Vector3.up;
+        return false;
+    }
+
     public ClientNavigationNode EnsureRoomNode(
         string objectName,
         Vector3 position)
@@ -293,13 +321,48 @@ public sealed class ClientNavigationManager : MonoBehaviour
     private Vector3 GetApproachPosition(PC pc)
     {
         int pcNumber = GetPcNumber(pc);
-
-        if (pcNumber >= 1 && pcNumber <= 3)
+        Vector3 preferredOffset = pcNumber >= 1 && pcNumber <= 3
+            ? Vector3.down
+            : Vector3.up;
+        Vector3[] offsets =
         {
-            return pc.transform.position + Vector3.down;
+            preferredOffset,
+            -preferredOffset,
+            Vector3.left,
+            Vector3.right
+        };
+
+        foreach (Vector3 offset in offsets)
+        {
+            Vector3 candidate = pc.transform.position + offset;
+            if (IsApproachPositionOpen(candidate))
+            {
+                return candidate;
+            }
         }
 
-        return pc.transform.position + Vector3.up;
+        return pc.transform.position + preferredOffset;
+    }
+
+    private static bool IsApproachPositionOpen(Vector3 position)
+    {
+        Physics2D.SyncTransforms();
+
+        foreach (Collider2D collider in Physics2D.OverlapCircleAll(
+            position,
+            0.3f
+        ))
+        {
+            if (collider == null || !collider.enabled ||
+                collider.GetComponentInParent<CameraBounds2D>() != null)
+            {
+                continue;
+            }
+
+            return false;
+        }
+
+        return true;
     }
 
     private ClientNavigationNode GetApproachAnchor(PC pc)

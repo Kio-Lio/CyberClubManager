@@ -53,6 +53,11 @@ public sealed class PCExpansionTerminal : MonoBehaviour, IInteractable
             return $"Новый ПК: {cost} ₽ — недостаточно денег";
         }
 
+        if (ManagerBuildController.Instance != null)
+        {
+            return $"Разместить новый ПК за {cost} ₽";
+        }
+
         return $"E — Купить новый ПК за {cost} ₽";
     }
 
@@ -61,6 +66,12 @@ public sealed class PCExpansionTerminal : MonoBehaviour, IInteractable
         if (PCExpansionManager.Instance == null)
         {
             Debug.LogWarning("PCExpansionManager не найден в сцене.");
+            return;
+        }
+
+        if (ManagerBuildController.Instance != null)
+        {
+            ManagerBuildController.Instance.BeginPCPlacement();
             return;
         }
 

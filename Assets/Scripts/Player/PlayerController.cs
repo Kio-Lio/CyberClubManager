@@ -23,11 +23,21 @@ public class PlayerController : MonoBehaviour
 
     public void OnMove(InputValue value)
     {
+        if (!isActiveAndEnabled)
+        {
+            return;
+        }
+
         movement = value.Get<Vector2>();
     }
 
     public void OnCameraZoom(InputValue inputValue)
     {
+        if (!isActiveAndEnabled)
+        {
+            return;
+        }
+
         if (cameraFollow == null)
         {
             cameraFollow = FindAnyObjectByType<CameraFollow>();
@@ -41,7 +51,8 @@ public class PlayerController : MonoBehaviour
 
     public void OnToggleHUD(InputValue value)
     {
-        if (!value.isPressed || GameplayInputState.IsBlocked)
+        if (!isActiveAndEnabled || !value.isPressed ||
+            GameplayInputState.IsBlocked)
         {
             return;
         }
