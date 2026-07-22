@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 [InitializeOnLoad]
 public static class MainMenuFlowSmokeTest
@@ -393,6 +394,27 @@ public static class MainMenuFlowSmokeTest
                 PricingPanel.Instance == null &&
                 MarketingPanel.Instance == null,
             "Gameplay panel static state leaked into MainMenu.");
+
+        foreach (string buttonName in new[]
+                 {
+                     "ContinueButton",
+                     "NewGameButton",
+                     "SettingsButton",
+                     "ExitButton"
+                 })
+        {
+            GameObject buttonObject = GameObject.Find(buttonName);
+            Button button = buttonObject != null
+                ? buttonObject.GetComponent<Button>()
+                : null;
+            Image image = buttonObject != null
+                ? buttonObject.GetComponent<Image>()
+                : null;
+            Require(button != null && image != null && image.sprite != null &&
+                    button.transition == Selectable.Transition.SpriteSwap &&
+                    button.spriteState.highlightedSprite != null,
+                $"Main menu button art is missing for {buttonName}.");
+        }
         return menu;
     }
 

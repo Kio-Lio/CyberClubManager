@@ -16,6 +16,8 @@ public sealed class MainMenuController : MonoBehaviour
         new Vector2(1920f, 1080f);
 
     private Font runtimeFont;
+    private Sprite mainButtonNormalSprite;
+    private Sprite mainButtonHighlightedSprite;
     private Button continueButton;
     private Button newGameButton;
     private Button deleteCorruptedSaveButton;
@@ -65,6 +67,7 @@ public sealed class MainMenuController : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
         EnsureEventSystem();
+        LoadMainButtonSprites();
         BuildInterface();
         RefreshSaveState();
         Debug.Log("Main menu initialized.");
@@ -72,6 +75,15 @@ public sealed class MainMenuController : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (mainButtonNormalSprite != null)
+        {
+            Destroy(mainButtonNormalSprite);
+        }
+        if (mainButtonHighlightedSprite != null)
+        {
+            Destroy(mainButtonHighlightedSprite);
+        }
+
         if (Instance == this)
         {
             Instance = null;
@@ -857,9 +869,25 @@ public sealed class MainMenuController : MonoBehaviour
             action
         );
 
-        button.GetComponent<LayoutElement>().preferredHeight = 70f;
+        button.GetComponent<LayoutElement>().preferredHeight = 96f;
         Image image = button.GetComponent<Image>();
         image.color = Color.white;
+
+        if (mainButtonNormalSprite != null &&
+            mainButtonHighlightedSprite != null)
+        {
+            image.sprite = mainButtonNormalSprite;
+            image.type = Image.Type.Simple;
+            image.preserveAspect = false;
+
+            button.transition = Selectable.Transition.SpriteSwap;
+            SpriteState spriteState = button.spriteState;
+            spriteState.highlightedSprite = mainButtonHighlightedSprite;
+            spriteState.selectedSprite = mainButtonHighlightedSprite;
+            spriteState.pressedSprite = mainButtonHighlightedSprite;
+            spriteState.disabledSprite = mainButtonNormalSprite;
+            button.spriteState = spriteState;
+        }
 
         ColorBlock colors = button.colors;
         colors.normalColor = new Color(0.015f, 0.04f, 0.075f, 0.98f);
@@ -873,18 +901,60 @@ public sealed class MainMenuController : MonoBehaviour
         Text text = button.GetComponentInChildren<Text>();
         if (text != null)
         {
-            text.fontSize = 26;
+            text.fontSize = 28;
             text.color = new Color(0.88f, 0.94f, 1f, 1f);
+
+            Shadow shadow = text.GetComponent<Shadow>() ??
+                text.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0.04f, 0.55f, 1f, 0.72f);
+            shadow.effectDistance = new Vector2(1.5f, -1.5f);
         }
 
         Outline outline = button.GetComponent<Outline>();
         if (outline != null)
         {
-            outline.effectColor = new Color(0.08f, 0.48f, 0.84f, 0.82f);
-            outline.effectDistance = new Vector2(2f, -2f);
+            outline.enabled = mainButtonNormalSprite == null;
         }
 
         return button;
+    }
+
+    private void LoadMainButtonSprites()
+    {
+        mainButtonNormalSprite = LoadRuntimeSprite(
+            "UI/MainMenuButtonNormal",
+            "MainMenuButtonNormalSprite"
+        );
+        mainButtonHighlightedSprite = LoadRuntimeSprite(
+            "UI/MainMenuButtonHighlighted",
+            "MainMenuButtonHighlightedSprite"
+        );
+    }
+
+    private static Sprite LoadRuntimeSprite(
+        string resourcePath,
+        string spriteName)
+    {
+        Texture2D texture = Resources.Load<Texture2D>(resourcePath);
+        if (texture == null)
+        {
+            Debug.LogWarning($"Main menu texture was not found: {resourcePath}");
+            return null;
+        }
+
+        texture.wrapMode = TextureWrapMode.Clamp;
+        texture.filterMode = FilterMode.Bilinear;
+
+        Sprite sprite = Sprite.Create(
+            texture,
+            new Rect(0f, 0f, texture.width, texture.height),
+            new Vector2(0.5f, 0.5f),
+            100f,
+            0,
+            SpriteMeshType.FullRect
+        );
+        sprite.name = spriteName;
+        return sprite;
     }
 
     private void CreateCompactButton(
