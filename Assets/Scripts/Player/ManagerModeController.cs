@@ -100,6 +100,7 @@ public sealed class ManagerModeController : MonoBehaviour,
         }
 
         cameraFollow?.SetTarget(null);
+        cameraFollow?.FrameBounds();
 
         ClubHUDCanvas hud = ClubHUDCanvas.Instance;
         if (hud != null && hud.GetComponent<ManagerSelectionPanel>() == null)
@@ -110,6 +111,11 @@ public sealed class ManagerModeController : MonoBehaviour,
         if (hud != null && hud.GetComponent<ManagerCommandBar>() == null)
         {
             hud.gameObject.AddComponent<ManagerCommandBar>();
+        }
+
+        if (hud != null && hud.GetComponent<ManagerNavigationBar>() == null)
+        {
+            hud.gameObject.AddComponent<ManagerNavigationBar>();
         }
     }
 

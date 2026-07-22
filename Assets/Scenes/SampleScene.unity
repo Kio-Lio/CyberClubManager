@@ -5421,9 +5421,9 @@ MonoBehaviour:
   target: {fileID: 792786077}
   followSmoothTime: 0.18
   targetOffset: {x: 0, y: 0}
-  defaultOrthographicSize: 5.2
+  defaultOrthographicSize: 8.8
   minimumOrthographicSize: 4
-  maximumOrthographicSize: 7.5
+  maximumOrthographicSize: 12
   zoomStep: 0.75
   zoomSmoothTime: 0.12
   mouseWheelSensitivity: 0.01

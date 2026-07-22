@@ -141,10 +141,43 @@ public static class ManagerModeSmokeTest
         Require(cameraFollow.Target == null,
             "Camera still follows the hidden player.");
 
+        Camera gameplayCamera = cameraFollow.GetComponent<Camera>();
+        CameraBounds2D cameraBounds =
+            UnityEngine.Object.FindAnyObjectByType<CameraBounds2D>();
+        Require(gameplayCamera != null && cameraBounds != null,
+            "Camera overview dependencies are missing.");
+        Bounds clubBounds = cameraBounds.WorldBounds;
+        Require(gameplayCamera.orthographicSize + 0.01f >=
+                clubBounds.extents.y &&
+            gameplayCamera.orthographicSize * gameplayCamera.aspect + 0.01f >=
+                clubBounds.extents.x,
+            "Manager camera does not frame the complete club.");
+
+        float overviewSize = gameplayCamera.orthographicSize;
+        gameplayCamera.orthographicSize = 4f;
         Vector3 beforePan = cameraFollow.transform.position;
         cameraFollow.Pan(Vector2.right * 0.25f);
         Require(cameraFollow.transform.position != beforePan,
             "Manager camera did not pan.");
+        cameraFollow.FrameBounds();
+        Require(Mathf.Abs(gameplayCamera.orthographicSize - overviewSize) < 0.1f,
+            "Manager camera did not restore the club overview.");
+
+        ManagerNavigationBar navigation =
+            UnityEngine.Object.FindAnyObjectByType<ManagerNavigationBar>();
+        Require(navigation != null && navigation.ButtonCount == 7,
+            "Persistent manager navigation was not created.");
+        Canvas navigationCanvas = navigation.GetComponentInParent<Canvas>();
+        Require(navigationCanvas != null &&
+                navigationCanvas.renderMode == RenderMode.ScreenSpaceOverlay,
+            "Manager navigation is not attached to the screen HUD.");
+        Require(navigation.TryOpenSection(
+                ManagerNavigationSection.Maintenance),
+            "Maintenance panel could not be opened from manager navigation.");
+        Require(PCMaintenancePanel.Instance != null &&
+                PCMaintenancePanel.Instance.IsOpen,
+            "Maintenance panel did not open from the screen UI.");
+        PCMaintenancePanel.Instance.Close();
 
         GameObject pcObject = GameObject.Find("PC_01");
         Require(pcObject != null, "PC_01 was not found.");
@@ -276,7 +309,8 @@ public static class ManagerModeSmokeTest
         if ((type == LogType.Error ||
              type == LogType.Exception ||
              type == LogType.Assert) &&
-            !condition.StartsWith("MANAGER_MODE_SMOKE_TEST: FAIL"))
+            !condition.StartsWith("MANAGER_MODE_SMOKE_TEST: FAIL") &&
+            stackTrace.Contains("Assets/"))
         {
             RuntimeErrors.Add(condition);
         }

@@ -12,9 +12,9 @@ public sealed class CameraFollow : MonoBehaviour
     [SerializeField] private Vector2 targetOffset;
 
     [Header("Zoom")]
-    [SerializeField, Min(0.1f)] private float defaultOrthographicSize = 5.2f;
+    [SerializeField, Min(0.1f)] private float defaultOrthographicSize = 8.8f;
     [SerializeField, Min(0.1f)] private float minimumOrthographicSize = 4f;
-    [SerializeField, Min(0.1f)] private float maximumOrthographicSize = 7.5f;
+    [SerializeField, Min(0.1f)] private float maximumOrthographicSize = 12f;
     [SerializeField, Min(0.1f)] private float zoomStep = 0.75f;
     [SerializeField, Min(0.01f)] private float zoomSmoothTime = 0.12f;
     [SerializeField, Min(0.001f)] private float mouseWheelSensitivity = 0.01f;
@@ -142,6 +142,39 @@ public sealed class CameraFollow : MonoBehaviour
         ClampTargetZoom();
     }
 
+    public void FrameBounds(float padding = 0.6f, bool immediate = true)
+    {
+        if (cameraBounds == null)
+        {
+            cameraBounds = FindAnyObjectByType<CameraBounds2D>();
+        }
+
+        if (cameraBounds == null || controlledCamera == null)
+        {
+            ResetZoom();
+            return;
+        }
+
+        Bounds bounds = cameraBounds.WorldBounds;
+        float verticalSize = bounds.extents.y;
+        float horizontalSize = bounds.extents.x /
+            Mathf.Max(0.01f, controlledCamera.aspect);
+
+        targetOrthographicSize = Mathf.Clamp(
+            Mathf.Max(verticalSize, horizontalSize) + Mathf.Max(0f, padding),
+            minimumOrthographicSize,
+            maximumOrthographicSize
+        );
+
+        if (immediate)
+        {
+            controlledCamera.orthographicSize = targetOrthographicSize;
+            zoomVelocity = 0f;
+        }
+
+        ClampCurrentPosition();
+    }
+
     public void ZoomIn()
     {
         targetOrthographicSize -= zoomStep;
@@ -241,21 +274,7 @@ public sealed class CameraFollow : MonoBehaviour
 
     private float GetBoundsLimitedMaximumSize()
     {
-        if (cameraBounds == null || controlledCamera == null)
-        {
-            return maximumOrthographicSize;
-        }
-
-        Bounds bounds = cameraBounds.WorldBounds;
-        float maximumByHeight = bounds.size.y * 0.5f;
-        float maximumByWidth = bounds.size.x /
-            (2f * Mathf.Max(0.01f, controlledCamera.aspect));
-
-        return Mathf.Min(
-            maximumOrthographicSize,
-            maximumByHeight,
-            maximumByWidth
-        );
+        return maximumOrthographicSize;
     }
 
     private void ClampTargetZoom()
