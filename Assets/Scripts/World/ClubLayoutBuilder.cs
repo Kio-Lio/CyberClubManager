@@ -214,13 +214,23 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
 
     private void CreateAdminDesk(Transform parent)
     {
-        CreateObstacle(
+        Vector2 deskSize = new(3.2f, 1.1f);
+        GameObject desk = CreateObstacle(
             "AdministratorDesk",
             parent,
             new Vector3(-4.8f, 3.1f, 0f),
-            new Vector2(3.2f, 1.1f),
+            deskSize,
             deskColor
         );
+
+        desk.transform.localScale = Vector3.one;
+        BoxCollider2D collider = desk.GetComponent<BoxCollider2D>();
+        collider.size = deskSize;
+
+        ReceptionVisualPresenter presenter =
+            desk.GetComponent<ReceptionVisualPresenter>() ??
+            desk.AddComponent<ReceptionVisualPresenter>();
+        presenter.ApplyVisual();
     }
 
     private void CreatePCTables(Transform parent)
@@ -445,7 +455,7 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         );
     }
 
-    private void CreateObstacle(
+    private GameObject CreateObstacle(
         string objectName,
         Transform parent,
         Vector3 position,
@@ -473,6 +483,8 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         {
             obstacle.AddComponent<BoxCollider2D>();
         }
+
+        return obstacle;
     }
 
     private GameObject CreateVisualObject(

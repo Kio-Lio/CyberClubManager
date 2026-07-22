@@ -49,6 +49,7 @@ public static class LayoutFixSmokeTest
         AssertNoRoomPCOverlap();
         AssertPCCollidersAreTriggers();
         AssertTableGapsAreWideEnough();
+        AssertReceptionVisual();
         AssertRoomNavigation(navigation);
         AssertNoDuplicateRuntimeObjects();
     }
@@ -125,6 +126,38 @@ public static class LayoutFixSmokeTest
         if (lowerGap < 1.4f)
         {
             throw new InvalidOperationException($"Lower aisle is too narrow: {lowerGap:F2}");
+        }
+    }
+
+    private static void AssertReceptionVisual()
+    {
+        GameObject reception = RequireObject("AdministratorDesk");
+        SpriteRenderer renderer = reception.GetComponent<SpriteRenderer>();
+        BoxCollider2D collider = reception.GetComponent<BoxCollider2D>();
+
+        if (reception.GetComponent<ReceptionVisualPresenter>() == null ||
+            renderer == null ||
+            renderer.sprite == null ||
+            renderer.sprite.name != "ReceptionSprite")
+        {
+            throw new InvalidOperationException(
+                "Administrator reception sprite was not created."
+            );
+        }
+
+        if (renderer.sprite.texture.filterMode != FilterMode.Point)
+        {
+            throw new InvalidOperationException(
+                "Administrator reception sprite is not using pixel filtering."
+            );
+        }
+
+        if (collider == null ||
+            Vector2.Distance(collider.size, new Vector2(3.2f, 1.1f)) > 0.01f)
+        {
+            throw new InvalidOperationException(
+                "Administrator reception collider changed with the new visual."
+            );
         }
     }
 

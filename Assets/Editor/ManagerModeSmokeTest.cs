@@ -193,6 +193,8 @@ public static class ManagerModeSmokeTest
         Require(workstationRenderer != null &&
                 workstationRenderer.sprite != null,
             "PC_01 tier workstation sprite was not loaded.");
+        Require(workstationRenderer.sprite.texture.filterMode == FilterMode.Point,
+            "PC workstation sprite is not using pixel filtering.");
         PC visualPC = pcObject.GetComponent<PC>();
         Require(workstationRenderer.sprite.name.Contains("Basic"),
             "PC_01 did not start with the Basic workstation sprite.");

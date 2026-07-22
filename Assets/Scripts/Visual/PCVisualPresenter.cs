@@ -193,7 +193,7 @@ public sealed class PCVisualPresenter : MonoBehaviour,
         }
 
         texture.wrapMode = TextureWrapMode.Clamp;
-        texture.filterMode = FilterMode.Bilinear;
+        texture.filterMode = FilterMode.Point;
         workstationSprite = Sprite.Create(
             texture,
             new Rect(0f, 0f, texture.width, texture.height),
