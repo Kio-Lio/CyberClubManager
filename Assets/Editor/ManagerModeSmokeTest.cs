@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -20,6 +21,7 @@ public static class ManagerModeSmokeTest
         Path.GetTempPath(),
         "cyber_club_manager_mode_smoke_save.bak"
     );
+    private static readonly List<string> RuntimeErrors = new();
 
     private static double verifyAt;
 
@@ -29,6 +31,8 @@ public static class ManagerModeSmokeTest
         EditorApplication.update += Tick;
         EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
         EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        Application.logMessageReceived -= OnLogMessageReceived;
+        Application.logMessageReceived += OnLogMessageReceived;
     }
 
     public static void Run()
@@ -36,6 +40,7 @@ public static class ManagerModeSmokeTest
         try
         {
             BackupSaveFile();
+            RuntimeErrors.Clear();
             if (File.Exists(SavePath))
             {
                 File.Delete(SavePath);
@@ -60,7 +65,7 @@ public static class ManagerModeSmokeTest
 
         if (state == PlayModeStateChange.EnteredPlayMode)
         {
-            verifyAt = EditorApplication.timeSinceStartup + 1.5d;
+            verifyAt = EditorApplication.timeSinceStartup + 3.2d;
         }
         else if (state == PlayModeStateChange.EnteredEditMode)
         {
@@ -104,6 +109,9 @@ public static class ManagerModeSmokeTest
 
     private static void VerifyManagerMode()
     {
+        Require(RuntimeErrors.Count == 0,
+            $"Runtime errors were logged: {string.Join(" | ", RuntimeErrors)}");
+
         ManagerModeController manager =
             UnityEngine.Object.FindAnyObjectByType<ManagerModeController>();
         Require(manager != null, "ManagerModeController was not created.");
@@ -140,6 +148,21 @@ public static class ManagerModeSmokeTest
 
         GameObject pcObject = GameObject.Find("PC_01");
         Require(pcObject != null, "PC_01 was not found.");
+        Require(pcObject.GetComponent<PCVisualPresenter>() != null,
+            "PC_01 did not receive the workstation visual presenter.");
+        Require(pcObject.transform.Find("PCVisual") != null,
+            "PC_01 layered workstation visual was not created.");
+        Require(!pcObject.GetComponent<SpriteRenderer>().enabled,
+            "The old PC placeholder renderer is still visible.");
+
+        PCExpansionTerminal expansionTerminal =
+            UnityEngine.Object.FindAnyObjectByType<PCExpansionTerminal>();
+        Require(expansionTerminal != null,
+            "PC expansion terminal was not found.");
+        Require(expansionTerminal.GetComponent<TerminalVisualPresenter>() != null,
+            "PC expansion terminal did not receive the terminal visual presenter.");
+        Require(expansionTerminal.transform.Find("TerminalVisual") != null,
+            "Layered terminal visual was not created.");
         Require(manager.TryFocusAtWorldPosition(pcObject.transform.position),
             "PC_01 was not detected as a clickable object.");
         Require(!string.IsNullOrWhiteSpace(manager.CurrentPrompt),
@@ -241,6 +264,22 @@ public static class ManagerModeSmokeTest
 
         Require(UnityEngine.Object.FindAnyObjectByType<PauseMenuController>() != null,
             "Pause menu input component was removed.");
+        Require(RuntimeErrors.Count == 0,
+            $"Runtime errors were logged: {string.Join(" | ", RuntimeErrors)}");
+    }
+
+    private static void OnLogMessageReceived(
+        string condition,
+        string stackTrace,
+        LogType type)
+    {
+        if ((type == LogType.Error ||
+             type == LogType.Exception ||
+             type == LogType.Assert) &&
+            !condition.StartsWith("MANAGER_MODE_SMOKE_TEST: FAIL"))
+        {
+            RuntimeErrors.Add(condition);
+        }
     }
 
     private static void Require(bool condition, string message)

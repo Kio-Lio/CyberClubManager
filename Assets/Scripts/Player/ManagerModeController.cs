@@ -213,11 +213,14 @@ public sealed class ManagerModeController : MonoBehaviour,
     {
         if (selectedBehaviour == behaviour)
         {
+            GetInteractionVisual(selectedBehaviour)?.SetSelected(true);
             RefreshSelectionIndicator();
             return;
         }
 
+        GetInteractionVisual(selectedBehaviour)?.SetSelected(false);
         selectedBehaviour = behaviour;
+        GetInteractionVisual(selectedBehaviour)?.SetSelected(true);
         RefreshSelectionIndicator();
         SelectionChanged?.Invoke(selectedBehaviour);
 
@@ -236,6 +239,7 @@ public sealed class ManagerModeController : MonoBehaviour,
             return;
         }
 
+        GetInteractionVisual(selectedBehaviour)?.SetSelected(false);
         selectedBehaviour = null;
         DestroySelectionIndicator();
         SelectionChanged?.Invoke(null);
@@ -391,8 +395,7 @@ public sealed class ManagerModeController : MonoBehaviour,
                 continue;
             }
 
-            SpriteRenderer renderer =
-                candidate.GetComponentInChildren<SpriteRenderer>();
+            SpriteRenderer renderer = FindTopVisibleRenderer(candidate);
             int sortingOrder = renderer != null
                 ? renderer.sortingOrder
                 : 0;
@@ -415,7 +418,9 @@ public sealed class ManagerModeController : MonoBehaviour,
             return;
         }
 
+        GetInteractionVisual(hoveredBehaviour)?.SetHovered(false);
         hoveredBehaviour = behaviour;
+        GetInteractionVisual(hoveredBehaviour)?.SetHovered(true);
 
         if (hoveredBehaviour is PC)
         {
@@ -436,8 +441,16 @@ public sealed class ManagerModeController : MonoBehaviour,
             return;
         }
 
+        IWorldInteractionVisual visual =
+            GetInteractionVisual(selectedBehaviour);
+        if (visual != null)
+        {
+            visual.SetSelected(true);
+            return;
+        }
+
         SpriteRenderer sourceRenderer =
-            selectedBehaviour.GetComponentInChildren<SpriteRenderer>();
+            FindTopVisibleRenderer(selectedBehaviour);
         if (sourceRenderer == null || sourceRenderer.sprite == null)
         {
             return;
@@ -469,6 +482,41 @@ public sealed class ManagerModeController : MonoBehaviour,
 
         Destroy(selectionIndicator);
         selectionIndicator = null;
+    }
+
+    private static IWorldInteractionVisual GetInteractionVisual(
+        MonoBehaviour behaviour)
+    {
+        return behaviour != null
+            ? behaviour.GetComponent<IWorldInteractionVisual>()
+            : null;
+    }
+
+    private static SpriteRenderer FindTopVisibleRenderer(
+        MonoBehaviour behaviour)
+    {
+        if (behaviour == null)
+        {
+            return null;
+        }
+
+        SpriteRenderer bestRenderer = null;
+        foreach (SpriteRenderer renderer in
+                 behaviour.GetComponentsInChildren<SpriteRenderer>(true))
+        {
+            if (!renderer.enabled || renderer.sprite == null)
+            {
+                continue;
+            }
+
+            if (bestRenderer == null ||
+                renderer.sortingOrder > bestRenderer.sortingOrder)
+            {
+                bestRenderer = renderer;
+            }
+        }
+
+        return bestRenderer;
     }
 
     private void RefreshPrompt()
