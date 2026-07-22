@@ -19,6 +19,7 @@ public sealed class CameraFollow : MonoBehaviour
     [SerializeField, Min(0.01f)] private float zoomSmoothTime = 0.12f;
     [SerializeField, Min(0.001f)] private float mouseWheelSensitivity = 0.01f;
     [SerializeField, Min(0.01f)] private float gamepadZoomSpeed = 2f;
+    [SerializeField, Min(0.1f)] private float zoomSpeedMultiplier = 4f;
 
     [Header("Bounds")]
     [SerializeField] private CameraBounds2D cameraBounds;
@@ -35,6 +36,8 @@ public sealed class CameraFollow : MonoBehaviour
         controlledCamera != null
             ? controlledCamera.orthographicSize
             : targetOrthographicSize;
+
+    public float ZoomSpeedMultiplier => zoomSpeedMultiplier;
 
     private void Awake()
     {
@@ -177,13 +180,13 @@ public sealed class CameraFollow : MonoBehaviour
 
     public void ZoomIn()
     {
-        targetOrthographicSize -= zoomStep;
+        targetOrthographicSize -= zoomStep * zoomSpeedMultiplier;
         ClampTargetZoom();
     }
 
     public void ZoomOut()
     {
-        targetOrthographicSize += zoomStep;
+        targetOrthographicSize += zoomStep * zoomSpeedMultiplier;
         ClampTargetZoom();
     }
 
@@ -237,7 +240,8 @@ public sealed class CameraFollow : MonoBehaviour
             return;
         }
 
-        targetOrthographicSize -= scrollValue * mouseWheelSensitivity;
+        targetOrthographicSize -= scrollValue * mouseWheelSensitivity *
+            zoomSpeedMultiplier;
         ClampTargetZoom();
     }
 
@@ -249,7 +253,7 @@ public sealed class CameraFollow : MonoBehaviour
         }
 
         targetOrthographicSize -= gamepadZoomInput *
-            gamepadZoomSpeed * Time.unscaledDeltaTime;
+            gamepadZoomSpeed * zoomSpeedMultiplier * Time.unscaledDeltaTime;
         ClampTargetZoom();
     }
 
@@ -347,6 +351,7 @@ public sealed class CameraFollow : MonoBehaviour
         zoomStep = Mathf.Max(0.1f, zoomStep);
         mouseWheelSensitivity = Mathf.Max(0.001f, mouseWheelSensitivity);
         gamepadZoomSpeed = Mathf.Max(0.01f, gamepadZoomSpeed);
+        zoomSpeedMultiplier = Mathf.Max(0.1f, zoomSpeedMultiplier);
         NormalizeZoomSettings();
     }
 }

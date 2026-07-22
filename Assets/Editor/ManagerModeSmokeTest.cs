@@ -138,6 +138,8 @@ public static class ManagerModeSmokeTest
         CameraFollow cameraFollow =
             UnityEngine.Object.FindAnyObjectByType<CameraFollow>();
         Require(cameraFollow != null, "CameraFollow was not found.");
+        Require(Mathf.Abs(cameraFollow.ZoomSpeedMultiplier - 4f) < 0.01f,
+            "Camera zoom speed multiplier is not configured to 4x.");
         Require(cameraFollow.Target == null,
             "Camera still follows the hidden player.");
 
