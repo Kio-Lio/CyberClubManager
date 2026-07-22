@@ -5,25 +5,19 @@ using UnityEngine;
 public sealed class PCVisualPresenter : MonoBehaviour,
     IWorldInteractionVisual
 {
-    private static readonly Color FrameColor =
-        new(0.035f, 0.055f, 0.075f, 1f);
-    private static readonly Color DeskColor =
-        new(0.13f, 0.15f, 0.18f, 1f);
-    private static readonly Color DeskEdgeColor =
-        new(0.055f, 0.075f, 0.095f, 1f);
-    private static readonly Color ChairColor =
-        new(0.055f, 0.075f, 0.105f, 1f);
+    private const float WorkstationPixelsPerUnit = 800f;
+
     private static readonly Color SelectionColor =
         new(0.05f, 0.76f, 1f, 0.95f);
 
     private PC pc;
     private SpriteRenderer rootRenderer;
-    private SpriteRenderer screen;
-    private SpriteRenderer screenGlow;
+    private SpriteRenderer workstationRenderer;
     private SpriteRenderer tierAccent;
     private SpriteRenderer statusLight;
     private SpriteRenderer[] outlineParts;
     private WorldVisualPart[] visualParts;
+    private Sprite workstationSprite;
     private bool isHovered;
     private bool isSelected;
 
@@ -39,6 +33,7 @@ public sealed class PCVisualPresenter : MonoBehaviour,
         pc.StateChanged += OnStateChanged;
         pc.TierChanged += OnTierChanged;
         pc.EquipmentChanged += RefreshVisual;
+        RefreshTierSprite();
         RefreshVisual();
     }
 
@@ -62,14 +57,17 @@ public sealed class PCVisualPresenter : MonoBehaviour,
 
     private void OnDestroy()
     {
-        if (pc == null)
+        if (pc != null)
         {
-            return;
+            pc.StateChanged -= OnStateChanged;
+            pc.TierChanged -= OnTierChanged;
+            pc.EquipmentChanged -= RefreshVisual;
         }
 
-        pc.StateChanged -= OnStateChanged;
-        pc.TierChanged -= OnTierChanged;
-        pc.EquipmentChanged -= RefreshVisual;
+        if (workstationSprite != null)
+        {
+            Destroy(workstationSprite);
+        }
     }
 
     public void SetHovered(bool hovered)
@@ -91,6 +89,7 @@ public sealed class PCVisualPresenter : MonoBehaviour,
 
     private void OnTierChanged(PCTier tier)
     {
+        RefreshTierSprite();
         RefreshVisual();
     }
 
@@ -105,152 +104,116 @@ public sealed class PCVisualPresenter : MonoBehaviour,
         GameObject visualRoot = new("PCVisual");
         visualRoot.transform.SetParent(transform, false);
 
-        WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
-            "Shadow",
-            new Vector2(0.04f, -0.08f),
-            new Vector2(1.46f, 1.16f),
-            new Color(0f, 0f, 0f, 0.42f),
-            0
-        );
-        WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
-            "Desk",
-            new Vector2(0f, 0.08f),
-            new Vector2(1.34f, 0.58f),
-            DeskColor,
-            2
-        );
-        WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
-            "DeskEdge",
-            new Vector2(0f, -0.20f),
-            new Vector2(1.34f, 0.09f),
-            DeskEdgeColor,
-            3
-        );
+        GameObject workstationObject = new("WorkstationSprite");
+        workstationObject.transform.SetParent(visualRoot.transform, false);
+        workstationObject.transform.localPosition =
+            new Vector3(0f, -0.08f, 0f);
 
-        screenGlow = WorldVisualPrimitives.CreatePart(
+        workstationRenderer =
+            workstationObject.AddComponent<SpriteRenderer>();
+        YSortRenderer.SetSortingLayer(workstationRenderer, "World");
+        WorldVisualPart workstationPart =
+            workstationObject.AddComponent<WorldVisualPart>();
+        workstationPart.OrderOffset = 4;
+
+        tierAccent = WorldVisualPrimitives.CreatePart(
             visualRoot.transform,
-            "ScreenGlow",
-            new Vector2(-0.08f, 0.25f),
-            new Vector2(0.68f, 0.46f),
-            new Color(0.04f, 0.65f, 1f, 0.20f),
-            4
-        );
-        WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
-            "MonitorFrame",
-            new Vector2(-0.08f, 0.25f),
-            new Vector2(0.62f, 0.40f),
-            FrameColor,
-            5
-        );
-        screen = WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
-            "Screen",
-            new Vector2(-0.08f, 0.27f),
-            new Vector2(0.50f, 0.28f),
-            Color.cyan,
-            6
-        );
-        WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
-            "MonitorStand",
-            new Vector2(-0.08f, 0.02f),
-            new Vector2(0.12f, 0.16f),
-            FrameColor,
-            5
-        );
-        WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
-            "Tower",
-            new Vector2(0.48f, 0.17f),
-            new Vector2(0.24f, 0.46f),
-            FrameColor,
-            5
+            "TierAccent",
+            new Vector2(0f, -0.77f),
+            new Vector2(1.18f, 0.045f),
+            SelectionColor,
+            7
         );
         statusLight = WorldVisualPrimitives.CreatePart(
             visualRoot.transform,
             "StatusLight",
-            new Vector2(0.48f, 0.31f),
-            new Vector2(0.07f, 0.07f),
+            new Vector2(0.62f, 0.58f),
+            new Vector2(0.10f, 0.10f),
             Color.cyan,
-            7
-        );
-        WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
-            "Keyboard",
-            new Vector2(-0.10f, -0.09f),
-            new Vector2(0.54f, 0.12f),
-            new Color(0.08f, 0.10f, 0.13f, 1f),
-            6
-        );
-        WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
-            "Mouse",
-            new Vector2(0.29f, -0.09f),
-            new Vector2(0.09f, 0.13f),
-            new Color(0.10f, 0.13f, 0.17f, 1f),
-            6
-        );
-        WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
-            "ChairSeat",
-            new Vector2(0f, -0.43f),
-            new Vector2(0.56f, 0.34f),
-            ChairColor,
             8
-        );
-        WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
-            "ChairBack",
-            new Vector2(0f, -0.66f),
-            new Vector2(0.64f, 0.17f),
-            new Color(0.045f, 0.06f, 0.09f, 1f),
-            9
-        );
-        tierAccent = WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
-            "TierAccent",
-            new Vector2(0f, -0.245f),
-            new Vector2(1.18f, 0.045f),
-            SelectionColor,
-            7
         );
 
         outlineParts = new[]
         {
             WorldVisualPrimitives.CreatePart(
                 visualRoot.transform, "OutlineTop",
-                new Vector2(0f, 0.60f), new Vector2(1.48f, 0.045f),
+                new Vector2(0f, 0.69f), new Vector2(1.52f, 0.045f),
                 SelectionColor, 12),
             WorldVisualPrimitives.CreatePart(
                 visualRoot.transform, "OutlineBottom",
-                new Vector2(0f, -0.78f), new Vector2(1.48f, 0.045f),
+                new Vector2(0f, -0.85f), new Vector2(1.52f, 0.045f),
                 SelectionColor, 12),
             WorldVisualPrimitives.CreatePart(
                 visualRoot.transform, "OutlineLeft",
-                new Vector2(-0.72f, -0.09f), new Vector2(0.045f, 1.34f),
+                new Vector2(-0.75f, -0.08f), new Vector2(0.045f, 1.50f),
                 SelectionColor, 12),
             WorldVisualPrimitives.CreatePart(
                 visualRoot.transform, "OutlineRight",
-                new Vector2(0.72f, -0.09f), new Vector2(0.045f, 1.34f),
+                new Vector2(0.75f, -0.08f), new Vector2(0.045f, 1.50f),
                 SelectionColor, 12)
         };
 
         visualParts = visualRoot.GetComponentsInChildren<WorldVisualPart>(true);
+        RefreshTierSprite();
+        RefreshOutline();
+    }
+
+    private void RefreshTierSprite()
+    {
+        if (workstationRenderer == null || pc == null)
+        {
+            return;
+        }
+
+        string resourcePath = pc.Tier switch
+        {
+            PCTier.Basic => "PC/Workstations/Basic",
+            PCTier.Gaming => "PC/Workstations/Gaming",
+            PCTier.Premium => "PC/Workstations/Premium",
+            _ => "PC/Workstations/Basic"
+        };
+
+        Texture2D texture = Resources.Load<Texture2D>(resourcePath);
+        if (texture == null)
+        {
+            Debug.LogWarning(
+                $"Workstation sprite was not found: {resourcePath}."
+            );
+            workstationRenderer.sprite = null;
+            if (rootRenderer != null)
+            {
+                rootRenderer.enabled = true;
+            }
+            return;
+        }
+
+        if (workstationSprite != null)
+        {
+            Destroy(workstationSprite);
+        }
+
+        texture.wrapMode = TextureWrapMode.Clamp;
+        texture.filterMode = FilterMode.Bilinear;
+        workstationSprite = Sprite.Create(
+            texture,
+            new Rect(0f, 0f, texture.width, texture.height),
+            new Vector2(0.5f, 0.5f),
+            WorkstationPixelsPerUnit,
+            0,
+            SpriteMeshType.FullRect
+        );
+        workstationSprite.name = $"{pc.Tier}WorkstationSprite";
+        workstationRenderer.sprite = workstationSprite;
+
         if (rootRenderer != null)
         {
             rootRenderer.enabled = false;
         }
-
-        RefreshOutline();
     }
 
     private void RefreshVisual()
     {
-        if (pc == null || screen == null)
+        if (pc == null || workstationRenderer == null)
         {
             return;
         }
@@ -262,13 +225,13 @@ public sealed class PCVisualPresenter : MonoBehaviour,
             PCState.Broken => new Color(1f, 0.20f, 0.18f, 1f),
             _ => Color.white
         };
-        screen.color = stateColor;
-        screenGlow.color = new Color(
-            stateColor.r,
-            stateColor.g,
-            stateColor.b,
-            0.23f
-        );
+        workstationRenderer.color = pc.State switch
+        {
+            PCState.Free => Color.white,
+            PCState.Occupied => new Color(1f, 0.88f, 0.64f, 1f),
+            PCState.Broken => new Color(0.62f, 0.34f, 0.34f, 1f),
+            _ => Color.white
+        };
         statusLight.color = pc.LowestEquipmentCondition < 35f && !pc.IsBroken
             ? new Color(1f, 0.35f, 0.08f, 1f)
             : stateColor;

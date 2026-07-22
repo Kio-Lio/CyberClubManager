@@ -185,6 +185,24 @@ public static class ManagerModeSmokeTest
             "PC_01 did not receive the workstation visual presenter.");
         Require(pcObject.transform.Find("PCVisual") != null,
             "PC_01 layered workstation visual was not created.");
+        Transform workstationVisual =
+            pcObject.transform.Find("PCVisual/WorkstationSprite");
+        SpriteRenderer workstationRenderer = workstationVisual != null
+            ? workstationVisual.GetComponent<SpriteRenderer>()
+            : null;
+        Require(workstationRenderer != null &&
+                workstationRenderer.sprite != null,
+            "PC_01 tier workstation sprite was not loaded.");
+        PC visualPC = pcObject.GetComponent<PC>();
+        Require(workstationRenderer.sprite.name.Contains("Basic"),
+            "PC_01 did not start with the Basic workstation sprite.");
+        visualPC.RestoreTier(PCTier.Gaming);
+        Require(workstationRenderer.sprite.name.Contains("Gaming"),
+            "PC_01 did not switch to the Gaming workstation sprite.");
+        visualPC.RestoreTier(PCTier.Premium);
+        Require(workstationRenderer.sprite.name.Contains("Premium"),
+            "PC_01 did not switch to the Premium workstation sprite.");
+        visualPC.RestoreTier(PCTier.Basic);
         Require(!pcObject.GetComponent<SpriteRenderer>().enabled,
             "The old PC placeholder renderer is still visible.");
 
