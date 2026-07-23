@@ -13,10 +13,7 @@ public static class ManagerModeSmokeTest
     private const string FailedKey = "CyberClub.ManagerModeSmoke.Failed";
     private const string HadSaveKey = "CyberClub.ManagerModeSmoke.HadSave";
     private const string ScenePath = "Assets/Scenes/SampleScene.unity";
-    private static readonly string SavePath = Path.Combine(
-        Application.persistentDataPath,
-        "cyber_club_save.json"
-    );
+    private static readonly string SavePath = SaveStorageProfile.QASavePath;
     private static readonly string SaveBackupPath = Path.Combine(
         Path.GetTempPath(),
         "cyber_club_manager_mode_smoke_save.bak"

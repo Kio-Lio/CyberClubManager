@@ -10,8 +10,6 @@ public class SaveManager : MonoBehaviour
     public static SaveManager Instance { get; private set; }
 
     private const int CurrentSaveVersion = 20;
-    private const string SaveFileName = "cyber_club_save.json";
-
     private bool suppressSaving;
     private Coroutine pendingSaveCoroutine;
 
@@ -19,7 +17,7 @@ public class SaveManager : MonoBehaviour
 
     private static string GetSavePath()
     {
-        return Path.Combine(Application.persistentDataPath, SaveFileName);
+        return SaveStorageProfile.ActiveSavePath;
     }
 
     public static bool HasSaveFile()
@@ -229,6 +227,12 @@ public class SaveManager : MonoBehaviour
 
         try
         {
+            string saveDirectory = Path.GetDirectoryName(SavePath);
+            if (!string.IsNullOrEmpty(saveDirectory))
+            {
+                Directory.CreateDirectory(saveDirectory);
+            }
+
             string json = JsonUtility.ToJson(data, true);
             File.WriteAllText(SavePath, json);
             Debug.Log($"Игра сохранена: {SavePath}");

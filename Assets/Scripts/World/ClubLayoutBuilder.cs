@@ -41,10 +41,10 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
     [SerializeField] private UnlockableRoomDefinition[] unlockableRooms;
 
     [Header("Colors")]
-    [SerializeField] private Color floorColor = new(0.075f, 0.085f, 0.105f);
-    [SerializeField] private Color wallColor = new(0.16f, 0.18f, 0.22f);
-    [SerializeField] private Color deskColor = new(0.10f, 0.11f, 0.14f);
-    [SerializeField] private Color tableColor = new(0.10f, 0.11f, 0.14f);
+    [SerializeField] private Color floorColor = new(0.09f, 0.105f, 0.13f);
+    [SerializeField] private Color wallColor = new(0.18f, 0.205f, 0.25f);
+    [SerializeField] private Color deskColor = new(0.12f, 0.135f, 0.17f);
+    [SerializeField] private Color tableColor = new(0.13f, 0.145f, 0.18f);
 
     private Sprite squareSprite;
 
@@ -143,6 +143,25 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
 
     private void CreateFloor(Transform parent)
     {
+        CreateVisualObject(
+            "ExteriorVoid",
+            parent,
+            roomCenter,
+            roomSize + new Vector2(8f, 6f),
+            new Color(0.012f, 0.017f, 0.027f, 1f),
+            -10020,
+            false
+        );
+        CreateVisualObject(
+            "FloorPerimeter",
+            parent,
+            roomCenter,
+            roomSize + new Vector2(0.55f, 0.55f),
+            new Color(0.035f, 0.045f, 0.065f, 1f),
+            -10010,
+            false
+        );
+
         GameObject floor = CreateVisualObject(
             "Floor",
             parent,
@@ -164,7 +183,7 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
             parent,
             new Vector3(-4.7f, 0f, 0f),
             new Vector2(7.55f, roomSize.y - 0.7f),
-            new Color(0.085f, 0.095f, 0.115f, 1f),
+            new Color(0.098f, 0.112f, 0.137f, 1f),
             -9998,
             false
         );
@@ -173,7 +192,7 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
             parent,
             new Vector3(4.1f, 0f, 0f),
             new Vector2(9.55f, roomSize.y - 0.7f),
-            new Color(0.095f, 0.105f, 0.13f, 1f),
+            new Color(0.108f, 0.122f, 0.15f, 1f),
             -9998,
             false
         );
@@ -182,8 +201,17 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
             parent,
             new Vector3(12.05f, 0f, 0f),
             new Vector2(5.55f, roomSize.y - 0.7f),
-            new Color(0.08f, 0.09f, 0.115f, 1f),
+            new Color(0.092f, 0.105f, 0.135f, 1f),
             -9998,
+            false
+        );
+        CreateVisualObject(
+            "FloorZone_ServiceLine",
+            parent,
+            new Vector3(-7.55f, 0.25f, 0f),
+            new Vector2(1.25f, 8.3f),
+            new Color(0.115f, 0.13f, 0.155f, 0.72f),
+            -9995,
             false
         );
 
@@ -191,39 +219,77 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         float maximumX = roomCenter.x + roomSize.x * 0.5f - 0.35f;
         float minimumY = roomCenter.y - roomSize.y * 0.5f + 0.35f;
         float maximumY = roomCenter.y + roomSize.y * 0.5f - 0.35f;
-        Color gridColor = new(0.125f, 0.135f, 0.16f, 0.72f);
+        Color jointColor = new(0.065f, 0.075f, 0.095f, 0.44f);
 
         int lineIndex = 0;
-        for (float x = Mathf.Ceil(minimumX / 2f) * 2f;
-             x < maximumX;
-             x += 2f)
+        int panelRow = 0;
+        const float panelHeight = 2.35f;
+        for (float centerY = minimumY + panelHeight * 0.5f;
+             centerY < maximumY;
+             centerY += panelHeight)
         {
-            CreateVisualObject(
-                $"FloorGrid_V_{lineIndex++:00}",
-                parent,
-                new Vector3(x, roomCenter.y, 0f),
-                new Vector2(0.018f, roomSize.y - 0.7f),
-                gridColor,
-                -9996,
-                false
-            );
+            float stagger = panelRow % 2 == 0 ? 0f : 1.55f;
+            for (float x = minimumX + 3.1f + stagger;
+                 x < maximumX;
+                 x += 3.1f)
+            {
+                CreateVisualObject(
+                    $"FloorJoint_V_{lineIndex++:00}",
+                    parent,
+                    new Vector3(x, centerY, 0f),
+                    new Vector2(0.022f, panelHeight - 0.28f),
+                    jointColor,
+                    -9996,
+                    false
+                );
+            }
+            panelRow++;
         }
 
         lineIndex = 0;
-        for (float y = Mathf.Ceil(minimumY / 2f) * 2f;
+        for (float y = minimumY + panelHeight;
              y < maximumY;
-             y += 2f)
+             y += panelHeight)
         {
-            CreateVisualObject(
-                $"FloorGrid_H_{lineIndex++:00}",
-                parent,
-                new Vector3(roomCenter.x, y, 0f),
-                new Vector2(roomSize.x - 0.7f, 0.018f),
-                gridColor,
-                -9996,
-                false
-            );
+            (float center, float width)[] zoneSegments =
+            {
+                (-4.7f, 7.2f),
+                (4.1f, 9.2f),
+                (12.05f, 5.2f)
+            };
+            foreach ((float center, float width) segment in zoneSegments)
+            {
+                CreateVisualObject(
+                    $"FloorJoint_H_{lineIndex++:00}",
+                    parent,
+                    new Vector3(segment.center, y, 0f),
+                    new Vector2(segment.width, 0.022f),
+                    jointColor,
+                    -9996,
+                    false
+                );
+            }
         }
+
+        Color guideColor = new(0.12f, 0.30f, 0.38f, 0.34f);
+        CreateVisualObject(
+            "FloorGuide_Reception",
+            parent,
+            new Vector3(-0.92f, 0f, 0f),
+            new Vector2(0.035f, roomSize.y - 1.15f),
+            guideColor,
+            -9993,
+            false
+        );
+        CreateVisualObject(
+            "FloorGuide_PrivateRooms",
+            parent,
+            new Vector3(9.25f, 0f, 0f),
+            new Vector2(0.035f, roomSize.y - 1.15f),
+            guideColor,
+            -9993,
+            false
+        );
     }
 
     private void CreateOuterWalls(Transform parent)
@@ -231,12 +297,11 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         float halfWidth = roomSize.x * 0.5f;
         float halfHeight = roomSize.y * 0.5f;
 
-        CreateObstacle(
+        CreateArchitecturalWall(
             "Wall_Top",
             parent,
             new Vector3(roomCenter.x, roomCenter.y + halfHeight, 0f),
             new Vector2(roomSize.x + wallThickness, wallThickness),
-            wallColor,
             false
         );
         const float entranceCenterX = -0.5f;
@@ -248,7 +313,7 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         float leftSegmentWidth = entranceLeft - roomLeft;
         float rightSegmentWidth = roomRight - entranceRight;
 
-        CreateObstacle(
+        CreateArchitecturalWall(
             "Wall_Bottom_Left",
             parent,
             new Vector3(
@@ -257,10 +322,9 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
                 0f
             ),
             new Vector2(leftSegmentWidth, wallThickness),
-            wallColor,
             false
         );
-        CreateObstacle(
+        CreateArchitecturalWall(
             "Wall_Bottom_Right",
             parent,
             new Vector3(
@@ -269,34 +333,31 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
                 0f
             ),
             new Vector2(rightSegmentWidth, wallThickness),
-            wallColor,
             false
         );
-        CreateObstacle(
+        CreateArchitecturalWall(
             "Wall_Left",
             parent,
             new Vector3(roomLeft, roomCenter.y, 0f),
             new Vector2(wallThickness, roomSize.y),
-            wallColor,
             false
         );
-        CreateObstacle(
+        CreateArchitecturalWall(
             "Wall_Right",
             parent,
             new Vector3(roomRight, roomCenter.y, 0f),
             new Vector2(wallThickness, roomSize.y),
-            wallColor,
             false
         );
     }
 
     private void CreateAdminDesk(Transform parent)
     {
-        Vector2 deskSize = new(3.2f, 1.1f);
+        Vector2 deskSize = new(3f, 1f);
         GameObject desk = CreateObstacle(
             "AdministratorDesk",
             parent,
-            new Vector3(-4.8f, 3.1f, 0f),
+            new Vector3(-4.55f, 2.95f, 0f),
             deskSize,
             deskColor
         );
@@ -364,12 +425,37 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
                     room.size.x - wallThickness,
                     room.size.y - wallThickness
                 ),
-                new Color(0.07f, 0.08f, 0.105f, 1f),
+                new Color(0.096f, 0.108f, 0.138f, 1f),
                 -9994,
                 false
             );
+            CreateRoomFloorDetails(room, parent);
             CreateRoomWalls(room, parent);
         }
+    }
+
+    private void CreateRoomFloorDetails(
+        UnlockableRoomDefinition room,
+        Transform parent)
+    {
+        CreateVisualObject(
+            $"{room.roomId}_FloorInset",
+            parent,
+            room.center,
+            new Vector2(room.size.x - 0.75f, room.size.y - 0.75f),
+            new Color(0.108f, 0.12f, 0.15f, 0.82f),
+            -9992,
+            false
+        );
+        CreateVisualObject(
+            $"{room.roomId}_FloorSpine",
+            parent,
+            new Vector3(room.center.x, room.center.y, 0f),
+            new Vector2(room.size.x - 1.2f, 0.025f),
+            new Color(0.12f, 0.28f, 0.34f, 0.28f),
+            -9991,
+            false
+        );
     }
 
     private void CreateRoomWalls(
@@ -509,14 +595,53 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         Vector3 position,
         Vector2 size)
     {
-        CreateObstacle(
+        CreateArchitecturalWall(
+            objectName,
+            parent,
+            position,
+            size,
+            false
+        );
+    }
+
+    private GameObject CreateArchitecturalWall(
+        string objectName,
+        Transform parent,
+        Vector3 position,
+        Vector2 size,
+        bool useYSorting = false)
+    {
+        GameObject wall = CreateObstacle(
             objectName,
             parent,
             position,
             size,
             wallColor,
-            false
+            useYSorting
         );
+        ApplyWallSurface(wall);
+        return wall;
+    }
+
+    private void ApplyWallSurface(GameObject wall)
+    {
+        Transform existingInset = wall.transform.Find("WallInset");
+        GameObject insetObject = existingInset != null
+            ? existingInset.gameObject
+            : new GameObject("WallInset");
+        insetObject.transform.SetParent(wall.transform, false);
+        insetObject.transform.localPosition = Vector3.zero;
+        insetObject.transform.localScale = new Vector3(0.82f, 0.56f, 1f);
+
+        SpriteRenderer inset = insetObject.GetComponent<SpriteRenderer>();
+        if (inset == null)
+        {
+            inset = insetObject.AddComponent<SpriteRenderer>();
+        }
+        inset.sprite = GetSquareSprite();
+        inset.color = new Color(0.255f, 0.285f, 0.335f, 0.72f);
+        YSortRenderer.SetSortingLayer(inset, "Background");
+        inset.sortingOrder = 5001;
     }
 
     private void BuildUnlockableRoomContent()

@@ -22,14 +22,14 @@ public sealed class CameraFollow : MonoBehaviour
     [SerializeField, Min(0.1f)] private float zoomSpeedMultiplier = 4f;
 
     [Header("Manager View")]
-    [SerializeField, Min(0f)] private float overviewPadding = 0.45f;
-    [SerializeField, Min(0.1f)] private float focusOrthographicSize = 5.4f;
+    [SerializeField, Min(0f)] private float overviewPadding = 0.25f;
+    [SerializeField, Min(0.1f)] private float focusOrthographicSize = 4.8f;
     [SerializeField, Range(0f, 0.3f)]
     private float topHudReservedFraction = 0.14f;
     [SerializeField, Range(0f, 0.2f)]
     private float bottomHudReservedFraction = 0.08f;
     [SerializeField, Range(0f, 0.4f)]
-    private float focusPanelReservedFraction = 0.23f;
+    private float focusPanelReservedFraction = 0.25f;
 
     [Header("Bounds")]
     [SerializeField] private CameraBounds2D cameraBounds;
@@ -51,12 +51,15 @@ public sealed class CameraFollow : MonoBehaviour
     public float ZoomSpeedMultiplier => zoomSpeedMultiplier;
     public bool IsFocused => target != null;
     public float FocusOrthographicSize => focusOrthographicSize;
+    public float OverviewPadding => overviewPadding;
     public float FocusPanelReservedFraction => focusPanelReservedFraction;
 
     private void Awake()
     {
         controlledCamera = GetComponent<Camera>();
         controlledCamera.orthographic = true;
+        controlledCamera.backgroundColor =
+            new Color(0.012f, 0.017f, 0.027f, 1f);
 
         NormalizeZoomSettings();
         targetOrthographicSize = defaultOrthographicSize;

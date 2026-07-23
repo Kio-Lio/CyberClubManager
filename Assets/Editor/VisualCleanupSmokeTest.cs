@@ -15,10 +15,7 @@ public static class VisualCleanupSmokeTest
     private const string HadSaveKey = "CyberClub.VisualCleanupSmoke.HadSave";
     private const string ScenePath = "Assets/Scenes/SampleScene.unity";
 
-    private static readonly string SavePath = Path.Combine(
-        Application.persistentDataPath,
-        "cyber_club_save.json"
-    );
+    private static readonly string SavePath = SaveStorageProfile.QASavePath;
     private static readonly string SaveBackupPath = Path.Combine(
         Path.GetTempPath(),
         "cyber_club_visual_cleanup_smoke_save.bak"

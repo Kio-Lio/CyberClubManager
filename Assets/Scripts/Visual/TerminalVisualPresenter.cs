@@ -98,7 +98,7 @@ public sealed class TerminalVisualPresenter : MonoBehaviour,
             "Screen",
             new Vector2(0f, 0.15f),
             new Vector2(0.42f, 0.23f),
-            new Color(accentColor.r, accentColor.g, accentColor.b, 0.56f),
+            new Color(accentColor.r, accentColor.g, accentColor.b, 0.48f),
             5
         );
         WorldVisualPrimitives.CreatePart(
@@ -238,7 +238,7 @@ public sealed class TerminalVisualPresenter : MonoBehaviour,
 
         if (screen != null)
         {
-            float alpha = isSelected ? 0.92f : isHovered ? 0.74f : 0.56f;
+            float alpha = isSelected ? 0.90f : isHovered ? 0.70f : 0.48f;
             screen.color = new Color(
                 accentColor.r,
                 accentColor.g,

@@ -18,10 +18,7 @@ public static class MainMenuFlowSmokeTest
     private const string HadCorruptedSettingsKey =
         "CyberClub.MainMenuSmoke.HadCorruptedSettings";
     private const string MainMenuScenePath = "Assets/Scenes/MainMenu.unity";
-    private static readonly string SavePath = Path.Combine(
-        Application.persistentDataPath,
-        "cyber_club_save.json"
-    );
+    private static readonly string SavePath = SaveStorageProfile.QASavePath;
     private static readonly string SaveBackupPath = Path.Combine(
         Path.GetTempPath(),
         "cyber_club_main_menu_smoke_save.bak"

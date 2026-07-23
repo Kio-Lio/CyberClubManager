@@ -153,7 +153,7 @@ public static class LayoutFixSmokeTest
         }
 
         if (collider == null ||
-            Vector2.Distance(collider.size, new Vector2(3.2f, 1.1f)) > 0.01f)
+            Vector2.Distance(collider.size, new Vector2(3f, 1f)) > 0.01f)
         {
             throw new InvalidOperationException(
                 "Administrator reception collider changed with the new visual."

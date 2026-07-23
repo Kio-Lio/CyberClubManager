@@ -14,10 +14,7 @@ public static class EnvironmentLayoutSmokeTest
     private const string HadSaveKey = "CyberClub.EnvironmentLayoutSmoke.HadSave";
     private const string ScenePath = "Assets/Scenes/SampleScene.unity";
 
-    private static readonly string SavePath = Path.Combine(
-        Application.persistentDataPath,
-        "cyber_club_save.json"
-    );
+    private static readonly string SavePath = SaveStorageProfile.QASavePath;
     private static readonly string SaveBackupPath = Path.Combine(
         Path.GetTempPath(),
         "cyber_club_environment_layout_smoke_save.bak"
@@ -209,12 +206,12 @@ public static class EnvironmentLayoutSmokeTest
 
         float receptionRatio =
             reception.sprite.bounds.size.x / workstation.sprite.bounds.size.x;
-        Require(receptionRatio >= 2.5f && receptionRatio <= 3f,
-            $"Reception scale ratio is {receptionRatio:F2}, expected 2.5-3.0.");
+        Require(receptionRatio >= 2.25f && receptionRatio <= 2.8f,
+            $"Reception scale ratio is {receptionRatio:F2}, expected 2.25-2.8.");
         float characterRatio =
             CharacterVisualPresenter.VisualWidth / workstation.sprite.bounds.size.x;
-        Require(characterRatio >= 0.35f && characterRatio <= 0.45f,
-            $"Character scale ratio is {characterRatio:F2}, expected 0.35-0.45.");
+        Require(characterRatio >= 0.4f && characterRatio <= 0.5f,
+            $"Character scale ratio is {characterRatio:F2}, expected 0.4-0.5.");
 
         Transform statusLight = pcObject.transform.Find("PCVisual/StatusLight");
         Transform tierAccent = pcObject.transform.Find("PCVisual/TierAccent");

@@ -85,23 +85,23 @@ public sealed class RoomDoorVisualPresenter : MonoBehaviour
             visualRoot.transform,
             "Frame",
             Vector2.zero,
-            new Vector2(1f, 1f),
-            new Color(0.08f, 0.09f, 0.11f, 1f),
+            new Vector2(0.88f, 0.94f),
+            new Color(0.10f, 0.115f, 0.14f, 1f),
             1
         );
         panel = WorldVisualPrimitives.CreatePart(
             visualRoot.transform,
             "DoorPanel",
             Vector2.zero,
-            new Vector2(0.72f, 0.86f),
-            new Color(0.14f, 0.15f, 0.18f, 1f),
+            new Vector2(0.64f, 0.78f),
+            new Color(0.17f, 0.185f, 0.22f, 1f),
             2
         );
         threshold = WorldVisualPrimitives.CreatePart(
             visualRoot.transform,
             "Threshold",
             new Vector2(0f, -0.38f),
-            new Vector2(0.84f, 0.12f),
+            new Vector2(0.78f, 0.08f),
             new Color(0.30f, 0.27f, 0.23f, 0.90f),
             3
         );
@@ -109,7 +109,7 @@ public sealed class RoomDoorVisualPresenter : MonoBehaviour
             visualRoot.transform,
             "LockIndicator",
             new Vector2(0f, 0.08f),
-            new Vector2(0.24f, 0.10f),
+            new Vector2(0.18f, 0.075f),
             new Color(0.60f, 0.42f, 0.18f, 0.88f),
             4
         );

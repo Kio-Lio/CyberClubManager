@@ -13,10 +13,7 @@ public static class PrereleaseValidationSmokeTest
 {
     private const string PendingKey = "CyberClub.PrereleaseValidation.Pending";
     private const string SampleScenePath = "Assets/Scenes/SampleScene.unity";
-    private static readonly string SavePath = Path.Combine(
-        Application.persistentDataPath,
-        "cyber_club_save.json"
-    );
+    private static readonly string SavePath = SaveStorageProfile.QASavePath;
     private static readonly string SaveBackupPath = Path.Combine(
         Path.GetTempPath(),
         "cyber_club_prerelease_validation_save.bak"
