@@ -161,48 +161,63 @@ public static class EnvironmentLayoutSmokeTest
 
     private static void ValidateImportedWorldSprites()
     {
-        (string path, Vector2 pivot)[] definitions =
+        (string path, Vector2 pivot, float pixelsPerUnit)[] definitions =
         {
             (
                 "Assets/Resources/PC/Workstations/Basic.png",
-                new Vector2(0.5f, 0.5f)
+                new Vector2(0.5f, 0.5f),
+                512f
             ),
             (
                 "Assets/Resources/PC/Workstations/Gaming.png",
-                new Vector2(0.5f, 0.5f)
+                new Vector2(0.5f, 0.5f),
+                512f
             ),
             (
                 "Assets/Resources/PC/Workstations/Premium.png",
-                new Vector2(0.5f, 0.5f)
+                new Vector2(0.5f, 0.5f),
+                512f
             ),
             (
                 "Assets/Resources/Environment/Reception/" +
                 "AdministratorDesk_Final.png",
-                new Vector2(0.5f, 0f)
+                new Vector2(0.5f, 0f),
+                512f
             ),
             (
                 "Assets/Resources/Environment/Architecture/" +
                 "CyberClub_FloorTile.png",
-                new Vector2(0.5f, 0.5f)
+                new Vector2(0.5f, 0.5f),
+                512f
             ),
             (
                 "Assets/Resources/Environment/Architecture/" +
                 "CyberClub_Wall_Straight.png",
-                new Vector2(0.5f, 0.5f)
+                new Vector2(0.5f, 0.5f),
+                512f
             ),
             (
                 "Assets/Resources/Environment/Architecture/" +
                 "CyberClub_Door.png",
-                new Vector2(0.5f, 0f)
+                new Vector2(0.5f, 0f),
+                512f
             ),
             (
                 "Assets/Resources/Environment/Props/" +
                 "CyberClub_Vending.png",
-                new Vector2(0.5f, 0f)
+                new Vector2(0.5f, 0f),
+                512f
+            ),
+            (
+                "Assets/Resources/Characters/" +
+                "RegularGuest_Walk_4x5_64px.png",
+                new Vector2(0.5f, 0.5f),
+                64f
             )
         };
 
-        foreach ((string path, Vector2 pivot) definition in definitions)
+        foreach ((string path, Vector2 pivot, float pixelsPerUnit)
+                 definition in definitions)
         {
             TextureImporter importer =
                 AssetImporter.GetAtPath(definition.path) as TextureImporter;
@@ -218,7 +233,10 @@ public static class EnvironmentLayoutSmokeTest
                 $"Pixel-art import settings are invalid: {definition.path}.");
             Require(importer.textureCompression ==
                     TextureImporterCompression.Uncompressed &&
-                    Mathf.Abs(importer.spritePixelsPerUnit - 512f) < 0.01f,
+                    Mathf.Abs(
+                        importer.spritePixelsPerUnit -
+                        definition.pixelsPerUnit
+                    ) < 0.01f,
                 $"Sprite compression or PPU is invalid: {definition.path}.");
             Require(Vector2.Distance(
                         importer.spritePivot,
@@ -515,6 +533,26 @@ public static class EnvironmentLayoutSmokeTest
                     !client.GetComponent<SpriteRenderer>().enabled &&
                     client.transform.localScale == Vector3.one,
                 $"{client.name} still uses a bright square placeholder.");
+
+            bool isRegular = client.Type == ClientType.Regular;
+            SpriteRenderer regularGuest =
+                presenter.RegularGuestRenderer;
+            Require(regularGuest != null &&
+                    regularGuest.enabled == isRegular,
+                $"{client.name} has an invalid regular-guest visual state.");
+
+            if (isRegular)
+            {
+                Require(regularGuest.sprite != null &&
+                        regularGuest.sprite.texture.width == 320 &&
+                        regularGuest.sprite.texture.height == 256 &&
+                        Mathf.Abs(regularGuest.sprite.rect.width - 64f) <
+                            0.01f &&
+                        Mathf.Abs(regularGuest.sprite.rect.height - 64f) <
+                            0.01f,
+                    "Regular client does not use a 64px frame from the " +
+                    "5x4 guest sprite sheet.");
+            }
         }
 
         CleanerManager cleanerManager = CleanerManager.Instance;
