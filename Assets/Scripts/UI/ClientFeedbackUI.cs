@@ -10,14 +10,14 @@ public sealed class ClientFeedbackUI : MonoBehaviour
     [SerializeField] private float fadeDuration = 0.35f;
 
     [SerializeField] private Vector2 panelSize =
-        new Vector2(420f, 112f);
+        new Vector2(350f, 96f);
 
     [SerializeField] private Vector2 panelOffset =
-        new Vector2(-20f, -204f);
+        new Vector2(-18f, -188f);
 
     [Header("Text Settings")]
-    [SerializeField] private int titleFontSize = 18;
-    [SerializeField] private int messageFontSize = 16;
+    [SerializeField] private int titleFontSize = 17;
+    [SerializeField] private int messageFontSize = 15;
 
     private readonly Queue<ClientFeedbackData> feedbackQueue = new();
 
@@ -34,9 +34,15 @@ public sealed class ClientFeedbackUI : MonoBehaviour
     public int ActiveCardCount => panelObject != null &&
         panelObject.activeSelf ? 1 : 0;
     public int MaximumVisibleCards => 1;
+    public Vector2 PanelSize => panelSize;
+    public Vector2 PanelOffset => panelOffset;
 
     private void Awake()
     {
+        panelSize = new Vector2(350f, 96f);
+        panelOffset = new Vector2(-18f, -188f);
+        titleFontSize = 17;
+        messageFontSize = 15;
         BuildInterface();
         HideImmediately();
     }
@@ -137,7 +143,7 @@ public sealed class ClientFeedbackUI : MonoBehaviour
     private void ApplyFeedback(ClientFeedbackData feedback)
     {
         titleText.text = GetClientTypeDisplayName(feedback.ClientType);
-        messageText.text = feedback.Message;
+        messageText.text = CompactMessage(feedback.Message);
 
         string changePrefix = feedback.ReputationChange >= 0 ? "+" : string.Empty;
         string waitingText = feedback.WaitingTime > 0.05f
@@ -171,7 +177,7 @@ public sealed class ClientFeedbackUI : MonoBehaviour
         panelRect.sizeDelta = panelSize;
 
         Image panelImage = panelObject.GetComponent<Image>();
-        panelImage.color = new Color(0.035f, 0.045f, 0.065f, 0.94f);
+        panelImage.color = new Color(0.025f, 0.032f, 0.047f, 0.95f);
         panelImage.raycastTarget = false;
 
         canvasGroup = panelObject.GetComponent<CanvasGroup>();
@@ -180,8 +186,8 @@ public sealed class ClientFeedbackUI : MonoBehaviour
 
         VerticalLayoutGroup layout =
             panelObject.GetComponent<VerticalLayoutGroup>();
-        layout.padding = new RectOffset(14, 14, 8, 8);
-        layout.spacing = 2f;
+        layout.padding = new RectOffset(12, 12, 6, 6);
+        layout.spacing = 1f;
         layout.childAlignment = TextAnchor.UpperLeft;
         layout.childControlWidth = true;
         layout.childControlHeight = true;
@@ -191,19 +197,19 @@ public sealed class ClientFeedbackUI : MonoBehaviour
         titleText = CreateText(
             "ClientTypeText",
             titleFontSize,
-            24f,
+            20f,
             FontStyle.Bold
         );
         messageText = CreateText(
             "FeedbackMessageText",
             messageFontSize,
-            38f,
+            32f,
             FontStyle.Normal
         );
         reputationText = CreateText(
             "ReputationChangeText",
             messageFontSize,
-            22f,
+            18f,
             FontStyle.Bold
         );
     }
@@ -229,7 +235,7 @@ public sealed class ClientFeedbackUI : MonoBehaviour
         text.color = Color.white;
         text.alignment = TextAnchor.MiddleLeft;
         text.horizontalOverflow = HorizontalWrapMode.Wrap;
-        text.verticalOverflow = VerticalWrapMode.Overflow;
+        text.verticalOverflow = VerticalWrapMode.Truncate;
         text.raycastTarget = false;
 
         LayoutElement layoutElement = textObject.GetComponent<LayoutElement>();
@@ -261,12 +267,22 @@ public sealed class ClientFeedbackUI : MonoBehaviour
         };
     }
 
+    private static string CompactMessage(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message) || message.Length <= 86)
+        {
+            return message;
+        }
+
+        return message.Substring(0, 83).TrimEnd() + "...";
+    }
+
     private void OnValidate()
     {
         displayDuration = Mathf.Max(0.5f, displayDuration);
         fadeDuration = Mathf.Max(0f, fadeDuration);
-        panelSize.x = Mathf.Max(320f, panelSize.x);
-        panelSize.y = Mathf.Max(100f, panelSize.y);
+        panelSize.x = Mathf.Clamp(panelSize.x, 300f, 360f);
+        panelSize.y = Mathf.Clamp(panelSize.y, 86f, 100f);
         titleFontSize = Mathf.Max(14, titleFontSize);
         messageFontSize = Mathf.Max(12, messageFontSize);
     }

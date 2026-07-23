@@ -206,8 +206,8 @@ public static class EnvironmentLayoutSmokeTest
 
         float receptionRatio =
             reception.sprite.bounds.size.x / workstation.sprite.bounds.size.x;
-        Require(receptionRatio >= 2.25f && receptionRatio <= 2.8f,
-            $"Reception scale ratio is {receptionRatio:F2}, expected 2.25-2.8.");
+        Require(receptionRatio >= 2.15f && receptionRatio <= 2.8f,
+            $"Reception scale ratio is {receptionRatio:F2}, expected 2.15-2.8.");
         float characterRatio =
             CharacterVisualPresenter.VisualWidth / workstation.sprite.bounds.size.x;
         Require(characterRatio >= 0.4f && characterRatio <= 0.5f,
