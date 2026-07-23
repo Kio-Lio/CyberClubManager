@@ -183,7 +183,7 @@ public static class AdministratorDeskFinalAssetSmokeTest
         TextureImporterSettings importerSettings = new();
         importer.ReadTextureSettings(importerSettings);
         Require(importerSettings.spriteMeshType == SpriteMeshType.Tight &&
-                Mathf.Abs(importer.spritePixelsPerUnit - 280f) < 0.01f,
+                Mathf.Abs(importer.spritePixelsPerUnit - 512f) < 0.01f,
             "Administrator desk mesh type or PPU is invalid.");
         Require(Vector2.Distance(
                     importer.spritePivot,

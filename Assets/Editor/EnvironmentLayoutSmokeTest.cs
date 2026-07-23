@@ -37,6 +37,7 @@ public static class EnvironmentLayoutSmokeTest
     {
         try
         {
+            ValidateImportedWorldSprites();
             BackupSaveFile();
             RuntimeErrors.Clear();
             if (File.Exists(SavePath))
@@ -146,6 +147,7 @@ public static class EnvironmentLayoutSmokeTest
         ValidatePlaceholderPolicy();
         ValidateCharactersAndTrash();
         ValidateCameraComposition(cameraFollow, cameraBounds, manager);
+        ValidateIntegratedWorldSprites(layout, manager);
 
         PC pc = RequireObject("PC_01").GetComponent<PC>();
         Require(pc != null && manager.TrySelectAtWorldPosition(pc.transform.position) &&
@@ -155,6 +157,235 @@ public static class EnvironmentLayoutSmokeTest
 
         Require(RuntimeErrors.Count == 0,
             $"Runtime errors were logged: {string.Join(" | ", RuntimeErrors)}");
+    }
+
+    private static void ValidateImportedWorldSprites()
+    {
+        (string path, Vector2 pivot)[] definitions =
+        {
+            (
+                "Assets/Resources/PC/Workstations/Basic.png",
+                new Vector2(0.5f, 0.5f)
+            ),
+            (
+                "Assets/Resources/PC/Workstations/Gaming.png",
+                new Vector2(0.5f, 0.5f)
+            ),
+            (
+                "Assets/Resources/PC/Workstations/Premium.png",
+                new Vector2(0.5f, 0.5f)
+            ),
+            (
+                "Assets/Resources/Environment/Reception/" +
+                "AdministratorDesk_Final.png",
+                new Vector2(0.5f, 0f)
+            ),
+            (
+                "Assets/Resources/Environment/Architecture/" +
+                "CyberClub_FloorTile.png",
+                new Vector2(0.5f, 0.5f)
+            ),
+            (
+                "Assets/Resources/Environment/Architecture/" +
+                "CyberClub_Wall_Straight.png",
+                new Vector2(0.5f, 0.5f)
+            ),
+            (
+                "Assets/Resources/Environment/Architecture/" +
+                "CyberClub_Door.png",
+                new Vector2(0.5f, 0f)
+            ),
+            (
+                "Assets/Resources/Environment/Props/" +
+                "CyberClub_Vending.png",
+                new Vector2(0.5f, 0f)
+            )
+        };
+
+        foreach ((string path, Vector2 pivot) definition in definitions)
+        {
+            TextureImporter importer =
+                AssetImporter.GetAtPath(definition.path) as TextureImporter;
+            Require(importer != null,
+                $"Sprite importer is missing: {definition.path}.");
+            Require(importer.textureType == TextureImporterType.Sprite &&
+                    importer.spriteImportMode == SpriteImportMode.Single,
+                $"Sprite must use Single import mode: {definition.path}.");
+            Require(importer.alphaIsTransparency &&
+                    !importer.mipmapEnabled &&
+                    importer.filterMode == FilterMode.Point &&
+                    importer.wrapMode == TextureWrapMode.Clamp,
+                $"Pixel-art import settings are invalid: {definition.path}.");
+            Require(importer.textureCompression ==
+                    TextureImporterCompression.Uncompressed &&
+                    Mathf.Abs(importer.spritePixelsPerUnit - 512f) < 0.01f,
+                $"Sprite compression or PPU is invalid: {definition.path}.");
+            Require(Vector2.Distance(
+                        importer.spritePivot,
+                        definition.pivot) < 0.001f,
+                $"Sprite pivot is invalid: {definition.path}.");
+
+            TextureImporterSettings settings = new();
+            importer.ReadTextureSettings(settings);
+            Require(settings.spriteMeshType == SpriteMeshType.Tight,
+                $"Sprite must use a Tight mesh: {definition.path}.");
+            Require(AssetDatabase.LoadAssetAtPath<Sprite>(
+                        definition.path) != null,
+                $"Sprite could not be loaded: {definition.path}.");
+        }
+    }
+
+    private static void ValidateIntegratedWorldSprites(
+        ClubLayoutBuilder layout,
+        ManagerModeController manager)
+    {
+        Sprite basic = Resources.Load<Sprite>("PC/Workstations/Basic");
+        Sprite gaming = Resources.Load<Sprite>("PC/Workstations/Gaming");
+        Sprite premium = Resources.Load<Sprite>("PC/Workstations/Premium");
+        Sprite floor = Resources.Load<Sprite>(
+            FloorTileGridPresenter.ResourcePath
+        );
+        Sprite wall = Resources.Load<Sprite>(
+            "Environment/Architecture/CyberClub_Wall_Straight"
+        );
+        Sprite entranceDoor = Resources.Load<Sprite>(
+            "Environment/Architecture/CyberClub_Door"
+        );
+        Sprite vending = Resources.Load<Sprite>(
+            VendingMachineVisualPresenter.ResourcePath
+        );
+        Require(basic != null && gaming != null && premium != null &&
+                floor != null && wall != null &&
+                entranceDoor != null && vending != null,
+            "One or more world sprites are missing from Resources.");
+
+        PCVisualPresenter pcPresenter = RequireObject("PC_01")
+            .GetComponent<PCVisualPresenter>();
+        Require(pcPresenter != null &&
+                pcPresenter.WorkstationRenderer != null &&
+                pcPresenter.WorkstationRenderer.sprite == basic,
+            "Basic PC does not use the imported Basic workstation sprite.");
+        Require(Mathf.Abs(
+                    pcPresenter.WorkstationRenderer.bounds.size.x -
+                    1.5f) < 0.03f,
+            "PC workstation sprite has an unexpected world width.");
+
+        AdministratorDeskVisualPresenter deskPresenter =
+            RequireObject("AdministratorDesk")
+                .GetComponent<AdministratorDeskVisualPresenter>();
+        Require(deskPresenter != null &&
+                deskPresenter.DeskRenderer != null &&
+                deskPresenter.DeskRenderer.sprite != null &&
+                deskPresenter.DeskRenderer.sprite.name ==
+                    "AdministratorDesk_Final",
+            "Administrator desk does not use the imported final sprite.");
+
+        FloorTileGridPresenter floorGrid =
+            UnityEngine.Object.FindAnyObjectByType<FloorTileGridPresenter>();
+        Require(floorGrid != null && floorGrid.TileCount == 60,
+            $"Floor tile count is {floorGrid?.TileCount ?? 0}, expected 60.");
+        Bounds floorBounds = default;
+        bool hasFloorBounds = false;
+        foreach (SpriteRenderer tile in floorGrid.TileRenderers)
+        {
+            Require(tile != null && tile.enabled && tile.sprite == floor,
+                "Floor grid contains an invalid or disabled tile.");
+            if (!hasFloorBounds)
+            {
+                floorBounds = tile.bounds;
+                hasFloorBounds = true;
+            }
+            else
+            {
+                floorBounds.Encapsulate(tile.bounds);
+            }
+        }
+        Require(hasFloorBounds &&
+                Vector2.Distance(floorBounds.center, layout.RoomCenter) <
+                    0.02f &&
+                Vector2.Distance(floorBounds.size, layout.RoomSize) < 0.03f,
+            $"Floor tiles do not cover the club: {floorBounds}.");
+
+        foreach (string wallName in new[]
+                 {
+                     "Wall_Top",
+                     "Wall_Left",
+                     "Wall_Right",
+                     "PrivateRoom01_Wall_Top",
+                     "VIPRoom01_Wall_Top"
+                 })
+        {
+            GameObject wallObject = RequireObject(wallName);
+            Transform visual = wallObject.transform.Find("WallSprite");
+            SpriteRenderer renderer = visual != null
+                ? visual.GetComponent<SpriteRenderer>()
+                : null;
+            Require(renderer != null && renderer.enabled &&
+                    renderer.sprite == wall,
+                $"{wallName} does not use the imported wall sprite.");
+            Require(wallObject.TryGetComponent(out BoxCollider2D collider) &&
+                    collider != null && !collider.isTrigger,
+                $"{wallName} lost its solid collider.");
+        }
+
+        GameObject entrance = RequireObject("EntranceDoor");
+        SpriteRenderer entranceRenderer =
+            entrance.GetComponent<SpriteRenderer>();
+        Require(entranceRenderer != null &&
+                entranceRenderer.sprite == entranceDoor &&
+                Mathf.Abs(entrance.transform.position.x + 0.5f) < 0.01f,
+            "The imported door is not installed at the club entrance.");
+        Require(entrance.GetComponentInChildren<Collider2D>(true) == null,
+            "Entrance door visual blocks the client entrance.");
+
+        foreach (RoomDoor roomDoor in
+                 UnityEngine.Object.FindObjectsByType<RoomDoor>())
+        {
+            Require(roomDoor.GetComponent<RoomDoorVisualPresenter>() != null,
+                $"{roomDoor.name} lost its existing room-door presenter.");
+            foreach (SpriteRenderer renderer in
+                     roomDoor.GetComponentsInChildren<SpriteRenderer>(true))
+            {
+                Require(renderer.sprite != entranceDoor,
+                    $"Entrance door sprite was incorrectly installed on " +
+                    $"{roomDoor.name}.");
+            }
+        }
+
+        GameObject vendingObject = RequireObject("VendingMachine");
+        VendingMachineVisualPresenter vendingPresenter =
+            vendingObject.GetComponent<VendingMachineVisualPresenter>();
+        Require(vendingPresenter != null &&
+                vendingPresenter.VendingRenderer != null &&
+                vendingPresenter.VendingRenderer.sprite == vending,
+            "Vending machine does not use the imported sprite.");
+        GameObject desk = RequireObject("AdministratorDesk");
+        Require(vendingObject.transform.position.x <
+                    desk.transform.position.x,
+            "Vending machine is not positioned left of the administrator desk.");
+        Require(vendingObject.TryGetComponent(out BoxCollider2D vendingCollider) &&
+                !vendingCollider.isTrigger,
+            "Vending machine has no solid world collider.");
+        foreach (MonoBehaviour behaviour in
+                 vendingObject.GetComponents<MonoBehaviour>())
+        {
+            Require(behaviour is not IInteractable,
+                "Vending machine gained functionality before it was requested.");
+        }
+
+        manager.ClearSelection();
+        Require(!manager.TrySelectAtWorldPosition(
+                    vendingObject.transform.position) &&
+                manager.SelectedBehaviour == null,
+            "Decorative vending machine can be selected in manager mode.");
+
+        ClientNavigationManager navigation =
+            ClientNavigationManager.Instance;
+        Require(navigation != null &&
+                navigation.BuildPath(
+                    navigation.EntranceNode,
+                    navigation.QueueNode).Count > 0,
+            "Entrance-to-queue navigation was broken by the new world assets.");
     }
 
     private static void ValidateTerminalLayout()

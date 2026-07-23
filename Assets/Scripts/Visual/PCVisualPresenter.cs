@@ -5,7 +5,8 @@ using UnityEngine;
 public sealed class PCVisualPresenter : MonoBehaviour,
     IWorldInteractionVisual
 {
-    private const float WorkstationPixelsPerUnit = 800f;
+    private const float TargetWorkstationWidth = 1.50f;
+    private const float OutlineMargin = 0.045f;
 
     private static readonly Color SelectionColor =
         new(0.05f, 0.76f, 1f, 0.95f);
@@ -17,9 +18,10 @@ public sealed class PCVisualPresenter : MonoBehaviour,
     private SpriteRenderer statusLight;
     private SpriteRenderer[] outlineParts;
     private WorldVisualPart[] visualParts;
-    private Sprite workstationSprite;
     private bool isHovered;
     private bool isSelected;
+
+    public SpriteRenderer WorkstationRenderer => workstationRenderer;
 
     private void Awake()
     {
@@ -64,10 +66,6 @@ public sealed class PCVisualPresenter : MonoBehaviour,
             pc.EquipmentChanged -= RefreshVisual;
         }
 
-        if (workstationSprite != null)
-        {
-            Destroy(workstationSprite);
-        }
     }
 
     public void SetHovered(bool hovered)
@@ -174,8 +172,8 @@ public sealed class PCVisualPresenter : MonoBehaviour,
             _ => "PC/Workstations/Basic"
         };
 
-        Texture2D texture = Resources.Load<Texture2D>(resourcePath);
-        if (texture == null)
+        Sprite workstation = Resources.Load<Sprite>(resourcePath);
+        if (workstation == null)
         {
             Debug.LogWarning(
                 $"Workstation sprite was not found: {resourcePath}."
@@ -188,28 +186,78 @@ public sealed class PCVisualPresenter : MonoBehaviour,
             return;
         }
 
-        if (workstationSprite != null)
-        {
-            Destroy(workstationSprite);
-        }
-
-        texture.wrapMode = TextureWrapMode.Clamp;
-        texture.filterMode = FilterMode.Point;
-        workstationSprite = Sprite.Create(
-            texture,
-            new Rect(0f, 0f, texture.width, texture.height),
-            new Vector2(0.5f, 0.5f),
-            WorkstationPixelsPerUnit,
-            0,
-            SpriteMeshType.FullRect
+        workstationRenderer.sprite = workstation;
+        float scale = TargetWorkstationWidth /
+            Mathf.Max(0.01f, workstation.bounds.size.x);
+        workstationRenderer.transform.localScale =
+            new Vector3(scale, scale, 1f);
+        RefreshVisualGeometry(
+            TargetWorkstationWidth,
+            workstation.bounds.size.y * scale
         );
-        workstationSprite.name = $"{pc.Tier}WorkstationSprite";
-        workstationRenderer.sprite = workstationSprite;
 
         if (rootRenderer != null)
         {
             rootRenderer.enabled = false;
         }
+    }
+
+    private void RefreshVisualGeometry(float width, float height)
+    {
+        if (outlineParts == null || outlineParts.Length != 4)
+        {
+            return;
+        }
+
+        float halfWidth = width * 0.5f + OutlineMargin;
+        float halfHeight = height * 0.5f + OutlineMargin;
+        float lineThickness = 0.045f;
+
+        ConfigureOutline(
+            outlineParts[0],
+            new Vector2(0f, halfHeight),
+            new Vector2(halfWidth * 2f, lineThickness)
+        );
+        ConfigureOutline(
+            outlineParts[1],
+            new Vector2(0f, -halfHeight),
+            new Vector2(halfWidth * 2f, lineThickness)
+        );
+        ConfigureOutline(
+            outlineParts[2],
+            new Vector2(-halfWidth, 0f),
+            new Vector2(lineThickness, halfHeight * 2f)
+        );
+        ConfigureOutline(
+            outlineParts[3],
+            new Vector2(halfWidth, 0f),
+            new Vector2(lineThickness, halfHeight * 2f)
+        );
+
+        tierAccent.transform.localPosition =
+            new Vector3(0f, -halfHeight - 0.03f, 0f);
+        tierAccent.transform.localScale =
+            new Vector3(width * 0.48f, 0.026f, 1f);
+        statusLight.transform.localPosition = new Vector3(
+            width * 0.5f - 0.07f,
+            height * 0.5f - 0.07f,
+            0f
+        );
+    }
+
+    private static void ConfigureOutline(
+        SpriteRenderer renderer,
+        Vector2 localPosition,
+        Vector2 localScale)
+    {
+        if (renderer == null)
+        {
+            return;
+        }
+
+        renderer.transform.localPosition = localPosition;
+        renderer.transform.localScale =
+            new Vector3(localScale.x, localScale.y, 1f);
     }
 
     private void RefreshVisual()

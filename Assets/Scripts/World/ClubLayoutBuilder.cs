@@ -118,6 +118,7 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
             CreateFloor(existingRoot);
             CreateOuterWalls(existingRoot);
             CreateAdminDesk(existingRoot);
+            CreateVendingMachine(existingRoot);
             CreatePCTables(existingRoot);
             CreateExpansionSlotVisuals(existingRoot);
             CreateUnlockableRooms(existingRoot);
@@ -134,6 +135,7 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         CreateFloor(root.transform);
         CreateOuterWalls(root.transform);
         CreateAdminDesk(root.transform);
+        CreateVendingMachine(root.transform);
         CreatePCTables(root.transform);
         CreateExpansionSlotVisuals(root.transform);
         CreateUnlockableRooms(root.transform);
@@ -176,6 +178,48 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
 
         floor.layer = 0;
         CreateFloorDetails(parent);
+        CreateFloorTileGrid(parent);
+        SetLegacyFloorDetailsVisible(parent, false);
+    }
+
+    private void CreateFloorTileGrid(Transform parent)
+    {
+        Transform existing = parent.Find("FloorTileGrid");
+        GameObject gridObject = existing != null
+            ? existing.gameObject
+            : new GameObject("FloorTileGrid");
+        gridObject.transform.SetParent(parent, false);
+        gridObject.transform.position = roomCenter;
+        gridObject.transform.localRotation = Quaternion.identity;
+        gridObject.transform.localScale = Vector3.one;
+
+        FloorTileGridPresenter presenter =
+            gridObject.GetComponent<FloorTileGridPresenter>();
+        if (presenter == null)
+        {
+            presenter = gridObject.AddComponent<FloorTileGridPresenter>();
+        }
+
+        presenter.Configure(roomSize);
+    }
+
+    private static void SetLegacyFloorDetailsVisible(
+        Transform parent,
+        bool visible)
+    {
+        foreach (Transform child in parent)
+        {
+            if (!child.name.StartsWith("FloorJoint_") &&
+                !child.name.StartsWith("FloorGuide_"))
+            {
+                continue;
+            }
+
+            if (child.TryGetComponent(out SpriteRenderer renderer))
+            {
+                renderer.enabled = visible;
+            }
+        }
     }
 
     private void CreateFloorDetails(Transform parent)
@@ -423,6 +467,48 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
             new Vector2(wallThickness, roomSize.y),
             false
         );
+        CreateEntranceDoorVisual(parent);
+    }
+
+    private void CreateEntranceDoorVisual(Transform parent)
+    {
+        const string resourcePath =
+            "Environment/Architecture/CyberClub_Door";
+        Sprite doorSprite = Resources.Load<Sprite>(resourcePath);
+        if (doorSprite == null)
+        {
+            Debug.LogWarning($"Entrance door sprite was not found: {resourcePath}.");
+            return;
+        }
+
+        Transform existing = parent.Find("EntranceDoor");
+        GameObject doorObject = existing != null
+            ? existing.gameObject
+            : new GameObject("EntranceDoor");
+        doorObject.transform.SetParent(parent, false);
+        doorObject.transform.position = new Vector3(
+            -0.5f,
+            roomCenter.y - roomSize.y * 0.5f - 0.18f,
+            0f
+        );
+        doorObject.transform.localRotation = Quaternion.identity;
+
+        float scale = 1.55f /
+            Mathf.Max(0.01f, doorSprite.bounds.size.x);
+        doorObject.transform.localScale =
+            new Vector3(scale, scale, 1f);
+
+        SpriteRenderer renderer =
+            doorObject.GetComponent<SpriteRenderer>();
+        if (renderer == null)
+        {
+            renderer = doorObject.AddComponent<SpriteRenderer>();
+        }
+
+        renderer.sprite = doorSprite;
+        renderer.color = Color.white;
+        renderer.sortingOrder = 5004;
+        YSortRenderer.SetSortingLayer(renderer, "Background");
     }
 
     private void CreateAdminDesk(Transform parent)
@@ -502,6 +588,37 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         collider.isTrigger = false;
         collider.offset = Vector2.zero;
         collider.size = new Vector2(0.54f, 1.34f);
+    }
+
+    private void CreateVendingMachine(Transform parent)
+    {
+        GameObject vending = CreateObstacle(
+            "VendingMachine",
+            parent,
+            new Vector3(-6.82f, 2.08f, 0f),
+            new Vector2(0.58f, 0.36f),
+            new Color(0.10f, 0.12f, 0.15f, 1f)
+        );
+        vending.transform.localScale = Vector3.one;
+
+        BoxCollider2D collider = vending.GetComponent<BoxCollider2D>();
+        if (collider == null)
+        {
+            collider = vending.AddComponent<BoxCollider2D>();
+        }
+        collider.isTrigger = false;
+        collider.size = new Vector2(0.58f, 0.36f);
+        collider.offset = new Vector2(0f, 0.18f);
+
+        YSortRenderer.Ensure(vending, -1, 0f);
+        VendingMachineVisualPresenter presenter =
+            vending.GetComponent<VendingMachineVisualPresenter>();
+        if (presenter == null)
+        {
+            presenter =
+                vending.AddComponent<VendingMachineVisualPresenter>();
+        }
+        presenter.ApplyVisual();
     }
 
     private void CreatePCTables(Transform parent)
@@ -822,6 +939,75 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         edge.color = new Color(0.24f, 0.26f, 0.30f, 0.7f);
         YSortRenderer.SetSortingLayer(edge, "Background");
         edge.sortingOrder = 5002;
+
+        const string wallResourcePath =
+            "Environment/Architecture/CyberClub_Wall_Straight";
+        Sprite wallSprite = Resources.Load<Sprite>(wallResourcePath);
+        if (wallSprite == null)
+        {
+            Debug.LogWarning(
+                $"Wall sprite was not found: {wallResourcePath}."
+            );
+            return;
+        }
+
+        Transform existingSprite = wall.transform.Find("WallSprite");
+        GameObject spriteObject = existingSprite != null
+            ? existingSprite.gameObject
+            : new GameObject("WallSprite");
+        spriteObject.transform.SetParent(wall.transform, false);
+        spriteObject.transform.localPosition = Vector3.zero;
+
+        SpriteRenderer wallRenderer =
+            spriteObject.GetComponent<SpriteRenderer>();
+        if (wallRenderer == null)
+        {
+            wallRenderer = spriteObject.AddComponent<SpriteRenderer>();
+        }
+
+        wallRenderer.sprite = wallSprite;
+        wallRenderer.color = Color.white;
+        wallRenderer.sortingOrder = 5003;
+        YSortRenderer.SetSortingLayer(wallRenderer, "Background");
+
+        const float visualThickness = 0.74f;
+        float spriteWidth = Mathf.Max(
+            0.01f,
+            wallSprite.bounds.size.x
+        );
+        float spriteHeight = Mathf.Max(
+            0.01f,
+            wallSprite.bounds.size.y
+        );
+        if (horizontal)
+        {
+            spriteObject.transform.localRotation = Quaternion.identity;
+            spriteObject.transform.localScale = new Vector3(
+                1f / spriteWidth,
+                visualThickness /
+                (Mathf.Abs(wall.transform.localScale.y) * spriteHeight),
+                1f
+            );
+        }
+        else
+        {
+            spriteObject.transform.localRotation =
+                Quaternion.Euler(0f, 0f, 90f);
+            spriteObject.transform.localScale = new Vector3(
+                1f / spriteWidth,
+                visualThickness /
+                (Mathf.Abs(wall.transform.localScale.x) * spriteHeight),
+                1f
+            );
+        }
+
+        SpriteRenderer rootRenderer = wall.GetComponent<SpriteRenderer>();
+        if (rootRenderer != null)
+        {
+            rootRenderer.enabled = false;
+        }
+        inset.enabled = false;
+        edge.enabled = false;
     }
 
     private void BuildUnlockableRoomContent()

@@ -8,6 +8,7 @@ public sealed class AdministratorDeskVisualPresenter : MonoBehaviour,
     public const string ResourcePath =
         "Environment/Reception/AdministratorDesk_Final";
     public const float VisualLocalOffsetY = -0.89f;
+    public const float TargetWorldWidth = 3.95f;
 
     private static readonly Color HoverColor =
         new(0.22f, 0.70f, 1f, 0.13f);
@@ -19,6 +20,7 @@ public sealed class AdministratorDeskVisualPresenter : MonoBehaviour,
     private SpriteRenderer shadowRenderer;
     private SpriteRenderer deskRenderer;
     private SpriteRenderer interactionGlowRenderer;
+    private float visualScale = 1f;
     private bool isHovered;
     private bool isSelected;
 
@@ -91,7 +93,10 @@ public sealed class AdministratorDeskVisualPresenter : MonoBehaviour,
         );
         deskRenderer.transform.localPosition = Vector3.zero;
         deskRenderer.transform.localRotation = Quaternion.identity;
-        deskRenderer.transform.localScale = Vector3.one;
+        visualScale = TargetWorldWidth /
+            Mathf.Max(0.01f, finalSprite.bounds.size.x);
+        deskRenderer.transform.localScale =
+            new Vector3(visualScale, visualScale, 1f);
         deskRenderer.color = Color.white;
 
         rootRenderer.enabled = false;
@@ -123,9 +128,13 @@ public sealed class AdministratorDeskVisualPresenter : MonoBehaviour,
         interactionGlowRenderer.color = isSelected
             ? SelectionColor
             : HoverColor;
-        interactionGlowRenderer.transform.localScale = isSelected
-            ? Vector3.one * 1.018f
-            : Vector3.one * 1.010f;
+        float scaleMultiplier = isSelected ? 1.018f : 1.010f;
+        interactionGlowRenderer.transform.localScale =
+            new Vector3(
+                visualScale * scaleMultiplier,
+                visualScale * scaleMultiplier,
+                1f
+            );
     }
 
     private void SyncSortingOrder()
