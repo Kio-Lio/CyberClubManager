@@ -437,13 +437,71 @@ public sealed class ClubLayoutBuilder : MonoBehaviour
         );
 
         desk.transform.localScale = Vector3.one;
-        BoxCollider2D collider = desk.GetComponent<BoxCollider2D>();
-        collider.size = deskSize;
+        ConfigureAdministratorDeskColliders(desk);
 
-        ReceptionVisualPresenter presenter =
-            desk.GetComponent<ReceptionVisualPresenter>() ??
-            desk.AddComponent<ReceptionVisualPresenter>();
+        if (desk.GetComponent<AdministratorDeskInteraction>() == null)
+        {
+            desk.AddComponent<AdministratorDeskInteraction>();
+        }
+
+        AdministratorDeskVisualPresenter presenter =
+            desk.GetComponent<AdministratorDeskVisualPresenter>();
+        if (presenter == null)
+        {
+            presenter = desk.AddComponent<AdministratorDeskVisualPresenter>();
+        }
         presenter.ApplyVisual();
+    }
+
+    private static void ConfigureAdministratorDeskColliders(GameObject desk)
+    {
+        BoxCollider2D frontCollider =
+            desk.GetComponent<BoxCollider2D>();
+        if (frontCollider == null)
+        {
+            frontCollider = desk.AddComponent<BoxCollider2D>();
+        }
+        frontCollider.isTrigger = false;
+        frontCollider.size = new Vector2(3.25f, 0.48f);
+        frontCollider.offset = new Vector2(0f, -0.35f);
+
+        EnsureAdministratorDeskWingCollider(
+            desk,
+            "DeskCollider_Left",
+            new Vector2(-1.68f, 0.12f)
+        );
+        EnsureAdministratorDeskWingCollider(
+            desk,
+            "DeskCollider_Right",
+            new Vector2(1.68f, 0.12f)
+        );
+    }
+
+    private static void EnsureAdministratorDeskWingCollider(
+        GameObject desk,
+        string objectName,
+        Vector2 localPosition)
+    {
+        Transform existing = desk.transform.Find(objectName);
+        GameObject colliderObject = existing != null
+            ? existing.gameObject
+            : new GameObject(objectName);
+
+        colliderObject.transform.SetParent(desk.transform, false);
+        colliderObject.transform.localPosition = localPosition;
+        colliderObject.transform.localRotation = Quaternion.identity;
+        colliderObject.transform.localScale = Vector3.one;
+        colliderObject.layer = desk.layer;
+
+        BoxCollider2D collider =
+            colliderObject.GetComponent<BoxCollider2D>();
+        if (collider == null)
+        {
+            collider = colliderObject.AddComponent<BoxCollider2D>();
+        }
+        collider.isTrigger = false;
+        collider.offset = Vector2.zero;
+        collider.size = new Vector2(0.54f, 1.34f);
     }
 
     private void CreatePCTables(Transform parent)

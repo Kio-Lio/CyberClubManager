@@ -208,10 +208,11 @@ public static class EnvironmentArtFoundationSmokeTest
         }
 
         GameObject desk = RequireObject("AdministratorDesk");
-        BoxCollider2D deskCollider = desk.GetComponent<BoxCollider2D>();
-        Require(deskCollider != null &&
-                Vector2.Distance(deskCollider.size, new Vector2(3f, 1f)) < 0.02f,
-            "The reception desk is outside its art-foundation size range.");
+        BoxCollider2D[] deskColliders =
+            desk.GetComponentsInChildren<BoxCollider2D>(true);
+        Require(desk.GetComponent<AdministratorDeskVisualPresenter>() != null &&
+                deskColliders.Length == 3,
+            "The reception desk lost its final visual or U-shaped collider.");
 
         string[] terminals =
         {

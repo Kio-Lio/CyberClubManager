@@ -132,13 +132,18 @@ public static class LayoutFixSmokeTest
     private static void AssertReceptionVisual()
     {
         GameObject reception = RequireObject("AdministratorDesk");
-        SpriteRenderer renderer = reception.GetComponent<SpriteRenderer>();
-        BoxCollider2D collider = reception.GetComponent<BoxCollider2D>();
+        AdministratorDeskVisualPresenter presenter =
+            reception.GetComponent<AdministratorDeskVisualPresenter>();
+        SpriteRenderer renderer = presenter != null
+            ? presenter.DeskRenderer
+            : null;
+        BoxCollider2D[] colliders =
+            reception.GetComponentsInChildren<BoxCollider2D>(true);
 
-        if (reception.GetComponent<ReceptionVisualPresenter>() == null ||
+        if (presenter == null ||
             renderer == null ||
             renderer.sprite == null ||
-            renderer.sprite.name != "ReceptionSprite")
+            renderer.sprite.name != "AdministratorDesk_Final")
         {
             throw new InvalidOperationException(
                 "Administrator reception sprite was not created."
@@ -152,11 +157,10 @@ public static class LayoutFixSmokeTest
             );
         }
 
-        if (collider == null ||
-            Vector2.Distance(collider.size, new Vector2(3f, 1f)) > 0.01f)
+        if (colliders.Length != 3)
         {
             throw new InvalidOperationException(
-                "Administrator reception collider changed with the new visual."
+                "Administrator reception does not use its U-shaped collider."
             );
         }
     }

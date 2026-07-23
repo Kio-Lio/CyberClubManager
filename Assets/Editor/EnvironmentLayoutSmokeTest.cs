@@ -198,16 +198,20 @@ public static class EnvironmentLayoutSmokeTest
         SpriteRenderer workstation = workstationTransform != null
             ? workstationTransform.GetComponent<SpriteRenderer>()
             : null;
-        SpriteRenderer reception =
-            RequireObject("AdministratorDesk").GetComponent<SpriteRenderer>();
+        AdministratorDeskVisualPresenter receptionPresenter =
+            RequireObject("AdministratorDesk")
+                .GetComponent<AdministratorDeskVisualPresenter>();
+        SpriteRenderer reception = receptionPresenter != null
+            ? receptionPresenter.DeskRenderer
+            : null;
         Require(workstation != null && workstation.sprite != null &&
                 reception != null && reception.sprite != null,
             "Workstation or reception sprite is missing.");
 
         float receptionRatio =
-            reception.sprite.bounds.size.x / workstation.sprite.bounds.size.x;
-        Require(receptionRatio >= 2.15f && receptionRatio <= 2.8f,
-            $"Reception scale ratio is {receptionRatio:F2}, expected 2.15-2.8.");
+            reception.bounds.size.x / workstation.bounds.size.x;
+        Require(receptionRatio >= 2.5f && receptionRatio <= 3f,
+            $"Reception scale ratio is {receptionRatio:F2}, expected 2.5-3.0.");
         float characterRatio =
             CharacterVisualPresenter.VisualWidth / workstation.sprite.bounds.size.x;
         Require(characterRatio >= 0.4f && characterRatio <= 0.5f,
