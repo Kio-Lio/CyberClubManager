@@ -161,14 +161,20 @@ public static class ManagerModeSmokeTest
         cameraFollow.Pan(Vector2.right * 0.25f);
         Require(cameraFollow.transform.position != beforePan,
             "Manager camera did not pan.");
-        cameraFollow.FrameBounds();
+        cameraFollow.ShowOverview();
         Require(Mathf.Abs(gameplayCamera.orthographicSize - overviewSize) < 0.1f,
             "Manager camera did not restore the club overview.");
 
         ManagerNavigationBar navigation =
             UnityEngine.Object.FindAnyObjectByType<ManagerNavigationBar>();
         Require(navigation != null && navigation.ButtonCount == 7,
-            "Persistent manager navigation was not created.");
+            "Manager navigation was not created.");
+        Require(!navigation.IsExpanded,
+            "Manager navigation is not compact by default.");
+        navigation.SetExpanded(true);
+        Require(navigation.IsExpanded,
+            "Compact manager navigation could not be expanded.");
+        navigation.SetExpanded(false);
         Canvas navigationCanvas = navigation.GetComponentInParent<Canvas>();
         Require(navigationCanvas != null &&
                 navigationCanvas.renderMode == RenderMode.ScreenSpaceOverlay,
@@ -226,6 +232,16 @@ public static class ManagerModeSmokeTest
             "PC_01 could not be selected with a left-click action.");
         Require(manager.SelectedBehaviour == pcObject.GetComponent<PC>(),
             "Selected object state is incorrect.");
+        Require(manager.FocusSelectedObject(),
+            "Selected PC could not receive camera focus.");
+        Require(cameraFollow.Target == pcObject.transform &&
+                cameraFollow.IsFocused &&
+                Mathf.Abs(gameplayCamera.orthographicSize -
+                    cameraFollow.FocusOrthographicSize) < 0.1f,
+            "Camera focus did not frame the selected PC.");
+        Require(manager.ShowClubOverview() && cameraFollow.Target == null &&
+                !cameraFollow.IsFocused,
+            "Camera did not return from focus to club overview.");
         Require(UnityEngine.Object.FindAnyObjectByType<ManagerSelectionPanel>() != null,
             "Manager selection panel was not created.");
 
@@ -233,6 +249,8 @@ public static class ManagerModeSmokeTest
             UnityEngine.Object.FindAnyObjectByType<ManagerCommandBar>();
         Require(commandBar != null,
             "Manager command bar was not created.");
+        Require(!commandBar.IsVisible,
+            "Legacy build command bar is still permanently visible.");
         Require(commandBar.CanPurchasePC,
             "Manager command bar rejected an affordable PC purchase.");
 
@@ -240,8 +258,18 @@ public static class ManagerModeSmokeTest
             UnityEngine.Object.FindAnyObjectByType<ManagerBuildController>();
         Require(buildController != null,
             "ManagerBuildController was not created.");
+        Transform buildPanelTransform = ClubHUDCanvas.Instance.transform.Find(
+            "ManagerBuildPanel"
+        );
+        GameObject buildPanel = buildPanelTransform != null
+            ? buildPanelTransform.gameObject
+            : null;
+        Require(buildPanel != null && !buildPanel.activeSelf,
+            "Build status panel is visible outside placement mode.");
         Require(commandBar.TryBeginPCPlacement(),
             "PC placement mode did not start from the manager command bar.");
+        Require(buildPanel.activeSelf,
+            "Build status panel did not appear during placement mode.");
 
         Vector2 placementPosition = new Vector2(6.5f, -0.5f);
         Require(buildController.IsPlacementValid(placementPosition),

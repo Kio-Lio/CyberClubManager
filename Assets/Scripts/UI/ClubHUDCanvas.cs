@@ -37,6 +37,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
 
     private Text clientQueueText;
     private Text cleanlinessText;
+    private Text bankruptcyRiskText;
     private Text equipmentStatusText;
     private Text consumableStockText;
     private Text pricingText;
@@ -212,25 +213,34 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             new Vector2(0f, 1f),
             new Vector2(0f, 1f),
             new Vector2(0f, 1f),
-            new Vector2(18f, -18f),
-            new Vector2(470f, 106f),
-            4f
+            new Vector2(20f, -20f),
+            new Vector2(410f, 116f),
+            2f
         );
         CreateSectionTitle("EconomyTitle", economyPanel.transform, "КЛУБ");
         balanceText = CreateLine(
             "BalanceText",
             economyPanel.transform,
-            compactFontSize + 2,
-            30f,
+            compactFontSize + 1,
+            25f,
             new Color(0.3f, 1f, 0.38f)
         );
         dayText = CreateLine(
             "DayText",
             economyPanel.transform,
             compactFontSize,
-            28f,
+            23f,
             new Color(0.82f, 0.9f, 1f)
         );
+        dailyGoalText = CreateLine(
+            "DailyGoalText",
+            economyPanel.transform,
+            Mathf.Max(14, expandedFontSize - 1),
+            21f,
+            new Color(0.34f, 0.78f, 1f)
+        );
+        dailyGoalText.horizontalOverflow = HorizontalWrapMode.Overflow;
+        dailyGoalText.verticalOverflow = VerticalWrapMode.Truncate;
 
         GameObject progressionPanel = CreatePanel(
             "ProgressionPanel",
@@ -238,9 +248,9 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             new Vector2(0.5f, 1f),
             new Vector2(0.5f, 1f),
             new Vector2(0.5f, 1f),
-            new Vector2(0f, -18f),
-            new Vector2(540f, 106f),
-            4f
+            new Vector2(0f, -20f),
+            new Vector2(440f, 92f),
+            2f
         );
         CreateSectionTitle(
             "ProgressionTitle",
@@ -250,15 +260,15 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         reputationText = CreateLine(
             "ReputationText",
             progressionPanel.transform,
-            compactFontSize + 2,
-            30f,
+            compactFontSize + 1,
+            25f,
             new Color(0.24f, 0.68f, 1f)
         );
         clubLevelText = CreateLine(
             "ClubLevelText",
             progressionPanel.transform,
             compactFontSize,
-            28f,
+            23f,
             new Color(0.82f, 0.9f, 1f)
         );
 
@@ -268,9 +278,9 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             new Vector2(1f, 1f),
             new Vector2(1f, 1f),
             new Vector2(1f, 1f),
-            new Vector2(-18f, -18f),
-            new Vector2(500f, 106f),
-            4f
+            new Vector2(-20f, -20f),
+            new Vector2(410f, 116f),
+            2f
         );
         CreateSectionTitle(
             "OperationsTitle",
@@ -281,14 +291,21 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             "CleanlinessText",
             operationsPanel.transform,
             compactFontSize,
-            30f,
+            23f,
             new Color(0.3f, 1f, 0.38f)
         );
         clientQueueText = CreateLine(
             "ClientQueueText",
             operationsPanel.transform,
             compactFontSize,
-            28f,
+            23f,
+            new Color(0.82f, 0.9f, 1f)
+        );
+        bankruptcyRiskText = CreateLine(
+            "BankruptcyRiskText",
+            operationsPanel.transform,
+            compactFontSize,
+            23f,
             new Color(0.82f, 0.9f, 1f)
         );
 
@@ -298,9 +315,9 @@ public sealed class ClubHUDCanvas : MonoBehaviour
             new Vector2(0f, 0f),
             new Vector2(1f, 0f),
             new Vector2(0.5f, 0f),
-            new Vector2(0f, 18f),
-            new Vector2(-36f, 64f),
-            4f,
+            new Vector2(0f, 20f),
+            new Vector2(-40f, 56f),
+            8f,
             true
         );
         CreateSectionTitle(
@@ -311,85 +328,52 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         pcStateText = CreateLine(
             "PCStateText",
             pcStatusPanel.transform,
-            compactFontSize,
-            28f,
+            Mathf.Max(16, compactFontSize - 1),
+            24f,
             new Color(0.82f, 0.9f, 1f)
         );
         pcTierText = CreateLine(
             "PCTierText",
             pcStatusPanel.transform,
-            compactFontSize,
-            28f,
+            Mathf.Max(16, compactFontSize - 1),
+            24f,
             new Color(0.3f, 1f, 0.38f)
         );
 
-        GameObject goalPanel = CreatePanel(
-            "DailyGoalPanel",
-            compactSection.transform,
-            new Vector2(0f, 1f),
-            new Vector2(0f, 1f),
-            new Vector2(0f, 1f),
-            new Vector2(18f, -140f),
-            new Vector2(470f, 100f),
-            4f
-        );
-        CreateSectionTitle(
-            "DailyGoalTitle",
-            goalPanel.transform,
-            "ЕЖЕДНЕВНАЯ ЦЕЛЬ"
-        );
-        dailyGoalText = CreateLine(
-            "DailyGoalText",
-            goalPanel.transform,
-            expandedFontSize + 1,
-            54f,
-            new Color(0.3f, 1f, 0.38f)
-        );
-
-        warningSection = CreatePanel(
+        // Compatibility containers keep the saved HUD mode and diagnostics API
+        // intact without drawing the former permanent analytics panels.
+        warningSection = CreateContainer(
             "WarningSection",
-            gameplayHUDRoot.transform,
-            new Vector2(1f, 1f),
-            new Vector2(1f, 1f),
-            new Vector2(1f, 1f),
-            new Vector2(-18f, -140f),
-            new Vector2(500f, 76f),
-            0f
+            gameplayHUDRoot.transform
         );
         warningText = CreateLine(
             "WarningText",
             warningSection.transform,
-            compactFontSize,
-            44f,
+            1,
+            1f,
             new Color(1f, 0.35f, 0.28f)
         );
 
-        expandedSection = CreatePanel(
+        expandedSection = CreateContainer(
             "ExpandedSection",
-            gameplayHUDRoot.transform,
-            new Vector2(0f, 1f),
-            new Vector2(0f, 1f),
-            new Vector2(0f, 1f),
-            new Vector2(18f, -254f),
-            new Vector2(Mathf.Min(hudWidth, 520f), 470f),
-            2f
+            gameplayHUDRoot.transform
         );
-        CreateSectionTitle(
-            "ExpandedTitle",
-            expandedSection.transform,
-            "АНАЛИТИКА И УПРАВЛЕНИЕ"
+        GameObject legacyData = CreateContainer(
+            "LegacyDetailCache",
+            expandedSection.transform
         );
-        demandAnalyticsText = CreateLine("DemandAnalyticsText", expandedSection.transform, expandedFontSize);
-        equipmentStatusText = CreateLine("EquipmentStatusText", expandedSection.transform, expandedFontSize);
-        consumableStockText = CreateLine("ConsumableStockText", expandedSection.transform, expandedFontSize);
-        pricingText = CreateLine("PricingText", expandedSection.transform, expandedFontSize);
-        internetProviderText = CreateLine("InternetProviderText", expandedSection.transform, expandedFontSize);
-        staffText = CreateLine("StaffText", expandedSection.transform, expandedFontSize);
-        marketingText = CreateLine("MarketingText", expandedSection.transform, expandedFontSize);
-        researchText = CreateLine("ResearchText", expandedSection.transform, expandedFontSize);
-        roomStatusText = CreateLine("RoomStatusText", expandedSection.transform, expandedFontSize);
-        expansionText = CreateLine("ExpansionText", expandedSection.transform, expandedFontSize);
+        demandAnalyticsText = CreateLine("DemandAnalyticsText", legacyData.transform, 1);
+        equipmentStatusText = CreateLine("EquipmentStatusText", legacyData.transform, 1);
+        consumableStockText = CreateLine("ConsumableStockText", legacyData.transform, 1);
+        pricingText = CreateLine("PricingText", legacyData.transform, 1);
+        internetProviderText = CreateLine("InternetProviderText", legacyData.transform, 1);
+        staffText = CreateLine("StaffText", legacyData.transform, 1);
+        marketingText = CreateLine("MarketingText", legacyData.transform, 1);
+        researchText = CreateLine("ResearchText", legacyData.transform, 1);
+        roomStatusText = CreateLine("RoomStatusText", legacyData.transform, 1);
+        expansionText = CreateLine("ExpansionText", legacyData.transform, 1);
 
+        legacyData.SetActive(false);
         warningSection.SetActive(false);
         expandedSection.SetActive(false);
     }
@@ -820,14 +804,14 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         DailyGoalManager manager = DailyGoalManager.Instance;
         if (manager == null)
         {
-            dailyGoalText.text = "Цель: —";
+            dailyGoalText.text = "Цель дня: —";
             return;
         }
 
         int progress = Mathf.Min(manager.CurrentProgress, manager.TargetValue);
         dailyGoalText.text = manager.GoalCompleted
-            ? $"Цель: выполнена · {manager.GetGoalDescription()}"
-            : $"Цель: {manager.GetGoalDescription()} · " +
+            ? "Цель дня: выполнена"
+            : $"Цель дня: {manager.GetGoalDescription()} · " +
               $"{progress}/{manager.TargetValue}";
     }
 
@@ -854,6 +838,7 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         int free = 0;
         int occupied = 0;
         int broken = 0;
+        int reserved = 0;
         int basic = 0;
         int gaming = 0;
         int premium = 0;
@@ -867,8 +852,10 @@ public sealed class ClubHUDCanvas : MonoBehaviour
 
             if (pc.State == PCState.Occupied)
                 occupied++;
-            else if (pc.State == PCState.Broken || !pc.IsAvailable)
+            else if (pc.State == PCState.Broken || pc.HasBrokenEquipment)
                 broken++;
+            else if (pc.IsReserved)
+                reserved++;
             else
                 free++;
 
@@ -887,8 +874,10 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         }
 
         pcStateText.text =
-            $"ПК: {free} свободно · {occupied} занято · {broken} сломано";
-        pcTierText.text = $"Классы ПК: B {basic} · G {gaming} · P {premium}";
+            $"Свободно {free} · Занято {occupied} · " +
+            $"Резерв {reserved} · Сломано {broken}";
+        pcTierText.text =
+            $"Basic {basic} · Gaming {gaming} · Premium {premium}";
     }
 
     private void RefreshClientQueue()
@@ -1078,9 +1067,34 @@ public sealed class ClubHUDCanvas : MonoBehaviour
         warningText.text = warnings.Count > 0
             ? warnings[0].Message
             : string.Empty;
-        bool visible = !temporarilyHidden &&
-            currentMode != ClubHUDMode.Hidden && warnings.Count > 0;
-        warningSection.SetActive(visible);
+        RefreshBankruptcyRisk();
+
+        // Detailed warnings are available through their contextual panels.
+        // Keeping this compatibility object inactive avoids a fifth HUD block.
+        warningSection.SetActive(false);
+    }
+
+    private void RefreshBankruptcyRisk()
+    {
+        if (bankruptcyRiskText == null)
+        {
+            return;
+        }
+
+        BankruptcyManager manager = BankruptcyManager.Instance;
+        if (manager == null)
+        {
+            bankruptcyRiskText.text = "Риск банкротства: —";
+            return;
+        }
+
+        int debtDays = manager.ConsecutiveDebtDays;
+        int debtDaysToLose = manager.ConsecutiveDebtDaysToLose;
+        bankruptcyRiskText.text =
+            $"Риск банкротства: {debtDays}/{debtDaysToLose}";
+        bankruptcyRiskText.color = debtDays > 0
+            ? new Color(1f, 0.38f, 0.28f)
+            : new Color(0.82f, 0.9f, 1f);
     }
 
     private void AddQueueWarning()

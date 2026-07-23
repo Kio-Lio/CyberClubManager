@@ -5,10 +5,39 @@ public sealed class ClubWorldVisualBootstrap : MonoBehaviour
 {
     private const string GameplaySceneName = "SampleScene";
 
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    [SerializeField] private bool showDebugVisuals;
+
+    public bool ShowDebugVisuals => DebugVisualsAreAllowed &&
+        showDebugVisuals;
+
+    private static bool DebugVisualsAreAllowed
+    {
+        get
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            return true;
+#else
+            return false;
+#endif
+        }
+    }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Install()
     {
-        if (SceneManager.GetActiveScene().name != GameplaySceneName ||
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        TryInstall(SceneManager.GetActiveScene());
+    }
+
+    private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        TryInstall(scene);
+    }
+
+    private static void TryInstall(Scene scene)
+    {
+        if (scene.name != GameplaySceneName ||
             FindAnyObjectByType<ClubWorldVisualBootstrap>() != null)
         {
             return;
@@ -55,6 +84,38 @@ public sealed class ClubWorldVisualBootstrap : MonoBehaviour
             {
                 behaviour.gameObject.AddComponent<TerminalVisualPresenter>();
             }
+        }
+
+        ApplyDebugVisualPolicy();
+    }
+
+    private void ApplyDebugVisualPolicy()
+    {
+        bool visible = ShowDebugVisuals;
+
+        foreach (ClientNavigationNode node in
+                 FindObjectsByType<ClientNavigationNode>())
+        {
+            SetRenderersVisible(node.gameObject, visible);
+        }
+
+        foreach (CameraBounds2D bounds in FindObjectsByType<CameraBounds2D>())
+        {
+            SetRenderersVisible(bounds.gameObject, visible);
+        }
+    }
+
+    private static void SetRenderersVisible(GameObject target, bool visible)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        foreach (SpriteRenderer renderer in
+                 target.GetComponentsInChildren<SpriteRenderer>(true))
+        {
+            renderer.enabled = visible;
         }
     }
 

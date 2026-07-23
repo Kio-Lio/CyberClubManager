@@ -84,7 +84,7 @@ public sealed class FirstDayTutorialPanel : MonoBehaviour
     {
         collapsed = !collapsed;
         bodyObject.SetActive(!collapsed);
-        panelRect.sizeDelta = new Vector2(520f, collapsed ? 72f : 310f);
+        panelRect.sizeDelta = new Vector2(440f, collapsed ? 56f : 238f);
         collapseButtonText.text = collapsed ? "+" : "−";
     }
 
@@ -122,15 +122,15 @@ public sealed class FirstDayTutorialPanel : MonoBehaviour
             typeof(Image), typeof(VerticalLayoutGroup));
         rootObject.transform.SetParent(transform, false);
         panelRect = rootObject.GetComponent<RectTransform>();
-        panelRect.anchorMin = panelRect.anchorMax = panelRect.pivot = new Vector2(1f, 0f);
-        panelRect.anchoredPosition = new Vector2(-24f, 24f);
-        panelRect.sizeDelta = new Vector2(520f, 310f);
+        panelRect.anchorMin = panelRect.anchorMax = panelRect.pivot = new Vector2(0f, 0f);
+        panelRect.anchoredPosition = new Vector2(20f, 92f);
+        panelRect.sizeDelta = new Vector2(440f, 238f);
         panelImage = rootObject.GetComponent<Image>();
         panelImage.color = new Color(0.035f, 0.08f, 0.09f, 0.96f);
 
         VerticalLayoutGroup rootLayout = rootObject.GetComponent<VerticalLayoutGroup>();
-        rootLayout.padding = new RectOffset(20, 20, 14, 14);
-        rootLayout.spacing = 8f;
+        rootLayout.padding = new RectOffset(16, 16, 10, 10);
+        rootLayout.spacing = 6f;
         rootLayout.childControlWidth = true;
         rootLayout.childControlHeight = true;
         rootLayout.childForceExpandWidth = true;
@@ -139,7 +139,7 @@ public sealed class FirstDayTutorialPanel : MonoBehaviour
         GameObject header = new GameObject("Header", typeof(RectTransform),
             typeof(HorizontalLayoutGroup), typeof(LayoutElement));
         header.transform.SetParent(rootObject.transform, false);
-        header.GetComponent<LayoutElement>().preferredHeight = 44f;
+        header.GetComponent<LayoutElement>().preferredHeight = 36f;
         HorizontalLayoutGroup headerLayout = header.GetComponent<HorizontalLayoutGroup>();
         headerLayout.spacing = 8f;
         headerLayout.childControlWidth = true;
@@ -147,17 +147,17 @@ public sealed class FirstDayTutorialPanel : MonoBehaviour
         headerLayout.childForceExpandWidth = false;
         headerLayout.childForceExpandHeight = true;
 
-        Text heading = CreateLabel(header.transform, "ОБУЧЕНИЕ", 22, 44f,
+        Text heading = CreateLabel(header.transform, "ОБУЧЕНИЕ", 19, 36f,
             FontStyle.Bold, TextAnchor.MiddleLeft);
         LayoutElement headingLayout = heading.GetComponent<LayoutElement>();
         headingLayout.flexibleWidth = 1f;
-        collapseButton = CreateButton(header.transform, "−", ToggleCollapsed, 44f, 52f);
+        collapseButton = CreateButton(header.transform, "−", ToggleCollapsed, 36f, 44f);
         collapseButtonText = collapseButton.GetComponentInChildren<Text>();
 
         bodyObject = new GameObject("Body", typeof(RectTransform),
             typeof(VerticalLayoutGroup), typeof(LayoutElement));
         bodyObject.transform.SetParent(rootObject.transform, false);
-        bodyObject.GetComponent<LayoutElement>().preferredHeight = 220f;
+        bodyObject.GetComponent<LayoutElement>().preferredHeight = 174f;
         VerticalLayoutGroup bodyLayout = bodyObject.GetComponent<VerticalLayoutGroup>();
         bodyLayout.spacing = 8f;
         bodyLayout.childControlWidth = true;
@@ -165,13 +165,13 @@ public sealed class FirstDayTutorialPanel : MonoBehaviour
         bodyLayout.childForceExpandWidth = true;
         bodyLayout.childForceExpandHeight = false;
 
-        titleText = CreateLabel(bodyObject.transform, string.Empty, 21, 36f,
+        titleText = CreateLabel(bodyObject.transform, string.Empty, 18, 30f,
             FontStyle.Bold, TextAnchor.MiddleLeft);
-        descriptionText = CreateLabel(bodyObject.transform, string.Empty, 18, 66f,
+        descriptionText = CreateLabel(bodyObject.transform, string.Empty, 15, 52f,
             FontStyle.Normal, TextAnchor.UpperLeft);
-        objectiveText = CreateLabel(bodyObject.transform, string.Empty, 19, 38f,
+        objectiveText = CreateLabel(bodyObject.transform, string.Empty, 16, 32f,
             FontStyle.Bold, TextAnchor.MiddleLeft);
-        skipButton = CreateButton(bodyObject.transform, "Пропустить", RequestSkip, 48f, 220f);
+        skipButton = CreateButton(bodyObject.transform, "Пропустить", RequestSkip, 40f, 180f);
         skipButtonText = skipButton.GetComponentInChildren<Text>();
         rootObject.SetActive(false);
     }

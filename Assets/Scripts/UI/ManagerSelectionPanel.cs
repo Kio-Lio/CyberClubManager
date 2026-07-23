@@ -257,8 +257,8 @@ public sealed class ManagerSelectionPanel : MonoBehaviour
         panelRect.anchorMin = new Vector2(1f, 0f);
         panelRect.anchorMax = new Vector2(1f, 0f);
         panelRect.pivot = new Vector2(1f, 0f);
-        panelRect.anchoredPosition = new Vector2(-24f, 24f);
-        panelRect.sizeDelta = new Vector2(430f, 306f);
+        panelRect.anchoredPosition = new Vector2(-20f, 92f);
+        panelRect.sizeDelta = new Vector2(410f, 286f);
 
         panelRoot.GetComponent<Image>().color = PanelColor;
         Outline outline = panelRoot.GetComponent<Outline>();

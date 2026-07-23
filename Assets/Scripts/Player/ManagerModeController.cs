@@ -99,8 +99,7 @@ public sealed class ManagerModeController : MonoBehaviour,
             cameraFollow = controlledCamera.GetComponent<CameraFollow>();
         }
 
-        cameraFollow?.SetTarget(null);
-        cameraFollow?.FrameBounds();
+        cameraFollow?.ShowOverview();
 
         ClubHUDCanvas hud = ClubHUDCanvas.Instance;
         if (hud != null && hud.GetComponent<ManagerSelectionPanel>() == null)
@@ -130,6 +129,7 @@ public sealed class ManagerModeController : MonoBehaviour,
 
         UpdateKeyboardPan();
         UpdateMouseDrag();
+        UpdateCameraShortcuts();
 
         if (ManagerBuildController.Instance != null &&
             ManagerBuildController.Instance.IsPlacing)
@@ -264,6 +264,24 @@ public sealed class ManagerModeController : MonoBehaviour,
         RefreshPrompt();
     }
 
+    public bool ShowClubOverview()
+    {
+        EnsureCameraFollow();
+        return cameraFollow != null && cameraFollow.ShowOverview();
+    }
+
+    public bool FocusSelectedObject()
+    {
+        if (selectedBehaviour == null)
+        {
+            return false;
+        }
+
+        EnsureCameraFollow();
+        return cameraFollow != null &&
+            cameraFollow.FocusOn(selectedBehaviour.transform);
+    }
+
     public bool TryFocusAtWorldPosition(Vector2 worldPosition)
     {
         MonoBehaviour candidate = FindInteractableAt(worldPosition);
@@ -322,6 +340,37 @@ public sealed class ManagerModeController : MonoBehaviour,
         Vector2 movement = Vector2.ClampMagnitude(panInput, 1f) *
             keyboardPanSpeed * Time.unscaledDeltaTime;
         PanCamera(movement);
+    }
+
+    private void UpdateCameraShortcuts()
+    {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null)
+        {
+            return;
+        }
+
+        if (keyboard.homeKey.wasPressedThisFrame)
+        {
+            ShowClubOverview();
+        }
+        else if (keyboard.fKey.wasPressedThisFrame)
+        {
+            FocusSelectedObject();
+        }
+    }
+
+    private void EnsureCameraFollow()
+    {
+        if (controlledCamera == null)
+        {
+            controlledCamera = Camera.main ?? FindAnyObjectByType<Camera>();
+        }
+
+        if (cameraFollow == null && controlledCamera != null)
+        {
+            cameraFollow = controlledCamera.GetComponent<CameraFollow>();
+        }
     }
 
     private void UpdateMouseDrag()
@@ -614,7 +663,10 @@ public sealed class ManagerModeController : MonoBehaviour,
         while (current != null)
         {
             if (current.name == "ManagerCommandBar" ||
-                current.name == "ManagerSelectionPanel")
+                current.name == "ManagerSelectionPanel" ||
+                current.name == "ManagerNavigationBar" ||
+                current.name == "ManagerNavigationSections" ||
+                current.name == "ManagerBuildPanel")
             {
                 return true;
             }

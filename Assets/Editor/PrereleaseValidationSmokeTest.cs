@@ -285,10 +285,16 @@ public static class PrereleaseValidationSmokeTest
         Transform compact = root?.Find("CompactSection");
         Transform warning = root?.Find("WarningSection");
         Transform expanded = root?.Find("ExpandedSection");
+        Transform economy = compact?.Find("EconomyPanel");
+        Transform progression = compact?.Find("ProgressionPanel");
+        Transform operations = compact?.Find("OperationsPanel");
+        Transform pcStatus = compact?.Find("PCStatusPanel");
         Transform prompt = hud.transform.Find("InteractionPrompt");
         Transform feedback = hud.transform.Find("ClientFeedbackPanel");
         Require(root != null && compact != null && warning != null &&
-                expanded != null && prompt != null && feedback != null,
+                expanded != null && economy != null && progression != null &&
+                operations != null && pcStatus != null && prompt != null &&
+                feedback != null,
             "HUD runtime hierarchy is incomplete.");
         Require(!prompt.IsChildOf(root) && !feedback.IsChildOf(root),
             "Interaction prompt or feedback was placed inside GameplayHUDRoot.");
@@ -303,10 +309,24 @@ public static class PrereleaseValidationSmokeTest
         Canvas.ForceUpdateCanvases();
         RectTransform rootRect = (RectTransform)root;
         LayoutRebuilder.ForceRebuildLayoutImmediate(rootRect);
-        Require(rootRect.rect.width <= 1920f * 0.3f + 0.1f,
-            "HUD exceeds 30 percent of the reference width.");
-        Require(rootRect.rect.height <= 1040f,
-            "Expanded HUD exceeds the safe vertical area.");
+        RectTransform economyRect = (RectTransform)economy;
+        RectTransform progressionRect = (RectTransform)progression;
+        RectTransform operationsRect = (RectTransform)operations;
+        RectTransform pcStatusRect = (RectTransform)pcStatus;
+        Require(economyRect.anchoredPosition.x >= 16f &&
+                -operationsRect.anchoredPosition.x >= 16f &&
+                pcStatusRect.anchoredPosition.y >= 16f,
+            "Permanent HUD blocks are outside the safe area.");
+        float topReserved = Mathf.Max(
+            economyRect.sizeDelta.y,
+            Mathf.Max(
+                progressionRect.sizeDelta.y,
+                operationsRect.sizeDelta.y
+            )
+        ) + 20f;
+        float bottomReserved = pcStatusRect.sizeDelta.y + 20f;
+        Require((1080f - topReserved - bottomReserved) / 1080f >= 0.75f,
+            "HUD leaves less than 75 percent of the game view available.");
 
         hud.ToggleHUDMode();
         Require(hud.CurrentMode == ClubHUDMode.Hidden &&
@@ -353,8 +373,11 @@ public static class PrereleaseValidationSmokeTest
         Require(hud.CurrentMode == ClubHUDMode.Expanded,
             "Loading did not restore the saved HUD mode.");
         Invoke(SaveManager.Instance, "InitializeNewGameState");
-        Require(hud.CurrentMode == ClubHUDMode.Compact,
-            "A new game did not start in Compact mode.");
+        ClubHUDMode defaultMode = GameSettingsManager.Instance != null
+            ? GameSettingsManager.Instance.Settings.defaultHUDMode
+            : ClubHUDMode.Compact;
+        Require(hud.CurrentMode == defaultMode,
+            "A new game did not use the configured default HUD mode.");
 
         ConsumableInventoryManager.Instance.RestoreState(0, 0, 0, 0, 0);
         ClubRandomEventManager.Instance.RestoreState(

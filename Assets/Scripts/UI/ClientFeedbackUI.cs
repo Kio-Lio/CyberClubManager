@@ -10,14 +10,14 @@ public sealed class ClientFeedbackUI : MonoBehaviour
     [SerializeField] private float fadeDuration = 0.35f;
 
     [SerializeField] private Vector2 panelSize =
-        new Vector2(540f, 145f);
+        new Vector2(420f, 112f);
 
     [SerializeField] private Vector2 panelOffset =
-        new Vector2(-20f, -20f);
+        new Vector2(-20f, -204f);
 
     [Header("Text Settings")]
-    [SerializeField] private int titleFontSize = 22;
-    [SerializeField] private int messageFontSize = 19;
+    [SerializeField] private int titleFontSize = 18;
+    [SerializeField] private int messageFontSize = 16;
 
     private readonly Queue<ClientFeedbackData> feedbackQueue = new();
 
@@ -30,6 +30,10 @@ public sealed class ClientFeedbackUI : MonoBehaviour
 
     private Coroutine displayCoroutine;
     private Font runtimeFont;
+
+    public int ActiveCardCount => panelObject != null &&
+        panelObject.activeSelf ? 1 : 0;
+    public int MaximumVisibleCards => 1;
 
     private void Awake()
     {
@@ -176,7 +180,7 @@ public sealed class ClientFeedbackUI : MonoBehaviour
 
         VerticalLayoutGroup layout =
             panelObject.GetComponent<VerticalLayoutGroup>();
-        layout.padding = new RectOffset(18, 18, 12, 12);
+        layout.padding = new RectOffset(14, 14, 8, 8);
         layout.spacing = 2f;
         layout.childAlignment = TextAnchor.UpperLeft;
         layout.childControlWidth = true;
@@ -187,19 +191,19 @@ public sealed class ClientFeedbackUI : MonoBehaviour
         titleText = CreateText(
             "ClientTypeText",
             titleFontSize,
-            30f,
+            24f,
             FontStyle.Bold
         );
         messageText = CreateText(
             "FeedbackMessageText",
             messageFontSize,
-            48f,
+            38f,
             FontStyle.Normal
         );
         reputationText = CreateText(
             "ReputationChangeText",
             messageFontSize,
-            28f,
+            22f,
             FontStyle.Bold
         );
     }

@@ -21,6 +21,10 @@ public sealed class CameraFollow : MonoBehaviour
     [SerializeField, Min(0.01f)] private float gamepadZoomSpeed = 2f;
     [SerializeField, Min(0.1f)] private float zoomSpeedMultiplier = 4f;
 
+    [Header("Manager View")]
+    [SerializeField, Min(0f)] private float overviewPadding = 0.45f;
+    [SerializeField, Min(0.1f)] private float focusOrthographicSize = 5.4f;
+
     [Header("Bounds")]
     [SerializeField] private CameraBounds2D cameraBounds;
 
@@ -38,6 +42,8 @@ public sealed class CameraFollow : MonoBehaviour
             : targetOrthographicSize;
 
     public float ZoomSpeedMultiplier => zoomSpeedMultiplier;
+    public bool IsFocused => target != null;
+    public float FocusOrthographicSize => focusOrthographicSize;
 
     private void Awake()
     {
@@ -143,6 +149,56 @@ public sealed class CameraFollow : MonoBehaviour
     {
         targetOrthographicSize = defaultOrthographicSize;
         ClampTargetZoom();
+    }
+
+    public bool ShowOverview(bool immediate = true)
+    {
+        if (cameraBounds == null)
+        {
+            cameraBounds = FindAnyObjectByType<CameraBounds2D>();
+        }
+
+        target = null;
+        if (cameraBounds == null || controlledCamera == null)
+        {
+            ResetZoom();
+            return false;
+        }
+
+        Bounds bounds = cameraBounds.WorldBounds;
+        transform.position = new Vector3(
+            bounds.center.x,
+            bounds.center.y,
+            transform.position.z
+        );
+        followVelocity = Vector3.zero;
+        FrameBounds(overviewPadding, immediate);
+        return true;
+    }
+
+    public bool FocusOn(Transform focusTarget, bool immediate = true)
+    {
+        if (focusTarget == null || controlledCamera == null)
+        {
+            return false;
+        }
+
+        target = focusTarget;
+        targetOrthographicSize = Mathf.Clamp(
+            focusOrthographicSize,
+            minimumOrthographicSize,
+            GetBoundsLimitedMaximumSize()
+        );
+        SnapToTarget();
+
+        if (immediate)
+        {
+            controlledCamera.orthographicSize = targetOrthographicSize;
+            zoomVelocity = 0f;
+            ClampCurrentPosition();
+        }
+
+        return true;
     }
 
     public void FrameBounds(float padding = 0.6f, bool immediate = true)
@@ -352,6 +408,8 @@ public sealed class CameraFollow : MonoBehaviour
         mouseWheelSensitivity = Mathf.Max(0.001f, mouseWheelSensitivity);
         gamepadZoomSpeed = Mathf.Max(0.01f, gamepadZoomSpeed);
         zoomSpeedMultiplier = Mathf.Max(0.1f, zoomSpeedMultiplier);
+        overviewPadding = Mathf.Max(0f, overviewPadding);
+        focusOrthographicSize = Mathf.Max(0.1f, focusOrthographicSize);
         NormalizeZoomSettings();
     }
 }

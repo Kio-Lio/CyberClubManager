@@ -424,18 +424,18 @@ public sealed class ManagerBuildController : MonoBehaviour
         buildPanel.transform.SetParent(hud.transform, false);
 
         RectTransform panelRect = buildPanel.GetComponent<RectTransform>();
-        panelRect.anchorMin = new Vector2(0.5f, 1f);
-        panelRect.anchorMax = new Vector2(0.5f, 1f);
-        panelRect.pivot = new Vector2(0.5f, 1f);
-        panelRect.anchoredPosition = new Vector2(0f, -24f);
-        panelRect.sizeDelta = new Vector2(760f, 76f);
+        panelRect.anchorMin = new Vector2(0.5f, 0f);
+        panelRect.anchorMax = new Vector2(0.5f, 0f);
+        panelRect.pivot = new Vector2(0.5f, 0f);
+        panelRect.anchoredPosition = new Vector2(0f, 92f);
+        panelRect.sizeDelta = new Vector2(720f, 64f);
 
         buildPanel.GetComponent<Image>().color =
             new Color(0.015f, 0.045f, 0.085f, 0.96f);
 
         HorizontalLayoutGroup layout =
             buildPanel.GetComponent<HorizontalLayoutGroup>();
-        layout.padding = new RectOffset(22, 12, 12, 12);
+        layout.padding = new RectOffset(18, 10, 8, 8);
         layout.spacing = 16f;
         layout.childAlignment = TextAnchor.MiddleCenter;
         layout.childControlWidth = true;
@@ -445,7 +445,7 @@ public sealed class ManagerBuildController : MonoBehaviour
 
         buildText = CreateText(buildPanel.transform);
         LayoutElement textLayout = buildText.gameObject.AddComponent<LayoutElement>();
-        textLayout.preferredWidth = 590f;
+        textLayout.preferredWidth = 550f;
         textLayout.flexibleWidth = 1f;
 
         Button cancelButton = CreateButton(buildPanel.transform, "ОТМЕНА");

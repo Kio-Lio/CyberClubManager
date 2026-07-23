@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 public enum ManagerNavigationSection
@@ -20,15 +21,33 @@ public sealed class ManagerNavigationBar : MonoBehaviour
         new(0.05f, 0.70f, 1f, 1f);
 
     private GameObject navigationRoot;
+    private GameObject sectionPanel;
+    private Text toggleText;
     private Button[] sectionButtons;
+    private Button overviewButton;
+    private Button focusButton;
+    private Button buildButton;
+    private ManagerModeController managerMode;
+    private ManagerCommandBar commandBar;
 
     public int ButtonCount => sectionButtons?.Length ?? 0;
     public bool IsVisible => navigationRoot != null &&
         navigationRoot.activeSelf;
+    public bool IsExpanded => sectionPanel != null &&
+        sectionPanel.activeSelf;
 
     private void Awake()
     {
         BuildNavigation();
+        SetExpanded(false);
+    }
+
+    private void Start()
+    {
+        managerMode = FindAnyObjectByType<ManagerModeController>();
+        commandBar = GetComponent<ManagerCommandBar>() ??
+            FindAnyObjectByType<ManagerCommandBar>();
+        RefreshAvailability();
     }
 
     private void Update()
@@ -45,7 +64,28 @@ public sealed class ManagerNavigationBar : MonoBehaviour
             navigationRoot.SetActive(visible);
         }
 
+        if (!visible && IsExpanded)
+        {
+            SetExpanded(false);
+        }
+
         RefreshAvailability();
+    }
+
+    public void ToggleExpanded()
+    {
+        SetExpanded(!IsExpanded);
+    }
+
+    public void SetExpanded(bool expanded)
+    {
+        sectionPanel?.SetActive(expanded);
+        if (toggleText != null)
+        {
+            toggleText.text = expanded
+                ? "УПРАВЛЕНИЕ  −"
+                : "УПРАВЛЕНИЕ  +";
+        }
     }
 
     public bool TryOpenSection(ManagerNavigationSection section)
@@ -55,106 +95,217 @@ public sealed class ManagerNavigationBar : MonoBehaviour
             return false;
         }
 
+        bool opened;
         switch (section)
         {
             case ManagerNavigationSection.Maintenance:
                 PCMaintenancePanel.Instance?.Open();
-                return PCMaintenancePanel.Instance != null &&
+                opened = PCMaintenancePanel.Instance != null &&
                     PCMaintenancePanel.Instance.IsOpen;
+                break;
 
             case ManagerNavigationSection.Pricing:
                 PricingPanel.Instance?.Open();
-                return PricingPanel.Instance != null &&
+                opened = PricingPanel.Instance != null &&
                     PricingPanel.Instance.IsOpen;
+                break;
 
             case ManagerNavigationSection.Stock:
                 ConsumableStockPanel.Instance?.Open();
-                return ConsumableStockPanel.Instance != null &&
+                opened = ConsumableStockPanel.Instance != null &&
                     ConsumableStockPanel.Instance.IsOpen;
+                break;
 
             case ManagerNavigationSection.Marketing:
                 MarketingPanel.Instance?.Open();
-                return MarketingPanel.Instance != null &&
+                opened = MarketingPanel.Instance != null &&
                     MarketingPanel.Instance.IsOpen;
+                break;
 
             case ManagerNavigationSection.Internet:
                 InternetProviderPanel.Instance?.Open();
-                return InternetProviderPanel.Instance != null &&
+                opened = InternetProviderPanel.Instance != null &&
                     InternetProviderPanel.Instance.IsOpen;
+                break;
 
             case ManagerNavigationSection.Research:
                 ClubResearchPanel.Instance?.Open();
-                return ClubResearchPanel.Instance != null &&
+                opened = ClubResearchPanel.Instance != null &&
                     ClubResearchPanel.Instance.IsOpen;
+                break;
 
             case ManagerNavigationSection.Analytics:
                 DemandAnalyticsPanel.Instance?.Open(false);
-                return DemandAnalyticsPanel.Instance != null &&
+                opened = DemandAnalyticsPanel.Instance != null &&
                     DemandAnalyticsPanel.Instance.IsOpen;
+                break;
 
             default:
-                return false;
+                opened = false;
+                break;
         }
+
+        if (opened)
+        {
+            SetExpanded(false);
+        }
+
+        return opened;
+    }
+
+    public bool ShowClubOverview()
+    {
+        managerMode ??= FindAnyObjectByType<ManagerModeController>();
+        bool shown = managerMode != null && managerMode.ShowClubOverview();
+        if (shown)
+        {
+            SetExpanded(false);
+        }
+        return shown;
+    }
+
+    public bool FocusSelectedObject()
+    {
+        managerMode ??= FindAnyObjectByType<ManagerModeController>();
+        bool focused = managerMode != null && managerMode.FocusSelectedObject();
+        if (focused)
+        {
+            SetExpanded(false);
+        }
+        return focused;
+    }
+
+    public bool TryBeginPCPlacement()
+    {
+        commandBar ??= GetComponent<ManagerCommandBar>() ??
+            FindAnyObjectByType<ManagerCommandBar>();
+        bool started = commandBar != null &&
+            commandBar.TryBeginPCPlacement();
+        if (started)
+        {
+            SetExpanded(false);
+        }
+        return started;
     }
 
     private void BuildNavigation()
     {
         navigationRoot = new GameObject(
             "ManagerNavigationBar",
+            typeof(RectTransform)
+        );
+        navigationRoot.AddComponent<ScalableUIRoot>();
+        navigationRoot.transform.SetParent(transform, false);
+
+        RectTransform rootRect = navigationRoot.GetComponent<RectTransform>();
+        rootRect.anchorMin = Vector2.one;
+        rootRect.anchorMax = Vector2.one;
+        rootRect.pivot = Vector2.one;
+        rootRect.anchoredPosition = new Vector2(-20f, -146f);
+        rootRect.sizeDelta = new Vector2(220f, 42f);
+
+        Button toggleButton = CreateButton(
+            navigationRoot.transform,
+            "ManagerNavigationToggle",
+            string.Empty,
+            ToggleExpanded
+        );
+        RectTransform toggleRect = toggleButton.GetComponent<RectTransform>();
+        toggleRect.anchorMin = Vector2.zero;
+        toggleRect.anchorMax = Vector2.one;
+        toggleRect.offsetMin = Vector2.zero;
+        toggleRect.offsetMax = Vector2.zero;
+        toggleText = toggleButton.GetComponentInChildren<Text>();
+
+        sectionPanel = new GameObject(
+            "ManagerNavigationSections",
             typeof(RectTransform),
             typeof(Image),
             typeof(GridLayoutGroup),
             typeof(Outline)
         );
-        navigationRoot.AddComponent<ScalableUIRoot>();
-        navigationRoot.transform.SetParent(transform, false);
+        sectionPanel.transform.SetParent(navigationRoot.transform, false);
 
-        RectTransform rect = navigationRoot.GetComponent<RectTransform>();
-        rect.anchorMin = Vector2.one;
-        rect.anchorMax = Vector2.one;
-        rect.pivot = Vector2.one;
-        rect.anchoredPosition = new Vector2(-18f, -232f);
-        rect.sizeDelta = new Vector2(420f, 188f);
+        RectTransform panelRect = sectionPanel.GetComponent<RectTransform>();
+        panelRect.anchorMin = new Vector2(1f, 0f);
+        panelRect.anchorMax = new Vector2(1f, 0f);
+        panelRect.pivot = new Vector2(1f, 1f);
+        panelRect.anchoredPosition = new Vector2(0f, -8f);
+        panelRect.sizeDelta = new Vector2(400f, 216f);
 
-        Image image = navigationRoot.GetComponent<Image>();
+        Image image = sectionPanel.GetComponent<Image>();
         image.color = PanelColor;
         image.raycastTarget = true;
 
-        Outline outline = navigationRoot.GetComponent<Outline>();
+        Outline outline = sectionPanel.GetComponent<Outline>();
         outline.effectColor = new Color(0.05f, 0.70f, 1f, 0.62f);
         outline.effectDistance = new Vector2(2f, -2f);
 
-        GridLayoutGroup grid = navigationRoot.GetComponent<GridLayoutGroup>();
-        grid.padding = new RectOffset(12, 12, 10, 10);
-        grid.spacing = new Vector2(8f, 8f);
-        grid.cellSize = new Vector2(194f, 36f);
+        GridLayoutGroup grid = sectionPanel.GetComponent<GridLayoutGroup>();
+        grid.padding = new RectOffset(10, 10, 10, 10);
+        grid.spacing = new Vector2(8f, 6f);
+        grid.cellSize = new Vector2(186f, 34f);
         grid.childAlignment = TextAnchor.UpperCenter;
         grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
         grid.constraintCount = 2;
 
+        overviewButton = CreateButton(
+            sectionPanel.transform,
+            "OverviewButton",
+            "ОБЗОР",
+            () => ShowClubOverview()
+        );
+        focusButton = CreateButton(
+            sectionPanel.transform,
+            "FocusButton",
+            "ФОКУС",
+            () => FocusSelectedObject()
+        );
+
         sectionButtons = new[]
         {
-            CreateButton("ServiceButton", "СЕРВИС",
+            CreateSectionButton("ServiceButton", "СЕРВИС",
                 ManagerNavigationSection.Maintenance),
-            CreateButton("PricingButton", "ТАРИФЫ",
+            CreateSectionButton("PricingButton", "ТАРИФЫ",
                 ManagerNavigationSection.Pricing),
-            CreateButton("StockButton", "СКЛАД",
+            CreateSectionButton("StockButton", "СКЛАД",
                 ManagerNavigationSection.Stock),
-            CreateButton("MarketingButton", "МАРКЕТИНГ",
+            CreateSectionButton("MarketingButton", "МАРКЕТИНГ",
                 ManagerNavigationSection.Marketing),
-            CreateButton("InternetButton", "ИНТЕРНЕТ",
+            CreateSectionButton("InternetButton", "ИНТЕРНЕТ",
                 ManagerNavigationSection.Internet),
-            CreateButton("ResearchButton", "ИССЛЕДОВАНИЯ",
+            CreateSectionButton("ResearchButton", "ИССЛЕДОВАНИЯ",
                 ManagerNavigationSection.Research),
-            CreateButton("AnalyticsButton", "АНАЛИТИКА",
+            CreateSectionButton("AnalyticsButton", "АНАЛИТИКА",
                 ManagerNavigationSection.Analytics)
         };
+
+        buildButton = CreateButton(
+            sectionPanel.transform,
+            "BuildPCButton",
+            "СТРОИТЬ ПК",
+            () => TryBeginPCPlacement()
+        );
     }
 
-    private Button CreateButton(
+    private Button CreateSectionButton(
         string name,
         string label,
         ManagerNavigationSection section)
+    {
+        return CreateButton(
+            sectionPanel.transform,
+            name,
+            label,
+            () => TryOpenSection(section)
+        );
+    }
+
+    private static Button CreateButton(
+        Transform parent,
+        string name,
+        string label,
+        UnityAction action)
     {
         GameObject buttonObject = new GameObject(
             name,
@@ -163,7 +314,7 @@ public sealed class ManagerNavigationBar : MonoBehaviour
             typeof(Button),
             typeof(Outline)
         );
-        buttonObject.transform.SetParent(navigationRoot.transform, false);
+        buttonObject.transform.SetParent(parent, false);
 
         Button button = buttonObject.GetComponent<Button>();
         ColorBlock colors = button.colors;
@@ -173,7 +324,7 @@ public sealed class ManagerNavigationBar : MonoBehaviour
         colors.selectedColor = colors.highlightedColor;
         colors.disabledColor = new Color(0.07f, 0.09f, 0.12f, 0.82f);
         button.colors = colors;
-        button.onClick.AddListener(() => TryOpenSection(section));
+        button.onClick.AddListener(action);
 
         Outline outline = buttonObject.GetComponent<Outline>();
         outline.effectColor = new Color(0.06f, 0.44f, 0.72f, 0.72f);
@@ -196,6 +347,7 @@ public sealed class ManagerNavigationBar : MonoBehaviour
         text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         text.fontSize = 14;
         text.fontStyle = FontStyle.Bold;
+        text.text = label;
         text.color = Color.white;
         text.alignment = TextAnchor.MiddleCenter;
         text.horizontalOverflow = HorizontalWrapMode.Wrap;
@@ -218,5 +370,14 @@ public sealed class ManagerNavigationBar : MonoBehaviour
         sectionButtons[4].interactable = InternetProviderPanel.Instance != null;
         sectionButtons[5].interactable = ClubResearchPanel.Instance != null;
         sectionButtons[6].interactable = DemandAnalyticsPanel.Instance != null;
+
+        managerMode ??= FindAnyObjectByType<ManagerModeController>();
+        commandBar ??= GetComponent<ManagerCommandBar>() ??
+            FindAnyObjectByType<ManagerCommandBar>();
+        overviewButton.interactable = managerMode != null;
+        focusButton.interactable = managerMode != null &&
+            managerMode.SelectedBehaviour != null;
+        buildButton.interactable = commandBar != null &&
+            commandBar.CanPurchasePC;
     }
 }

@@ -16,6 +16,8 @@ public sealed class ManagerCommandBar : MonoBehaviour
     private Button buildButton;
     private ManagerBuildController buildController;
 
+    public bool IsVisible => barRoot != null && barRoot.activeSelf;
+
     public bool CanPurchasePC
     {
         get
@@ -61,16 +63,12 @@ public sealed class ManagerCommandBar : MonoBehaviour
 
     private void Update()
     {
-        bool hudVisible = ClubHUDCanvas.Instance == null ||
-            ClubHUDCanvas.Instance.CurrentMode != ClubHUDMode.Hidden;
-        bool placementActive = buildController != null &&
-            buildController.IsPlacing;
-        bool visible = hudVisible && !GameplayInputState.IsBlocked &&
-            !placementActive;
-
-        if (barRoot.activeSelf != visible)
+        // The build launcher now lives in the collapsible manager navigation.
+        // Placement status is rendered by ManagerBuildController only while
+        // placement is active, so this legacy bar must never occupy the HUD.
+        if (barRoot.activeSelf)
         {
-            barRoot.SetActive(visible);
+            barRoot.SetActive(false);
         }
     }
 

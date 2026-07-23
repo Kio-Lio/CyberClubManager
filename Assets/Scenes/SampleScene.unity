@@ -2506,10 +2506,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ClientFeedbackUI
   displayDuration: 3.5
   fadeDuration: 0.35
-  panelSize: {x: 540, y: 145}
-  panelOffset: {x: -20, y: -20}
-  titleFontSize: 22
-  messageFontSize: 19
+  panelSize: {x: 420, y: 112}
+  panelOffset: {x: -20, y: -204}
+  titleFontSize: 18
+  messageFontSize: 16
 --- !u!114 &748601795
 MonoBehaviour:
   m_ObjectHideFlags: 0
