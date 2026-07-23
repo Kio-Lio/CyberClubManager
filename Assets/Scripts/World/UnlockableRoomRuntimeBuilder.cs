@@ -104,6 +104,10 @@ public sealed class UnlockableRoomRuntimeBuilder : MonoBehaviour
             room.unlockCost,
             doorNode
         );
+        RoomDoorVisualPresenter presenter =
+            door.GetComponent<RoomDoorVisualPresenter>() ??
+            door.gameObject.AddComponent<RoomDoorVisualPresenter>();
+        presenter.RefreshState();
         roomManager.RegisterDoor(door);
         createdDoors[room.roomId] = door;
 

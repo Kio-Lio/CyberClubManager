@@ -13,7 +13,7 @@ public sealed class ClubCleanlinessManager : MonoBehaviour
     [SerializeField, Min(1)] private int maximumTrashPerPC = 2;
 
     [Header("Visuals")]
-    [SerializeField] private Color trashColor = new(0.45f, 0.28f, 0.10f);
+    [SerializeField] private Color trashColor = new(0.24f, 0.23f, 0.22f);
     [SerializeField] private Vector2 trashSize = new(0.28f, 0.18f);
 
     private readonly List<TrashItem> activeTrashItems = new();
@@ -178,11 +178,7 @@ public sealed class ClubCleanlinessManager : MonoBehaviour
         GameObject trashObject = new GameObject($"Trash_{trashId}");
         trashObject.transform.SetParent(trashRoot, false);
         trashObject.transform.position = position;
-        trashObject.transform.localScale = new Vector3(
-            trashSize.x,
-            trashSize.y,
-            1f
-        );
+        trashObject.transform.localScale = Vector3.one;
 
         SpriteRenderer renderer = trashObject.AddComponent<SpriteRenderer>();
         renderer.sprite = trashSprite;
@@ -191,10 +187,12 @@ public sealed class ClubCleanlinessManager : MonoBehaviour
 
         BoxCollider2D collider = trashObject.AddComponent<BoxCollider2D>();
         collider.isTrigger = true;
+        collider.size = trashSize;
         YSortRenderer.Ensure(trashObject, 5, 0f);
 
         TrashItem trash = trashObject.AddComponent<TrashItem>();
         trash.Initialize(this, trashId, sourcePCName);
+        trashObject.AddComponent<TrashVisualPresenter>();
         activeTrashItems.Add(trash);
 
         StatusChanged?.Invoke();

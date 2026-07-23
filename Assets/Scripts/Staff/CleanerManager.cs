@@ -124,7 +124,7 @@ public sealed class CleanerManager : MonoBehaviour
         }
 
         cleanerObject.transform.position = cleanerHomePosition;
-        cleanerObject.transform.localScale = new Vector3(0.55f, 0.75f, 1f);
+        cleanerObject.transform.localScale = Vector3.one;
 
         SpriteRenderer renderer = cleanerObject.GetComponent<SpriteRenderer>();
         if (renderer == null)
@@ -132,9 +132,14 @@ public sealed class CleanerManager : MonoBehaviour
             renderer = cleanerObject.AddComponent<SpriteRenderer>();
         }
         renderer.sprite = GetRuntimeSprite();
-        renderer.color = new Color(0.25f, 0.85f, 0.75f);
+        renderer.color = new Color(0.10f, 0.16f, 0.17f, 1f);
         YSortRenderer.SetSortingLayer(renderer, "World");
         YSortRenderer.Ensure(cleanerObject, 12, -0.35f);
+
+        CharacterVisualPresenter presenter =
+            cleanerObject.GetComponent<CharacterVisualPresenter>() ??
+            cleanerObject.AddComponent<CharacterVisualPresenter>();
+        presenter.ConfigureCleaner();
 
         cleanerAgent = cleanerObject.GetComponent<CleanerAgent>();
         if (cleanerAgent == null)

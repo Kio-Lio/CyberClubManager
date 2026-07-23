@@ -24,6 +24,12 @@ public sealed class CameraFollow : MonoBehaviour
     [Header("Manager View")]
     [SerializeField, Min(0f)] private float overviewPadding = 0.45f;
     [SerializeField, Min(0.1f)] private float focusOrthographicSize = 5.4f;
+    [SerializeField, Range(0f, 0.3f)]
+    private float topHudReservedFraction = 0.14f;
+    [SerializeField, Range(0f, 0.2f)]
+    private float bottomHudReservedFraction = 0.08f;
+    [SerializeField, Range(0f, 0.4f)]
+    private float focusPanelReservedFraction = 0.23f;
 
     [Header("Bounds")]
     [SerializeField] private CameraBounds2D cameraBounds;
@@ -33,6 +39,7 @@ public sealed class CameraFollow : MonoBehaviour
     private float zoomVelocity;
     private float targetOrthographicSize;
     private float gamepadZoomInput;
+    private bool useFocusComposition;
 
     public Transform Target => target;
 
@@ -44,6 +51,7 @@ public sealed class CameraFollow : MonoBehaviour
     public float ZoomSpeedMultiplier => zoomSpeedMultiplier;
     public bool IsFocused => target != null;
     public float FocusOrthographicSize => focusOrthographicSize;
+    public float FocusPanelReservedFraction => focusPanelReservedFraction;
 
     private void Awake()
     {
@@ -111,6 +119,7 @@ public sealed class CameraFollow : MonoBehaviour
 
     public void SetTarget(Transform newTarget)
     {
+        useFocusComposition = false;
         target = newTarget;
         SnapToTarget();
     }
@@ -123,6 +132,7 @@ public sealed class CameraFollow : MonoBehaviour
         }
 
         target = null;
+        useFocusComposition = false;
         transform.position = ClampCameraPosition(
             transform.position + (Vector3)worldDelta
         );
@@ -159,18 +169,13 @@ public sealed class CameraFollow : MonoBehaviour
         }
 
         target = null;
+        useFocusComposition = false;
         if (cameraBounds == null || controlledCamera == null)
         {
             ResetZoom();
             return false;
         }
 
-        Bounds bounds = cameraBounds.WorldBounds;
-        transform.position = new Vector3(
-            bounds.center.x,
-            bounds.center.y,
-            transform.position.z
-        );
         followVelocity = Vector3.zero;
         FrameBounds(overviewPadding, immediate);
         return true;
@@ -184,19 +189,19 @@ public sealed class CameraFollow : MonoBehaviour
         }
 
         target = focusTarget;
+        useFocusComposition = true;
         targetOrthographicSize = Mathf.Clamp(
             focusOrthographicSize,
             minimumOrthographicSize,
             GetBoundsLimitedMaximumSize()
         );
-        SnapToTarget();
-
         if (immediate)
         {
             controlledCamera.orthographicSize = targetOrthographicSize;
             zoomVelocity = 0f;
-            ClampCurrentPosition();
         }
+
+        SnapToTarget();
 
         return true;
     }
@@ -215,12 +220,17 @@ public sealed class CameraFollow : MonoBehaviour
         }
 
         Bounds bounds = cameraBounds.WorldBounds;
-        float verticalSize = bounds.extents.y;
-        float horizontalSize = bounds.extents.x /
+        float safeHeight = Mathf.Max(
+            0.4f,
+            1f - topHudReservedFraction - bottomHudReservedFraction
+        );
+        float verticalSize =
+            (bounds.extents.y + Mathf.Max(0f, padding)) / safeHeight;
+        float horizontalSize = (bounds.extents.x + Mathf.Max(0f, padding)) /
             Mathf.Max(0.01f, controlledCamera.aspect);
 
         targetOrthographicSize = Mathf.Clamp(
-            Mathf.Max(verticalSize, horizontalSize) + Mathf.Max(0f, padding),
+            Mathf.Max(verticalSize, horizontalSize),
             minimumOrthographicSize,
             maximumOrthographicSize
         );
@@ -231,6 +241,12 @@ public sealed class CameraFollow : MonoBehaviour
             zoomVelocity = 0f;
         }
 
+        transform.position = GetComposedCameraPosition(
+            bounds.center,
+            false,
+            targetOrthographicSize
+        );
+        followVelocity = Vector3.zero;
         ClampCurrentPosition();
     }
 
@@ -276,9 +292,44 @@ public sealed class CameraFollow : MonoBehaviour
 
     private Vector3 GetDesiredPosition()
     {
-        return new Vector3(
+        Vector2 subjectPosition = new(
             target.position.x + targetOffset.x,
-            target.position.y + targetOffset.y,
+            target.position.y + targetOffset.y
+        );
+        return GetComposedCameraPosition(
+            subjectPosition,
+            useFocusComposition,
+            controlledCamera != null
+                ? controlledCamera.orthographicSize
+                : targetOrthographicSize
+        );
+    }
+
+    private Vector3 GetComposedCameraPosition(
+        Vector2 subjectPosition,
+        bool reserveFocusPanel,
+        float orthographicSize)
+    {
+        float safeLeft = 0f;
+        float safeRight = reserveFocusPanel
+            ? 1f - focusPanelReservedFraction
+            : 1f;
+        float safeBottom = bottomHudReservedFraction;
+        float safeTop = 1f - topHudReservedFraction;
+        float safeCenterX = (safeLeft + safeRight) * 0.5f;
+        float safeCenterY = (safeBottom + safeTop) * 0.5f;
+        float aspect = controlledCamera != null
+            ? controlledCamera.aspect
+            : 1f;
+
+        float horizontalOffset =
+            (0.5f - safeCenterX) * 2f * orthographicSize * aspect;
+        float verticalOffset =
+            (0.5f - safeCenterY) * 2f * orthographicSize;
+
+        return new Vector3(
+            subjectPosition.x + horizontalOffset,
+            subjectPosition.y + verticalOffset,
             transform.position.z
         );
     }
@@ -371,19 +422,54 @@ public sealed class CameraFollow : MonoBehaviour
         float verticalExtent = controlledCamera.orthographicSize;
         float horizontalExtent = verticalExtent * controlledCamera.aspect;
 
-        float minimumX = bounds.min.x + horizontalExtent;
-        float maximumX = bounds.max.x - horizontalExtent;
-        float minimumY = bounds.min.y + verticalExtent;
-        float maximumY = bounds.max.y - verticalExtent;
+        float leftExtent = horizontalExtent;
+        float rightExtent = horizontalExtent *
+            (useFocusComposition
+                ? 1f - focusPanelReservedFraction * 2f
+                : 1f);
+        float bottomExtent = verticalExtent *
+            (1f - bottomHudReservedFraction * 2f);
+        float topExtent = verticalExtent *
+            (1f - topHudReservedFraction * 2f);
 
-        float clampedX = minimumX > maximumX
-            ? bounds.center.x
-            : Mathf.Clamp(desiredPosition.x, minimumX, maximumX);
-        float clampedY = minimumY > maximumY
-            ? bounds.center.y
-            : Mathf.Clamp(desiredPosition.y, minimumY, maximumY);
+        float clampedX = ClampComposedAxis(
+            desiredPosition.x,
+            bounds.min.x,
+            bounds.max.x,
+            leftExtent,
+            rightExtent
+        );
+        float clampedY = ClampComposedAxis(
+            desiredPosition.y,
+            bounds.min.y,
+            bounds.max.y,
+            bottomExtent,
+            topExtent
+        );
 
         return new Vector3(clampedX, clampedY, desiredPosition.z);
+    }
+
+    private static float ClampComposedAxis(
+        float desiredCenter,
+        float boundsMinimum,
+        float boundsMaximum,
+        float negativeExtent,
+        float positiveExtent)
+    {
+        float minimumCenter = boundsMinimum + negativeExtent;
+        float maximumCenter = boundsMaximum - positiveExtent;
+
+        if (minimumCenter <= maximumCenter)
+        {
+            return Mathf.Clamp(desiredCenter, minimumCenter, maximumCenter);
+        }
+
+        return Mathf.Clamp(
+            desiredCenter,
+            boundsMaximum - positiveExtent,
+            boundsMinimum + negativeExtent
+        );
     }
 
     private void NormalizeZoomSettings()
@@ -410,6 +496,17 @@ public sealed class CameraFollow : MonoBehaviour
         zoomSpeedMultiplier = Mathf.Max(0.1f, zoomSpeedMultiplier);
         overviewPadding = Mathf.Max(0f, overviewPadding);
         focusOrthographicSize = Mathf.Max(0.1f, focusOrthographicSize);
+        topHudReservedFraction = Mathf.Clamp(topHudReservedFraction, 0f, 0.3f);
+        bottomHudReservedFraction = Mathf.Clamp(
+            bottomHudReservedFraction,
+            0f,
+            0.2f
+        );
+        focusPanelReservedFraction = Mathf.Clamp(
+            focusPanelReservedFraction,
+            0f,
+            0.4f
+        );
         NormalizeZoomSettings();
     }
 }

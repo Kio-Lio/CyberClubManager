@@ -71,6 +71,26 @@ public sealed class ClubWorldVisualBootstrap : MonoBehaviour
             StylePC(pc);
         }
 
+        foreach (Client client in FindObjectsByType<Client>())
+        {
+            StyleClient(client);
+        }
+
+        foreach (CleanerAgent cleaner in FindObjectsByType<CleanerAgent>())
+        {
+            StyleCleaner(cleaner);
+        }
+
+        foreach (TrashItem trash in FindObjectsByType<TrashItem>())
+        {
+            StyleTrash(trash);
+        }
+
+        foreach (RoomDoor door in FindObjectsByType<RoomDoor>())
+        {
+            StyleDoor(door);
+        }
+
         foreach (MonoBehaviour behaviour in FindObjectsByType<MonoBehaviour>())
         {
             if (behaviour is not IInteractable ||
@@ -125,5 +145,55 @@ public sealed class ClubWorldVisualBootstrap : MonoBehaviour
         {
             pc.gameObject.AddComponent<PCVisualPresenter>();
         }
+    }
+
+    private static void StyleClient(Client client)
+    {
+        if (client == null)
+        {
+            return;
+        }
+
+        client.transform.localScale = Vector3.one;
+        CharacterVisualPresenter presenter =
+            client.GetComponent<CharacterVisualPresenter>() ??
+            client.gameObject.AddComponent<CharacterVisualPresenter>();
+        presenter.ConfigureClient(client.Type);
+    }
+
+    private static void StyleCleaner(CleanerAgent cleaner)
+    {
+        if (cleaner == null)
+        {
+            return;
+        }
+
+        cleaner.transform.localScale = Vector3.one;
+        CharacterVisualPresenter presenter =
+            cleaner.GetComponent<CharacterVisualPresenter>() ??
+            cleaner.gameObject.AddComponent<CharacterVisualPresenter>();
+        presenter.ConfigureCleaner();
+    }
+
+    private static void StyleTrash(TrashItem trash)
+    {
+        if (trash != null &&
+            trash.GetComponent<TrashVisualPresenter>() == null)
+        {
+            trash.gameObject.AddComponent<TrashVisualPresenter>();
+        }
+    }
+
+    private static void StyleDoor(RoomDoor door)
+    {
+        if (door == null)
+        {
+            return;
+        }
+
+        RoomDoorVisualPresenter presenter =
+            door.GetComponent<RoomDoorVisualPresenter>() ??
+            door.gameObject.AddComponent<RoomDoorVisualPresenter>();
+        presenter.RefreshState();
     }
 }

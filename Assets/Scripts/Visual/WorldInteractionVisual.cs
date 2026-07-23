@@ -9,6 +9,7 @@ public interface IWorldInteractionVisual
 public static class WorldVisualPrimitives
 {
     private static Sprite squareSprite;
+    private static Sprite circleSprite;
 
     public static Sprite SquareSprite
     {
@@ -42,6 +43,58 @@ public static class WorldVisualPrimitives
             }
 
             return squareSprite;
+        }
+    }
+
+    public static Sprite CircleSprite
+    {
+        get
+        {
+            if (circleSprite == null)
+            {
+                const int textureSize = 16;
+                Texture2D texture = new(
+                    textureSize,
+                    textureSize,
+                    TextureFormat.RGBA32,
+                    false
+                )
+                {
+                    filterMode = FilterMode.Point,
+                    wrapMode = TextureWrapMode.Clamp,
+                    hideFlags = HideFlags.HideAndDontSave
+                };
+
+                Color32[] pixels = new Color32[textureSize * textureSize];
+                Vector2 center = new((textureSize - 1) * 0.5f,
+                    (textureSize - 1) * 0.5f);
+                float radiusSquared = 7.25f * 7.25f;
+
+                for (int y = 0; y < textureSize; y++)
+                {
+                    for (int x = 0; x < textureSize; x++)
+                    {
+                        Vector2 offset = new(x - center.x, y - center.y);
+                        pixels[y * textureSize + x] =
+                            offset.sqrMagnitude <= radiusSquared
+                                ? Color.white
+                                : Color.clear;
+                    }
+                }
+
+                texture.SetPixels32(pixels);
+                texture.Apply(false, true);
+                circleSprite = Sprite.Create(
+                    texture,
+                    new Rect(0f, 0f, texture.width, texture.height),
+                    new Vector2(0.5f, 0.5f),
+                    texture.width
+                );
+                circleSprite.name = "RuntimeWorldCircle";
+                circleSprite.hideFlags = HideFlags.HideAndDontSave;
+            }
+
+            return circleSprite;
         }
     }
 

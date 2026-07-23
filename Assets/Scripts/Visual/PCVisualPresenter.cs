@@ -119,19 +119,20 @@ public sealed class PCVisualPresenter : MonoBehaviour,
         tierAccent = WorldVisualPrimitives.CreatePart(
             visualRoot.transform,
             "TierAccent",
-            new Vector2(0f, -0.77f),
-            new Vector2(1.18f, 0.045f),
+            new Vector2(0f, -0.765f),
+            new Vector2(0.72f, 0.026f),
             SelectionColor,
             7
         );
         statusLight = WorldVisualPrimitives.CreatePart(
             visualRoot.transform,
             "StatusLight",
-            new Vector2(0.62f, 0.58f),
-            new Vector2(0.10f, 0.10f),
+            new Vector2(0.62f, 0.56f),
+            new Vector2(0.07f, 0.07f),
             Color.cyan,
             8
         );
+        statusLight.sprite = WorldVisualPrimitives.CircleSprite;
 
         outlineParts = new[]
         {
@@ -220,9 +221,9 @@ public sealed class PCVisualPresenter : MonoBehaviour,
 
         Color stateColor = pc.State switch
         {
-            PCState.Free => new Color(0.08f, 0.72f, 1f, 1f),
-            PCState.Occupied => new Color(1f, 0.68f, 0.10f, 1f),
-            PCState.Broken => new Color(1f, 0.20f, 0.18f, 1f),
+            PCState.Free => new Color(0.18f, 0.58f, 0.72f, 0.86f),
+            PCState.Occupied => new Color(0.76f, 0.55f, 0.20f, 0.90f),
+            PCState.Broken => new Color(0.72f, 0.24f, 0.22f, 0.92f),
             _ => Color.white
         };
         workstationRenderer.color = pc.State switch
@@ -233,13 +234,13 @@ public sealed class PCVisualPresenter : MonoBehaviour,
             _ => Color.white
         };
         statusLight.color = pc.LowestEquipmentCondition < 35f && !pc.IsBroken
-            ? new Color(1f, 0.35f, 0.08f, 1f)
+            ? new Color(0.78f, 0.34f, 0.14f, 0.92f)
             : stateColor;
         tierAccent.color = pc.Tier switch
         {
-            PCTier.Basic => new Color(0.34f, 0.58f, 0.76f, 1f),
-            PCTier.Gaming => new Color(0.08f, 0.88f, 0.88f, 1f),
-            PCTier.Premium => new Color(0.76f, 0.20f, 1f, 1f),
+            PCTier.Basic => new Color(0.30f, 0.46f, 0.60f, 0.72f),
+            PCTier.Gaming => new Color(0.16f, 0.60f, 0.62f, 0.76f),
+            PCTier.Premium => new Color(0.55f, 0.30f, 0.68f, 0.78f),
             _ => SelectionColor
         };
     }

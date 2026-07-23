@@ -9,6 +9,7 @@ public sealed class TerminalVisualPresenter : MonoBehaviour,
     private SpriteRenderer accentStrip;
     private SpriteRenderer[] outlineParts;
     private WorldVisualPart[] visualParts;
+    private Transform visualRoot;
     private Color accentColor;
     private bool isHovered;
     private bool isSelected;
@@ -22,6 +23,11 @@ public sealed class TerminalVisualPresenter : MonoBehaviour,
 
     private void LateUpdate()
     {
+        if (visualRoot != null)
+        {
+            visualRoot.localScale = GetNormalizedVisualScale();
+        }
+
         if (rootRenderer == null || visualParts == null)
         {
             return;
@@ -58,78 +64,80 @@ public sealed class TerminalVisualPresenter : MonoBehaviour,
             Destroy(existing.gameObject);
         }
 
-        GameObject visualRoot = new("TerminalVisual");
-        visualRoot.transform.SetParent(transform, false);
+        GameObject visualObject = new("TerminalVisual");
+        visualObject.transform.SetParent(transform, false);
+        visualRoot = visualObject.transform;
+        visualRoot.localScale = GetNormalizedVisualScale();
 
         WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
+            visualRoot,
             "Shadow",
-            new Vector2(0.04f, -0.06f),
-            new Vector2(0.94f, 1.18f),
-            new Color(0f, 0f, 0f, 0.45f),
+            new Vector2(0.035f, -0.035f),
+            new Vector2(0.72f, 0.90f),
+            new Color(0f, 0f, 0f, 0.38f),
             0
         );
         WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
+            visualRoot,
             "Body",
-            new Vector2(0f, -0.02f),
-            new Vector2(0.76f, 1.02f),
-            new Color(0.035f, 0.055f, 0.08f, 1f),
+            new Vector2(0f, -0.01f),
+            new Vector2(0.58f, 0.76f),
+            new Color(0.045f, 0.055f, 0.07f, 1f),
             2
         );
         WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
+            visualRoot,
             "ScreenFrame",
-            new Vector2(0f, 0.20f),
-            new Vector2(0.64f, 0.48f),
+            new Vector2(0f, 0.14f),
+            new Vector2(0.50f, 0.34f),
             new Color(0.015f, 0.025f, 0.04f, 1f),
             4
         );
         screen = WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
+            visualRoot,
             "Screen",
-            new Vector2(0f, 0.22f),
-            new Vector2(0.52f, 0.34f),
-            new Color(accentColor.r, accentColor.g, accentColor.b, 0.70f),
+            new Vector2(0f, 0.15f),
+            new Vector2(0.42f, 0.23f),
+            new Color(accentColor.r, accentColor.g, accentColor.b, 0.56f),
             5
         );
         WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
+            visualRoot,
             "ScreenLineA",
-            new Vector2(-0.08f, 0.27f),
-            new Vector2(0.26f, 0.045f),
-            Color.white,
+            new Vector2(-0.055f, 0.18f),
+            new Vector2(0.20f, 0.025f),
+            new Color(1f, 1f, 1f, 0.48f),
             6
         );
         WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
+            visualRoot,
             "ScreenLineB",
-            new Vector2(0.05f, 0.17f),
-            new Vector2(0.30f, 0.045f),
-            new Color(1f, 1f, 1f, 0.72f),
+            new Vector2(0.04f, 0.11f),
+            new Vector2(0.23f, 0.025f),
+            new Color(1f, 1f, 1f, 0.34f),
             6
         );
         WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
+            visualRoot,
             "ControlPanel",
-            new Vector2(0f, -0.18f),
-            new Vector2(0.58f, 0.16f),
+            new Vector2(0f, -0.13f),
+            new Vector2(0.42f, 0.11f),
             new Color(0.08f, 0.11f, 0.15f, 1f),
             4
         );
         accentStrip = WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
+            visualRoot,
             "AccentStrip",
-            new Vector2(0f, -0.42f),
-            new Vector2(0.66f, 0.08f),
+            new Vector2(0f, -0.29f),
+            new Vector2(0.40f, 0.04f),
             accentColor,
             5
         );
         WorldVisualPrimitives.CreatePart(
-            visualRoot.transform,
+            visualRoot,
             "Base",
-            new Vector2(0f, -0.56f),
-            new Vector2(0.92f, 0.18f),
+            new Vector2(0f, -0.38f),
+            new Vector2(0.66f, 0.12f),
             new Color(0.025f, 0.035f, 0.055f, 1f),
             3
         );
@@ -137,20 +145,20 @@ public sealed class TerminalVisualPresenter : MonoBehaviour,
         outlineParts = new[]
         {
             WorldVisualPrimitives.CreatePart(
-                visualRoot.transform, "OutlineTop",
-                new Vector2(0f, 0.56f), new Vector2(0.90f, 0.045f),
+                visualRoot, "OutlineTop",
+                new Vector2(0f, 0.40f), new Vector2(0.68f, 0.035f),
                 accentColor, 10),
             WorldVisualPrimitives.CreatePart(
-                visualRoot.transform, "OutlineBottom",
-                new Vector2(0f, -0.68f), new Vector2(0.90f, 0.045f),
+                visualRoot, "OutlineBottom",
+                new Vector2(0f, -0.46f), new Vector2(0.68f, 0.035f),
                 accentColor, 10),
             WorldVisualPrimitives.CreatePart(
-                visualRoot.transform, "OutlineLeft",
-                new Vector2(-0.43f, -0.06f), new Vector2(0.045f, 1.20f),
+                visualRoot, "OutlineLeft",
+                new Vector2(-0.33f, -0.03f), new Vector2(0.035f, 0.82f),
                 accentColor, 10),
             WorldVisualPrimitives.CreatePart(
-                visualRoot.transform, "OutlineRight",
-                new Vector2(0.43f, -0.06f), new Vector2(0.045f, 1.20f),
+                visualRoot, "OutlineRight",
+                new Vector2(0.33f, -0.03f), new Vector2(0.035f, 0.82f),
                 accentColor, 10)
         };
 
@@ -167,34 +175,44 @@ public sealed class TerminalVisualPresenter : MonoBehaviour,
     {
         if (GetComponent<PCExpansionTerminal>() != null)
         {
-            return new Color(0.05f, 0.72f, 1f, 1f);
+            return new Color(0.20f, 0.55f, 0.75f, 0.88f);
         }
         if (GetComponent<PCMaintenanceTerminal>() != null)
         {
-            return new Color(0.12f, 0.92f, 0.52f, 1f);
+            return new Color(0.22f, 0.60f, 0.43f, 0.88f);
         }
         if (GetComponent<PricingTerminal>() != null)
         {
-            return new Color(0.68f, 0.28f, 1f, 1f);
+            return new Color(0.48f, 0.34f, 0.68f, 0.88f);
         }
         if (GetComponent<ConsumableStockTerminal>() != null)
         {
-            return new Color(1f, 0.48f, 0.10f, 1f);
+            return new Color(0.64f, 0.42f, 0.22f, 0.88f);
         }
         if (GetComponent<MarketingTerminal>() != null)
         {
-            return new Color(1f, 0.80f, 0.10f, 1f);
+            return new Color(0.67f, 0.57f, 0.22f, 0.88f);
         }
         if (GetComponent<InternetProviderTerminal>() != null)
         {
-            return new Color(0.08f, 0.84f, 0.86f, 1f);
+            return new Color(0.24f, 0.58f, 0.60f, 0.88f);
         }
         if (GetComponent<ClubResearchTerminal>() != null)
         {
-            return new Color(0.92f, 0.22f, 0.78f, 1f);
+            return new Color(0.62f, 0.32f, 0.58f, 0.88f);
         }
 
-        return new Color(0.30f, 0.68f, 1f, 1f);
+        return new Color(0.32f, 0.52f, 0.66f, 0.88f);
+    }
+
+    private Vector3 GetNormalizedVisualScale()
+    {
+        Vector3 worldScale = transform.lossyScale;
+        return new Vector3(
+            0.78f / Mathf.Max(0.01f, Mathf.Abs(worldScale.x)),
+            0.82f / Mathf.Max(0.01f, Mathf.Abs(worldScale.y)),
+            1f
+        );
     }
 
     private void RefreshOutline()
@@ -220,7 +238,7 @@ public sealed class TerminalVisualPresenter : MonoBehaviour,
 
         if (screen != null)
         {
-            float alpha = isSelected ? 1f : isHovered ? 0.88f : 0.70f;
+            float alpha = isSelected ? 0.92f : isHovered ? 0.74f : 0.56f;
             screen.color = new Color(
                 accentColor.r,
                 accentColor.g,
@@ -230,7 +248,9 @@ public sealed class TerminalVisualPresenter : MonoBehaviour,
         }
         if (accentStrip != null)
         {
-            accentStrip.color = isSelected ? Color.white : accentColor;
+            accentStrip.color = isSelected
+                ? new Color(0.82f, 0.90f, 0.96f, 0.92f)
+                : accentColor;
         }
     }
 }

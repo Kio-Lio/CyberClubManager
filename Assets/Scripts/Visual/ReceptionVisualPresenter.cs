@@ -4,7 +4,7 @@ using UnityEngine;
 public sealed class ReceptionVisualPresenter : MonoBehaviour
 {
     private const string ResourcePath = "World/Reception";
-    private const float PixelsPerUnit = 330f;
+    private const float PixelsPerUnit = 310f;
 
     private SpriteRenderer spriteRenderer;
     private Sprite receptionSprite;

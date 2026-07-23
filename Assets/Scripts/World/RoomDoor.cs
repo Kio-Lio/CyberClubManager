@@ -18,9 +18,9 @@ public sealed class RoomDoor : MonoBehaviour, IInteractable
 
     [Header("Visuals")]
     [SerializeField] private Color lockedColor =
-        new Color(0.55f, 0.12f, 0.12f);
+        new Color(0.15f, 0.14f, 0.13f);
     [SerializeField] private Color unlockedColor =
-        new Color(0.15f, 0.55f, 0.25f);
+        new Color(0.12f, 0.18f, 0.17f);
 
     private SpriteRenderer spriteRenderer;
     private BoxCollider2D doorCollider;
@@ -152,7 +152,8 @@ public sealed class RoomDoor : MonoBehaviour, IInteractable
         if (spriteRenderer != null)
         {
             spriteRenderer.color = isUnlocked ? unlockedColor : lockedColor;
-            spriteRenderer.enabled = !isUnlocked;
+            spriteRenderer.enabled = !isUnlocked &&
+                GetComponent<RoomDoorVisualPresenter>() == null;
         }
 
         if (doorCollider != null)
@@ -164,6 +165,8 @@ public sealed class RoomDoor : MonoBehaviour, IInteractable
         {
             doorNavigationNode.SetWalkable(isUnlocked);
         }
+
+        GetComponent<RoomDoorVisualPresenter>()?.RefreshState();
     }
 
     private void OnValidate()

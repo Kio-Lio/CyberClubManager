@@ -30,13 +30,6 @@ public sealed class ClientSpawner : MonoBehaviour
     [SerializeField] private float gamerPatience = 18f;
     [SerializeField] private float vipPatience = 22f;
 
-    [Header("Client Visuals")]
-    [SerializeField] private Color regularColor = Color.cyan;
-    [SerializeField] private Color gamerColor =
-        new Color(0.3f, 0.9f, 0.35f);
-    [SerializeField] private Color vipColor =
-        new Color(1f, 0.65f, 0.15f);
-
     [Header("Testing")]
     [SerializeField] private bool forceClientType;
     [SerializeField] private ClientType forcedClientType;
@@ -242,11 +235,11 @@ public sealed class ClientSpawner : MonoBehaviour
             $"Client_{clientType}_{++clientNumber:00}"
         );
         clientObject.transform.position = transform.position;
-        clientObject.transform.localScale = new Vector3(0.6f, 0.6f, 1f);
+        clientObject.transform.localScale = Vector3.one;
 
         SpriteRenderer spriteRenderer = clientObject.AddComponent<SpriteRenderer>();
         spriteRenderer.sprite = GetGeneratedClientSprite();
-        spriteRenderer.color = GetClientColor(clientType);
+        spriteRenderer.color = new Color(0.10f, 0.12f, 0.16f, 1f);
         YSortRenderer.SetSortingLayer(spriteRenderer, "World");
 
         YSortRenderer ySort = clientObject.AddComponent<YSortRenderer>();
@@ -262,6 +255,10 @@ public sealed class ClientSpawner : MonoBehaviour
             GetQueuePosition(waitingClients.Count),
             priceTolerance
         );
+
+        CharacterVisualPresenter presenter =
+            clientObject.AddComponent<CharacterVisualPresenter>();
+        presenter.ConfigureClient(clientType);
 
         waitingClients.Add(client);
         QueueChanged?.Invoke();
@@ -519,17 +516,6 @@ public sealed class ClientSpawner : MonoBehaviour
         int minimum = Mathf.Min(range.x, range.y);
         int maximum = Mathf.Max(range.x, range.y);
         return UnityEngine.Random.Range(minimum, maximum + 1);
-    }
-
-    private Color GetClientColor(ClientType type)
-    {
-        return type switch
-        {
-            ClientType.Regular => regularColor,
-            ClientType.Gamer => gamerColor,
-            ClientType.VIP => vipColor,
-            _ => regularColor
-        };
     }
 
     private Sprite GetGeneratedClientSprite()
